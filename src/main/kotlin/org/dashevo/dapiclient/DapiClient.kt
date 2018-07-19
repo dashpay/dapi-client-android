@@ -8,10 +8,7 @@ package org.dashevo.dapiclient
 
 import com.google.gson.Gson
 import com.google.gson.JsonParser
-import org.dashevo.dapiclient.callback.PostDapCallback
-import org.dashevo.dapiclient.callback.CreateUserCallback
-import org.dashevo.dapiclient.callback.GetUserCallback
-import org.dashevo.dapiclient.callback.SearchUsersCallback
+import org.dashevo.dapiclient.callback.*
 import org.dashevo.dapiclient.model.BlockchainUser
 import org.dashevo.dapiclient.model.BlockchainUserContainer
 import org.dashevo.dapiclient.model.SubTx
@@ -34,11 +31,15 @@ class DapiClient(masterNodeIP: String) {
     private val dapiService: DapiService
     private val gson = Gson()
     private var dapContract = JSONObject()
+    private var dapContext = JSONObject()
     private var currentUser: BlockchainUser? = null
 
     companion object {
-        const val MN_DAPI_PORT = "8080"
-        const val PVER = 1
+        private const val MN_DAPI_PORT = "8080"
+        private const val PVER = 1
+        private const val CREATE_OBJECT_ACTION = 1
+        private const val UPDATE_OBJECT_ACTION = 2
+        private const val REMOVE_OBJECT_ACTION = 3
     }
 
     init {
@@ -49,7 +50,6 @@ class DapiClient(masterNodeIP: String) {
         dapiService = retrofit.create(DapiService::class.java)
         //TODO: For testing only
         dapContract = JSONObject(File(DapiClient::class.java.getResource("/dashpay-dapcontract.json").path).readText())
-
     }
 
     /**
@@ -79,6 +79,22 @@ class DapiClient(masterNodeIP: String) {
         return dapContract.getJSONObject("dapcontract").getJSONObject("dapschema")
     }
 
+    private fun checkAuth(cb: BaseCallback): Boolean {
+        if (currentUser?.uid == null) {
+            cb.onError("User session null or invalid")
+            return false
+        }
+        return true
+    }
+
+    private fun checkDap(cb: BaseCallback): Boolean {
+        if (!Validate.validateDapContract(dapContract).valid) {
+            cb.onError("Invalid DAP Contract. Please check that a valid DAP Contract was set before this call.")
+            return false
+        }
+        return true
+    }
+
     /**
      * Creates a blockchain user
      * @param userName
@@ -86,6 +102,8 @@ class DapiClient(masterNodeIP: String) {
      * @param cb callback, instance of {@link CreateUserCallback}
      */
     fun createUser(userName: String, pubKey: String, cb: CreateUserCallback) {
+        //TODO: Receive privateKey and derive pubKey from it instead of receiving pubKey directly
+        //TODO: Add sig meta: sig is a sign of the id using the privkey
         val subTx = SubTx(PVER, userName, pubKey)
         val subTxJSON  = createJSONContainer("subtx", JSONObject(gson.toJson(subTx)))
         val userId = Object.setID(subTxJSON)
@@ -206,8 +224,7 @@ class DapiClient(masterNodeIP: String) {
      * @param cb callback, instance of {@link PostDapCallback}
      */
     fun commitSingleObject(schemaObject: JSONObject, cb: PostDapCallback) {
-        if (currentUser?.uid == null) {
-            cb.onError("User session null or invalid")
+        if (!(checkAuth(cb) && checkDap(cb))) {
             return
         }
 
@@ -255,6 +272,33 @@ class DapiClient(masterNodeIP: String) {
         }, { throwable ->
             cb.onError(throwable.localizedMessage)
         })
+    }
+
+    fun addObject(schemaObject: JSONObject, cb: PostDapCallback) {
+        schemaObject.put("act", CREATE_OBJECT_ACTION)
+        schemaObject.put("rev", 0)
+
+        // get the max idx
+        // TODO: account for dapContext download in progress
+        val idx = dapContext.optInt("maxidx", 0)
+        schemaObject.put("idx", idx)
+
+        commitSingleObject(schemaObject, cb)
+    }
+
+    fun updateObject(schemaObject: JSONObject, cb: PostDapCallback) {
+        schemaObject.put("act", UPDATE_OBJECT_ACTION)
+        schemaObject.put("rev", schemaObject.getInt("rev") + 1)
+
+        commitSingleObject(schemaObject, cb)
+    }
+
+    fun removeObject(schemaObject: JSONObject, cb: PostDapCallback) {
+        schemaObject.put("act", REMOVE_OBJECT_ACTION)
+        schemaObject.put("rev", schemaObject.getInt("rev") + 1)
+        schemaObject.put("hdextpubkey", "")
+
+        commitSingleObject(schemaObject, cb)
     }
 
 }
