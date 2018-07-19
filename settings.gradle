@@ -1,0 +1,3 @@
+rootProject.name = 'dapi-client'
+include ':schema'
+project(':schema').projectDir = new File("../dash-schema-android")
