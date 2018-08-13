@@ -10,7 +10,7 @@ package org.dashevo.dapiclient.model
 data class BlockchainUser(
         val pver: Int,
         val uname: String,
-        val uid: String,
+        val buid: String,
         val pubkey: String,
         val credits: Int,
         val meta: Meta

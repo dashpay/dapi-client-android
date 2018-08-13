@@ -9,6 +9,12 @@ buildscript {
     }
 }
 
+allprojects {
+    repositories {
+        maven { url 'https://jitpack.io' }
+    }
+}
+
 group 'org.dashevo'
 version '1.0-SNAPSHOT'
 

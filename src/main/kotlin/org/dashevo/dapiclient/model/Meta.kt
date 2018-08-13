@@ -6,7 +6,7 @@
  */
 
 package org.dashevo.dapiclient.model
-//TODO: Separate into different type of metas (objectbase, etc), Check System Schema. (?)
+//TODO: * Separate into different type of metas (objectbase, etc), Check System Schema. (?)
 data class Meta(
         val id: String?,
         val sig: String?,

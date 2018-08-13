@@ -8,9 +8,12 @@ package org.dashevo.dapiclient
 
 import com.google.gson.Gson
 import com.google.gson.JsonParser
+import okhttp3.OkHttpClient
 import org.dashevo.dapiclient.callback.*
+import org.dashevo.dapiclient.extensions.enqueue
 import org.dashevo.dapiclient.model.BlockchainUser
 import org.dashevo.dapiclient.model.BlockchainUserContainer
+import org.dashevo.dapiclient.model.DapSpace
 import org.dashevo.dapiclient.model.SubTx
 import org.dashevo.dapiclient.rest.DapiService
 import org.dashevo.schema.Create
@@ -18,50 +21,35 @@ import org.dashevo.schema.Object
 import org.dashevo.schema.Validate
 import org.json.JSONArray
 import org.json.JSONObject
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import java.io.File
+import java.util.concurrent.TimeUnit
 
-class DapiClient(masterNodeIP: String) {
+class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) {
 
     private val retrofit: Retrofit
     private val dapiService: DapiService
     private val gson = Gson()
     private var dapContract = JSONObject()
-    private var dapContext = JSONObject()
+    private var dapContext: DapSpace? = null
     private var currentUser: BlockchainUser? = null
 
     companion object {
-        private const val MN_DAPI_PORT = "8080"
         private const val PVER = 1
-        private const val CREATE_OBJECT_ACTION = 1
-        private const val UPDATE_OBJECT_ACTION = 2
-        private const val REMOVE_OBJECT_ACTION = 3
     }
 
     init {
+        val debugOkHttpClient = OkHttpClient.Builder()
+                .connectTimeout(1, TimeUnit.MINUTES)
+                .readTimeout(1, TimeUnit.MINUTES)
+                .writeTimeout(1, TimeUnit.MINUTES)
+                .build()
         retrofit = Retrofit.Builder()
                 .addConverterFactory(GsonConverterFactory.create())
-                .baseUrl("http://$masterNodeIP:$MN_DAPI_PORT/")
+                .baseUrl("http://$mnIP:$mnDapiPort/")
+                .client(if (debug) debugOkHttpClient else OkHttpClient())
                 .build()
         dapiService = retrofit.create(DapiService::class.java)
-        //TODO: For testing only
-        dapContract = JSONObject(File(DapiClient::class.java.getResource("/dashpay-dapcontract.json").path).readText())
-    }
-
-    /**
-     * Extension function to modify retrofit callback to use lambdas
-     */
-    private fun <T> Call<T>.enqueue(success: (response: Response<T>) -> Unit,
-                                    failure: (t: Throwable) -> Unit) {
-        enqueue(object : Callback<T> {
-            override fun onResponse(call: Call<T>?, response: Response<T>) = success(response)
-
-            override fun onFailure(call: Call<T>?, t: Throwable) = failure(t)
-        })
     }
 
     /**
@@ -80,7 +68,7 @@ class DapiClient(masterNodeIP: String) {
     }
 
     private fun checkAuth(cb: BaseCallback): Boolean {
-        if (currentUser?.uid == null) {
+        if (currentUser?.buid == null) {
             cb.onError("User session null or invalid")
             return false
         }
@@ -102,35 +90,74 @@ class DapiClient(masterNodeIP: String) {
      * @param cb callback, instance of {@link CreateUserCallback}
      */
     fun createUser(userName: String, pubKey: String, cb: CreateUserCallback) {
-        //TODO: Receive privateKey and derive pubKey from it instead of receiving pubKey directly
-        //TODO: Add sig meta: sig is a sign of the id using the privkey
+        //TODO: * Add sig meta
         val subTx = SubTx(PVER, userName, pubKey)
         val subTxJSON  = createJSONContainer("subtx", JSONObject(gson.toJson(subTx)))
         val userId = Object.setID(subTxJSON)
         val valid = Validate.validateSubTx(subTxJSON)
-        val body = JsonParser().parse(subTxJSON.toString()).asJsonObject
-        if (valid.valid) {
-            dapiService.createUser(body).enqueue({ response ->
-                if (response.isSuccessful) {
-                    cb.onSuccess(response.body()!!.txId, userId)
-                    getUser(userId, object : GetUserCallback {
-                        override fun onSuccess(blockchainUserContainer: BlockchainUserContainer) {
-                            currentUser = blockchainUserContainer.blockchainuser
-                        }
 
-                        override fun onError(errorMessage: String) {
-
-                        }
-                    })
-                } else {
-                    cb.onError(response.message())
-                }
-            }, { throwable ->
-                cb.onError(throwable.localizedMessage)
-            })
-        } else {
-            cb.onError(valid.errMsg!!)
+        if (!valid.valid) {
+            return cb.onError(valid.errMsg!!)
         }
+
+        val body = JsonParser().parse(subTxJSON.toString()).asJsonObject
+        dapiService.createUser(body).enqueue({ response ->
+            if (response.isSuccessful) {
+                cb.onSuccess(response.body()!!.txId, userId)
+            } else {
+                cb.onError(response.message())
+            }
+        }, { throwable ->
+            cb.onError(throwable.localizedMessage)
+        })
+    }
+
+    /**
+     * Fetch user by [username] and the DAP Context for given user if [dapContract] is set.
+     * @param cb [LoginCallback]
+     */
+    fun login(username: String, cb: LoginCallback) {
+        getUser(username, object : GetUserCallback {
+            override fun onSuccess(blockchainUserContainer: BlockchainUserContainer) {
+                val blockchainUser = blockchainUserContainer.blockchainuser
+                currentUser = blockchainUser
+
+                val valid = Validate.validateBlockchainUser(JSONObject(gson.toJson(blockchainUserContainer)))
+                if (!valid.valid) {
+                    cb.onError(valid.errMsg!!)
+                    return
+                }
+
+                if (!checkDap(cb)) {
+                    cb.onSuccess(blockchainUser)
+                    return
+                }
+
+                try {
+                    val dapContextResponse = dapiService.getDapContext(getDapContractId()!!,
+                            blockchainUser.buid).execute()
+                    if (dapContextResponse.isSuccessful) {
+                        dapContext = dapContextResponse.body()
+                    }
+                } catch (e: Exception) {
+                    println("Login successful but failed to get user DAP Context")
+                } finally {
+                    cb.onSuccess(blockchainUser)
+                }
+            }
+
+            override fun onError(errorMessage: String) {
+                cb.onError(errorMessage)
+            }
+        })
+    }
+
+    /**
+     * Logout, reset [currentUser] and [dapContext]
+     */
+    fun logout() {
+        currentUser = null
+        dapContext = null
     }
 
     /**
@@ -173,17 +200,14 @@ class DapiClient(masterNodeIP: String) {
      * Create a DAP
      * @param dapSchema Schema for the DAP being Created
      * @param userId id of the blockchainuser creating it
-     * @param cb callback, instance of {@link PostDapCallback}
+     * @param cb callback, instance of {@link DapCallback}
      */
-    fun createDap(dapSchema: JSONObject, userId: String, cb: PostDapCallback) {
+    fun createDap(dapSchema: JSONObject, userId: String, cb: DapCallback) {
         val dapContract = Create.createDapContract(dapSchema)
 
         val stPacket = Create.createSTPacketInstance()
-        //TODO: Find a better way to access/set properties without dealing with JSON keys directly (?)
         stPacket.getJSONObject(Object.STPACKET).put("dapcontract", dapContract.getJSONObject("dapcontract"))
-        /*stPacket.getJSONObject(Object.STPACKET).put("dapid", dapContract.getJSONObject("dapcontract")
-                .getJSONObject("meta").getString("id"))*/
-        Object.setID(stPacket, dapSchema) //TODO without dapSchema on JS Lib (?)
+        Object.setID(stPacket, dapSchema)
 
         val stPacketIsValid = Validate.validateSTPacket(stPacket)
         if (!stPacketIsValid.valid) {
@@ -191,10 +215,7 @@ class DapiClient(masterNodeIP: String) {
             return
         }
 
-        val pakId = stPacket.getJSONObject(Object.STPACKET).getJSONObject("meta").getString("id")
-        val stHeader = Create.createSTHeaderInstance(pakId, userId)
-        val dapId = Object.setID(stHeader)
-
+        val stHeader = Create.createSTHeaderInstance(stPacket, userId)
         val stHeaderIsValid = Validate.validateSTHeader(stHeader)
         if (!stHeaderIsValid.valid) {
             cb.onError(stHeaderIsValid.errMsg!!)
@@ -204,12 +225,29 @@ class DapiClient(masterNodeIP: String) {
         val dap = JSONObject()
         dap.put("ts", stHeader)
         dap.put("tsp", stPacket)
-        println(dap)
-        dapiService.postDap(JsonParser().parse(dap.toString()).asJsonObject).enqueue({response ->
+
+        dapiService.postDap(JsonParser().parse(dap.toString()).asJsonObject).enqueue({ response ->
             if (response.isSuccessful) {
-                //TODO: Check if we need to fetch DAP Contract or if just to assign it is ok
+                val txId = response.body()!!.txId
+                Object.setMeta(dapContract, "dapid", txId)
                 this@DapiClient.dapContract = dapContract
-                cb.onSuccess(dapId, response.body()!!.txId)
+                cb.onSuccess(txId)
+            } else {
+                cb.onError(response.message())
+            }
+        }, { throwable ->
+            cb.onError(throwable.localizedMessage)
+        })
+    }
+
+    /**
+     * Load DAP and assign it to [dapContract]
+     */
+    fun getDap(dapId: String, cb: DapCallback) {
+        dapiService.getDap(dapId).enqueue({ response ->
+            if (response.isSuccessful) {
+                dapContract = JSONObject(response.body()!!.toString())
+                cb.onSuccess(dapId)
             } else {
                 cb.onError(response.message())
             }
@@ -221,49 +259,54 @@ class DapiClient(masterNodeIP: String) {
     /**
      * Commit a Single Object update to a DAP Space
      * @param schemaObject object containing the update
-     * @param cb callback, instance of {@link PostDapCallback}
+     * @param cb callback, instance of {@link DapCallback}
      */
-    fun commitSingleObject(schemaObject: JSONObject, cb: PostDapCallback) {
+    fun commitSingleObject(schemaObject: JSONObject, cb: CommitDapObjectCallback) {
         if (!(checkAuth(cb) && checkDap(cb))) {
             return
         }
 
+        val dapId = getDapContractId()
+
         //Create a packet:
         val stPacketContainer = Create.createSTPacketInstance()
         val stPacket = stPacketContainer.getJSONObject(Object.STPACKET)
+
         val tsp = JSONObject()
         tsp.put(Object.STPACKET, stPacketContainer)
 
-        val dapId = getDapContractId()
-
+        //Add schemaObject to dapobjects array
         val dapObjects = JSONArray()
         dapObjects.put(schemaObject)
 
         stPacket.put(Object.DAPOBJECTS, dapObjects)
-        stPacket.put("dapobjmerkleroot", "")
+        stPacket.put("dapobjectshash", "")
         stPacket.put("dapid", dapId)
-        val stPacketId = Object.setID(stPacket, getDapContractSchema())
+        Object.setID(stPacket, getDapContractSchema())
 
+        val ts = Create.createSTHeaderInstance(stPacketContainer, currentUser!!.buid)
+        Object.setID(ts)
+
+        //TODO: * STPacket/STHeader validation seems to have an issue on DashSchema.JS that might be related with how avj on js doesn't fetch $ref schemas
+        /*
         val validStp = Validate.validateSTPacket(stPacketContainer, getDapContractSchema())
         if (!validStp.valid) {
             cb.onError("Invalid STPacket: $stPacket")
             return
         }
 
-        val ts = Create.createSTHeaderInstance(stPacketId, currentUser!!.uid)
-        Object.setID(ts)
-
         val validTs = Validate.validateSTHeader(ts)
         if (!validTs.valid) {
             cb.onError("Invalid STHeader: $ts")
             return
         }
+        */
 
-        val dap = JSONObject()
-        dap.put("ts", ts)
-        dap.put("tsp", stPacketContainer)
+        val dapObject = JSONObject()
+        dapObject.put("ts", ts)
+        dapObject.put("tsp", stPacketContainer)
 
-        dapiService.postDap(JsonParser().parse(dap.toString()).asJsonObject).enqueue({response ->
+        dapiService.postDap(JsonParser().parse(dapObject.toString()).asJsonObject).enqueue({ response ->
             if (response.isSuccessful) {
                 cb.onSuccess(dapId!!, response.body()!!.txId)
             } else {
@@ -274,30 +317,52 @@ class DapiClient(masterNodeIP: String) {
         })
     }
 
-    fun addObject(schemaObject: JSONObject, cb: PostDapCallback) {
-        schemaObject.put("act", CREATE_OBJECT_ACTION)
-        schemaObject.put("rev", 0)
+    /**
+     * Get User data in a DAP
+     */
+    fun getDapSpace(cb: GetDapSpaceCallback) {
+        if (!(checkAuth(cb) && checkDap(cb))) {
+            return
+        }
 
-        // get the max idx
-        // TODO: account for dapContext download in progress
-        val idx = dapContext.optInt("maxidx", 0)
-        schemaObject.put("idx", idx)
+        val dapId = getDapContractId()!!
+        val buId = currentUser!!.buid
 
-        commitSingleObject(schemaObject, cb)
+        dapiService.getDapSpace(dapId, buId).enqueue({ response ->
+            if (response.isSuccessful && response.body() != null) {
+                cb.onSuccess(response.body()!!)
+            } else {
+                cb.onError(response.message())
+            }
+        }, { throwable ->
+            cb.onError(throwable.localizedMessage)
+        })
     }
 
-    fun updateObject(schemaObject: JSONObject, cb: PostDapCallback) {
-        schemaObject.put("act", UPDATE_OBJECT_ACTION)
-        schemaObject.put("rev", schemaObject.getInt("rev") + 1)
+    /**
+     * Get User data and it's related data in a DAP
+     */
+    fun getDapContext(cb: GetDapSpaceCallback) {
+        if (!(checkAuth(cb) && checkDap(cb))) {
+            return
+        }
 
-        commitSingleObject(schemaObject, cb)
+        val dapId = getDapContractId()!!
+        val buId = currentUser!!.buid
+
+        dapiService.getDapSpace(dapId, buId).enqueue({ response ->
+            if (response.isSuccessful && response.body() != null) {
+                cb.onSuccess(response.body()!!)
+            } else {
+                cb.onError(response.message())
+            }
+        }, { throwable ->
+            cb.onError(throwable.localizedMessage)
+        })
     }
 
-    fun removeObject(schemaObject: JSONObject, cb: PostDapCallback) {
-        schemaObject.put("act", REMOVE_OBJECT_ACTION)
-        schemaObject.put("rev", schemaObject.getInt("rev") + 1)
-        schemaObject.put("hdextpubkey", "")
-
+    fun removeObject(schemaObject: JSONObject, cb: CommitDapObjectCallback) {
+        Object.prepareForRemoval(schemaObject)
         commitSingleObject(schemaObject, cb)
     }
 

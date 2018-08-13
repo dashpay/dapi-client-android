@@ -8,6 +8,8 @@ package org.dashevo.dapiclient.rest
 
 import com.google.gson.JsonObject
 import org.dashevo.dapiclient.model.BlockchainUserContainer
+import org.dashevo.dapiclient.model.DapContext
+import org.dashevo.dapiclient.model.DapSpace
 import org.dashevo.dapiclient.model.TxId
 import retrofit2.Call
 import retrofit2.http.Body
@@ -28,5 +30,14 @@ interface DapiService {
 
     @POST("dap")
     fun postDap(@Body dapUpdate: JsonObject): Call<TxId>
+
+    @GET("dap/{dapId}")
+    fun getDap(@Path("dapId") dapId: String): Call<JsonObject>
+
+    @GET("dap/space/{dapId}/{buId}")
+    fun getDapSpace(@Path("dapId") dapId: String, @Path("buId") buId: String) : Call<DapSpace>
+
+    @GET("dap/context/{dapId}/{buId}")
+    fun getDapContext(@Path("dapId") dapId: String, @Path("buId") buId: String) : Call<DapContext>
 
 }
