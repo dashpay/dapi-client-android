@@ -11,10 +11,7 @@ import com.google.gson.JsonParser
 import okhttp3.OkHttpClient
 import org.dashevo.dapiclient.callback.*
 import org.dashevo.dapiclient.extensions.enqueue
-import org.dashevo.dapiclient.model.BlockchainUser
-import org.dashevo.dapiclient.model.BlockchainUserContainer
-import org.dashevo.dapiclient.model.DapSpace
-import org.dashevo.dapiclient.model.SubTx
+import org.dashevo.dapiclient.model.*
 import org.dashevo.dapiclient.rest.DapiService
 import org.dashevo.schema.Create
 import org.dashevo.schema.Object
@@ -25,7 +22,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
-class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) {
+open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) {
 
     private val retrofit: Retrofit
     private val dapiService: DapiService
@@ -67,17 +64,17 @@ class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) {
         return dapContract.getJSONObject("dapcontract").getJSONObject("dapschema")
     }
 
-    private fun checkAuth(cb: BaseCallback): Boolean {
+    internal fun checkAuth(cb: BaseCallback? = null): Boolean {
         if (currentUser?.buid == null) {
-            cb.onError("User session null or invalid")
+            cb?.onError("User session null or invalid")
             return false
         }
         return true
     }
 
-    private fun checkDap(cb: BaseCallback): Boolean {
+    internal fun checkDap(cb: BaseCallback? = null): Boolean {
         if (!Validate.validateDapContract(dapContract).valid) {
-            cb.onError("Invalid DAP Contract. Please check that a valid DAP Contract was set before this call.")
+            cb?.onError("Invalid DAP Contract. Please check that a valid DAP Contract was set before this call.")
             return false
         }
         return true
@@ -128,7 +125,7 @@ class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) {
                     return
                 }
 
-                if (!checkDap(cb)) {
+                if (!checkDap()) {
                     cb.onSuccess(blockchainUser)
                     return
                 }
@@ -320,7 +317,7 @@ class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) {
     /**
      * Get User data in a DAP
      */
-    fun getDapSpace(cb: GetDapSpaceCallback) {
+    fun getDapSpace(cb: GetDapSpaceCallback<DapSpace>) {
         if (!(checkAuth(cb) && checkDap(cb))) {
             return
         }
@@ -342,7 +339,7 @@ class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) {
     /**
      * Get User data and it's related data in a DAP
      */
-    fun getDapContext(cb: GetDapSpaceCallback) {
+    fun getDapContext(cb: GetDapSpaceCallback<DapContext>) {
         if (!(checkAuth(cb) && checkDap(cb))) {
             return
         }
@@ -350,7 +347,7 @@ class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) {
         val dapId = getDapContractId()!!
         val buId = currentUser!!.buid
 
-        dapiService.getDapSpace(dapId, buId).enqueue({ response ->
+        dapiService.getDapContext(dapId, buId).enqueue({ response ->
             if (response.isSuccessful && response.body() != null) {
                 cb.onSuccess(response.body()!!)
             } else {

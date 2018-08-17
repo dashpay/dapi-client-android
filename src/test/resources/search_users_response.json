@@ -1,0 +1,14 @@
+[
+  {
+    "blockchainuser": {
+      "pver": 1,
+      "uname": "alice",
+      "buid": "87153bca4e5a0c449061dc54696cb951488575b4d8964f0e54243c8336fc39fb",
+      "pubkey": "024964f06ea5cfec1890d7e526653b083c12360f79164c1e8163327d0849fa7bca",
+      "credits": 100000,
+      "meta": {
+        "height": 2
+      }
+    }
+  }
+]
