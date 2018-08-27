@@ -7,16 +7,19 @@ import org.dashevo.dapiclient.callback.*
 import org.dashevo.dapiclient.model.BlockchainUserContainer
 import org.dashevo.dapiclient.model.DapContext
 import org.dashevo.dapiclient.model.DapSpace
-import org.json.JSONObject
+import org.dashevo.schema.Schema
+import org.dashevo.schema.SchemaLoader
+import org.jsonorg.JSONObject
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import java.io.File
 
 
 @DisplayName("Dapi Client Tests")
 class DapiClientTest : BaseTest() {
 
-    val sleepTime = 500L
+    val sleepTime = 100L
     val username = "alice"
     val userId = "87153bca4e5a0c449061dc54696cb951488575b4d8964f0e54243c8336fc39fb"
     val pubKey = "024964f06ea5cfec1890d7e526653b083c12360f79164c1e8163327d0849fa7bca"
@@ -25,6 +28,16 @@ class DapiClientTest : BaseTest() {
         val mockWebServer = MockWebServer()
         init {
             mockWebServer.start(8080)
+
+            Schema.schemaLoader = object : SchemaLoader {
+                override fun loadJsonSchema(): JSONObject {
+                    return JSONObject(File(Schema::class.java.getResource("/schema_v7.json").path).readText())
+                }
+
+                override fun loadDashSystemSchema(): JSONObject {
+                    return JSONObject(File(Schema::class.java.getResource("/dash_system_schema.json").path).readText())
+                }
+            }
         }
     }
 
@@ -73,7 +86,7 @@ class DapiClientTest : BaseTest() {
         fun searchUser() {
             enqueueRestCall("search_users_response", 200)
 
-            val cbMock = mock<SearchUsersCallback>()
+            val cbMock = mock<UsersCallback>()
             createDapiClient().searchUsers("ali", cbMock)
 
             Thread.sleep(sleepTime)
@@ -89,7 +102,7 @@ class DapiClientTest : BaseTest() {
         fun searchUserEmpty() {
             enqueueRestCall("search_users_empty_response", 200)
 
-            val cbMock = mock<SearchUsersCallback>()
+            val cbMock = mock<UsersCallback>()
             createDapiClient().searchUsers("bob", cbMock)
 
             Thread.sleep(sleepTime)
@@ -105,7 +118,7 @@ class DapiClientTest : BaseTest() {
         fun searchUserError() {
             enqueueRestCall("get_user_response_error", 400)
 
-            val cbMock = mock<SearchUsersCallback>()
+            val cbMock = mock<UsersCallback>()
             createDapiClient().searchUsers("bob", cbMock)
 
             Thread.sleep(sleepTime)
@@ -361,6 +374,7 @@ class DapiClientTest : BaseTest() {
 
             //Send Dap Object
             enqueueRestCall("send_dapobject_response", 200)
+            enqueueRestCall("get_dapcontext_response", 200)
             val cbMock = mock<CommitDapObjectCallback>()
             dapiClient.commitSingleObject(JSONObject(), cbMock)
 
@@ -434,7 +448,7 @@ class DapiClientTest : BaseTest() {
             getDap(dapiClient)
 
             enqueueRestCall("get_dapspace_response", 200)
-            val cbMock = mock<GetDapSpaceCallback<DapSpace>>()
+            val cbMock = mock<GetDapSpaceCallback>()
             dapiClient.getDapSpace(cbMock)
 
             Thread.sleep(sleepTime)
@@ -449,7 +463,7 @@ class DapiClientTest : BaseTest() {
 
             getDap(dapiClient)
 
-            val cbMock = mock<GetDapSpaceCallback<DapSpace>>()
+            val cbMock = mock<GetDapSpaceCallback>()
             dapiClient.getDapSpace(cbMock)
 
             Thread.sleep(sleepTime)
@@ -465,7 +479,7 @@ class DapiClientTest : BaseTest() {
 
             login(dapiClient)
 
-            val cbMock = mock<GetDapSpaceCallback<DapSpace>>()
+            val cbMock = mock<GetDapSpaceCallback>()
             dapiClient.getDapSpace(cbMock)
 
             Thread.sleep(sleepTime)
@@ -482,7 +496,7 @@ class DapiClientTest : BaseTest() {
             getDap(dapiClient)
 
             enqueueRestCall("get_dapspace_error", 400)
-            val cbMock = mock<GetDapSpaceCallback<DapSpace>>()
+            val cbMock = mock<GetDapSpaceCallback>()
             dapiClient.getDapSpace(cbMock)
 
             Thread.sleep(sleepTime)
@@ -499,7 +513,7 @@ class DapiClientTest : BaseTest() {
             getDap(dapiClient)
 
             enqueueRestCall("get_dapcontext_response", 200)
-            val cbMock = mock<GetDapSpaceCallback<DapContext>>()
+            val cbMock = mock<GetDapContextCallback>()
             dapiClient.getDapContext(cbMock)
 
             Thread.sleep(sleepTime)
@@ -517,7 +531,7 @@ class DapiClientTest : BaseTest() {
 
             getDap(dapiClient)
 
-            val cbMock = mock<GetDapSpaceCallback<DapContext>>()
+            val cbMock = mock<GetDapContextCallback>()
             dapiClient.getDapContext(cbMock)
 
             Thread.sleep(sleepTime)
@@ -533,7 +547,7 @@ class DapiClientTest : BaseTest() {
 
             login(dapiClient)
 
-            val cbMock = mock<GetDapSpaceCallback<DapContext>>()
+            val cbMock = mock<GetDapContextCallback>()
             dapiClient.getDapContext(cbMock)
 
             Thread.sleep(sleepTime)
@@ -550,7 +564,7 @@ class DapiClientTest : BaseTest() {
             getDap(dapiClient)
 
             enqueueRestCall("get_dapcontext_no_relations_response", 200)
-            val cbMock = mock<GetDapSpaceCallback<DapContext>>()
+            val cbMock = mock<GetDapContextCallback>()
             dapiClient.getDapContext(cbMock)
 
             Thread.sleep(sleepTime)
@@ -570,7 +584,7 @@ class DapiClientTest : BaseTest() {
             getDap(dapiClient)
 
             enqueueRestCall("get_dapcontext_error", 400)
-            val cbMock = mock<GetDapSpaceCallback<DapContext>>()
+            val cbMock = mock<GetDapContextCallback>()
             dapiClient.getDapContext(cbMock)
 
             Thread.sleep(sleepTime)

@@ -16,8 +16,8 @@ import org.dashevo.dapiclient.rest.DapiService
 import org.dashevo.schema.Create
 import org.dashevo.schema.Object
 import org.dashevo.schema.Validate
-import org.json.JSONArray
-import org.json.JSONObject
+import org.jsonorg.JSONArray
+import org.jsonorg.JSONObject
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
@@ -25,11 +25,14 @@ import java.util.concurrent.TimeUnit
 open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) {
 
     private val retrofit: Retrofit
-    private val dapiService: DapiService
     private val gson = Gson()
-    private var dapContract = JSONObject()
-    private var dapContext: DapSpace? = null
-    private var currentUser: BlockchainUser? = null
+
+    val dapiService: DapiService
+
+    var dapContext: DapContext? = null
+    var dapSpace: DapSpace? = null
+    var currentUser: BlockchainUser? = null
+    var dapContract = JSONObject()
 
     companion object {
         private const val PVER = 1
@@ -64,7 +67,10 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
         return dapContract.getJSONObject("dapcontract").getJSONObject("dapschema")
     }
 
-    internal fun checkAuth(cb: BaseCallback? = null): Boolean {
+    /**
+     * Check if [currentUser] is set.
+     */
+    open fun checkAuth(cb: BaseCallback? = null): Boolean {
         if (currentUser?.buid == null) {
             cb?.onError("User session null or invalid")
             return false
@@ -72,7 +78,10 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
         return true
     }
 
-    internal fun checkDap(cb: BaseCallback? = null): Boolean {
+    /**
+     * Check if [dapContract] is set.
+     */
+    open fun checkDap(cb: BaseCallback? = null): Boolean {
         if (!Validate.validateDapContract(dapContract).valid) {
             cb?.onError("Invalid DAP Contract. Please check that a valid DAP Contract was set before this call.")
             return false
@@ -86,7 +95,7 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
      * @param pubKey
      * @param cb callback, instance of {@link CreateUserCallback}
      */
-    fun createUser(userName: String, pubKey: String, cb: CreateUserCallback) {
+    open fun createUser(userName: String, pubKey: String, cb: CreateUserCallback) {
         //TODO: * Add sig meta
         val subTx = SubTx(PVER, userName, pubKey)
         val subTxJSON  = createJSONContainer("subtx", JSONObject(gson.toJson(subTx)))
@@ -113,7 +122,7 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
      * Fetch user by [username] and the DAP Context for given user if [dapContract] is set.
      * @param cb [LoginCallback]
      */
-    fun login(username: String, cb: LoginCallback) {
+    open fun login(username: String, cb: LoginCallback) {
         getUser(username, object : GetUserCallback {
             override fun onSuccess(blockchainUserContainer: BlockchainUserContainer) {
                 val blockchainUser = blockchainUserContainer.blockchainuser
@@ -130,17 +139,17 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
                     return
                 }
 
-                try {
-                    val dapContextResponse = dapiService.getDapContext(getDapContractId()!!,
-                            blockchainUser.buid).execute()
-                    if (dapContextResponse.isSuccessful) {
-                        dapContext = dapContextResponse.body()
+                dapiService.getDapSpace(getDapContractId()!!, blockchainUser.buid).enqueue({
+                    if (it.isSuccessful) {
+                        dapSpace = it.body()
+                    } else {
+                        println("Login successful but failed to get user DAP Space")
                     }
-                } catch (e: Exception) {
-                    println("Login successful but failed to get user DAP Context")
-                } finally {
                     cb.onSuccess(blockchainUser)
-                }
+                }, {
+                    println("Login successful but failed to get user DAP Space")
+                    cb.onSuccess(blockchainUser)
+                })
             }
 
             override fun onError(errorMessage: String) {
@@ -152,7 +161,7 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
     /**
      * Logout, reset [currentUser] and [dapContext]
      */
-    fun logout() {
+    open fun logout() {
         currentUser = null
         dapContext = null
     }
@@ -160,9 +169,9 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
     /**
      * Search for users based on username
      * @param query username or part of it
-     * @param cb callback, instance of {@link SearchUsersCallback}
+     * @param cb callback, instance of {@link UsersCallback}
      */
-    fun searchUsers(query: String, cb: SearchUsersCallback) {
+    open fun searchUsers(query: String, cb: UsersCallback) {
         dapiService.searchUsers(query).enqueue({ response ->
             if (response.isSuccessful) {
                 cb.onSuccess(response.body()!!)
@@ -179,11 +188,9 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
      * @param idOrUsername
      * @param cb callback, instance of {@link GetUserCallback}
      */
-    fun getUser(idOrUsername: String, cb: GetUserCallback) {
+    open fun getUser(idOrUsername: String, cb: GetUserCallback) {
         dapiService.getUser(idOrUsername).enqueue({response ->
             if (response.isSuccessful) {
-                //TODO: Remove and creat a login/init method
-                currentUser = response.body()!!.blockchainuser
                 cb.onSuccess(response.body()!!)
             } else {
                 cb.onError(response.message())
@@ -199,7 +206,7 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
      * @param userId id of the blockchainuser creating it
      * @param cb callback, instance of {@link DapCallback}
      */
-    fun createDap(dapSchema: JSONObject, userId: String, cb: DapCallback) {
+    open fun createDap(dapSchema: JSONObject, userId: String, cb: DapCallback) {
         val dapContract = Create.createDapContract(dapSchema)
 
         val stPacket = Create.createSTPacketInstance()
@@ -240,7 +247,7 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
     /**
      * Load DAP and assign it to [dapContract]
      */
-    fun getDap(dapId: String, cb: DapCallback) {
+    open fun getDap(dapId: String, cb: DapCallback) {
         dapiService.getDap(dapId).enqueue({ response ->
             if (response.isSuccessful) {
                 dapContract = JSONObject(response.body()!!.toString())
@@ -258,7 +265,7 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
      * @param schemaObject object containing the update
      * @param cb callback, instance of {@link DapCallback}
      */
-    fun commitSingleObject(schemaObject: JSONObject, cb: CommitDapObjectCallback) {
+    open fun commitSingleObject(schemaObject: JSONObject, cb: CommitDapObjectCallback) {
         if (!(checkAuth(cb) && checkDap(cb))) {
             return
         }
@@ -305,7 +312,16 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
 
         dapiService.postDap(JsonParser().parse(dapObject.toString()).asJsonObject).enqueue({ response ->
             if (response.isSuccessful) {
-                cb.onSuccess(dapId!!, response.body()!!.txId)
+                dapiService.getDapSpace(dapId!!, currentUser!!.buid).enqueue({
+                    if (response.isSuccessful) {
+                        this.dapSpace = it.body()
+                        cb.onSuccess(dapId, response.body()!!.txId)
+                    } else {
+                        cb.onError(response.message())
+                    }
+                }, {
+                    cb.onError(it.localizedMessage)
+                })
             } else {
                 cb.onError(response.message())
             }
@@ -317,7 +333,7 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
     /**
      * Get User data in a DAP
      */
-    fun getDapSpace(cb: GetDapSpaceCallback<DapSpace>) {
+    open fun getDapSpace(cb: GetDapSpaceCallback) {
         if (!(checkAuth(cb) && checkDap(cb))) {
             return
         }
@@ -326,8 +342,10 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
         val buId = currentUser!!.buid
 
         dapiService.getDapSpace(dapId, buId).enqueue({ response ->
-            if (response.isSuccessful && response.body() != null) {
-                cb.onSuccess(response.body()!!)
+            val dapSpaceResponse: DapSpace? = response.body()
+            if (response.isSuccessful && dapSpaceResponse != null) {
+                dapSpace = dapSpaceResponse
+                cb.onSuccess(dapSpaceResponse)
             } else {
                 cb.onError(response.message())
             }
@@ -339,7 +357,7 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
     /**
      * Get User data and it's related data in a DAP
      */
-    fun getDapContext(cb: GetDapSpaceCallback<DapContext>) {
+    open fun getDapContext(cb: GetDapContextCallback) {
         if (!(checkAuth(cb) && checkDap(cb))) {
             return
         }
@@ -349,7 +367,8 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
 
         dapiService.getDapContext(dapId, buId).enqueue({ response ->
             if (response.isSuccessful && response.body() != null) {
-                cb.onSuccess(response.body()!!)
+                dapContext = response.body()!!
+                cb.onSuccess(dapContext!!)
             } else {
                 cb.onError(response.message())
             }
@@ -358,7 +377,13 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
         })
     }
 
-    fun removeObject(schemaObject: JSONObject, cb: CommitDapObjectCallback) {
+    open fun addObject(obj: JSONObject, cb: CommitDapObjectCallback) {
+        val idx = if (this.dapSpace!= null) this.dapSpace!!.maxidx + 1 else 0
+        obj.put("idx", idx)
+        commitSingleObject(obj, cb)
+    }
+
+    open fun removeObject(schemaObject: JSONObject, cb: CommitDapObjectCallback) {
         Object.prepareForRemoval(schemaObject)
         commitSingleObject(schemaObject, cb)
     }

@@ -1,5 +1,7 @@
 package org.dashevo.dapiclient.callback
 
-interface GetDapSpaceCallback<T> : BaseCallback {
-    fun onSuccess(dapSpace: T)
+import org.dashevo.dapiclient.model.DapSpace
+
+interface GetDapSpaceCallback : BaseCallback {
+    fun onSuccess(dapSpace: DapSpace)
 }

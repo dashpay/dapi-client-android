@@ -9,6 +9,6 @@ package org.dashevo.dapiclient.callback
 
 import org.dashevo.dapiclient.model.BlockchainUserContainer
 
-interface SearchUsersCallback : BaseCallback {
+interface UsersCallback : BaseCallback {
     fun onSuccess(users: List<BlockchainUserContainer>)
 }

@@ -6,11 +6,9 @@
  */
 package org.dashevo.dapiclient.rest
 
+import com.google.gson.JsonElement
 import com.google.gson.JsonObject
-import org.dashevo.dapiclient.model.BlockchainUserContainer
-import org.dashevo.dapiclient.model.DapContext
-import org.dashevo.dapiclient.model.DapSpace
-import org.dashevo.dapiclient.model.TxId
+import org.dashevo.dapiclient.model.*
 import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.GET

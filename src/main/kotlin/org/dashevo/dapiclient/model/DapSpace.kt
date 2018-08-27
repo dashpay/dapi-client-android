@@ -7,6 +7,6 @@ open class DapSpace {
     val dapId: String = ""
     @SerializedName("buid")
     val buId: String = ""
-    val objects: List<Map<String, Any>> = listOf()
+    val objects: List<Map<String, Any>>? = listOf()
     val maxidx: Int = 0
 }
