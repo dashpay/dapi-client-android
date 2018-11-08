@@ -7,8 +7,7 @@
 
 package org.dashevo.dapiclient.callback
 
-import org.dashevo.dapiclient.model.BlockchainUserContainer
+interface ErrorCallback {
 
-interface GetUserCallback : BaseCallback {
-    fun onSuccess(blockchainUserContainer: BlockchainUserContainer)
+    fun onError(errorMessage: String)
 }

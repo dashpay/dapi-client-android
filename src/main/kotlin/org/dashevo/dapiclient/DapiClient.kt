@@ -70,7 +70,7 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
     /**
      * Check if [currentUser] is set.
      */
-    open fun checkAuth(cb: BaseCallback? = null): Boolean {
+    open fun checkAuth(cb: ErrorCallback? = null): Boolean {
         if (currentUser?.buid == null) {
             cb?.onError("User session null or invalid")
             return false
@@ -81,7 +81,7 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
     /**
      * Check if [dapContract] is set.
      */
-    open fun checkDap(cb: BaseCallback? = null): Boolean {
+    open fun checkDap(cb: ErrorCallback? = null): Boolean {
         if (!Validate.validateDapContract(dapContract).valid) {
             cb?.onError("Invalid DAP Contract. Please check that a valid DAP Contract was set before this call.")
             return false
@@ -93,9 +93,9 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
      * Creates a blockchain user
      * @param userName
      * @param pubKey
-     * @param cb callback, instance of {@link CreateUserCallback}
+     * @param cb callback, instance of {@link BaseTxCallback<String, String>}
      */
-    open fun createUser(userName: String, pubKey: String, cb: CreateUserCallback) {
+    open fun createUser(userName: String, pubKey: String, cb: BaseTxCallback<String, String>) {
         //TODO: * Add sig meta
         val subTx = SubTx(PVER, userName, pubKey)
         val subTxJSON  = createJSONContainer("subtx", JSONObject(gson.toJson(subTx)))
@@ -120,10 +120,10 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
 
     /**
      * Fetch user by [username] and the DAP Context for given user if [dapContract] is set.
-     * @param cb [LoginCallback]
+     * @param cb [BaseCallback<BlockchainUser>]
      */
-    open fun login(username: String, cb: LoginCallback) {
-        getUser(username, object : GetUserCallback {
+    open fun login(username: String, cb: BaseCallback<BlockchainUser>) {
+        getUser(username, object : BaseCallback<BlockchainUserContainer> {
             override fun onSuccess(blockchainUserContainer: BlockchainUserContainer) {
                 val blockchainUser = blockchainUserContainer.blockchainuser
                 currentUser = blockchainUser
@@ -169,9 +169,9 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
     /**
      * Search for users based on username
      * @param query username or part of it
-     * @param cb callback, instance of {@link UsersCallback}
+     * @param cb callback, instance of {@link BaseCallback<List<BlockchainUserContainer>>}
      */
-    open fun searchUsers(query: String, cb: UsersCallback) {
+    open fun searchUsers(query: String, cb: BaseCallback<List<BlockchainUserContainer>>) {
         dapiService.searchUsers(query).enqueue({ response ->
             if (response.isSuccessful) {
                 cb.onSuccess(response.body()!!)
@@ -186,9 +186,9 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
     /**
      * Get User by username or id
      * @param idOrUsername
-     * @param cb callback, instance of {@link GetUserCallback}
+     * @param cb callback, instance of {@link BaseCallback<BlockchainUserContainer>}
      */
-    open fun getUser(idOrUsername: String, cb: GetUserCallback) {
+    open fun getUser(idOrUsername: String, cb: BaseCallback<BlockchainUserContainer>) {
         dapiService.getUser(idOrUsername).enqueue({response ->
             if (response.isSuccessful) {
                 cb.onSuccess(response.body()!!)
@@ -204,9 +204,9 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
      * Create a DAP
      * @param dapSchema Schema for the DAP being Created
      * @param userId id of the blockchainuser creating it
-     * @param cb callback, instance of {@link DapCallback}
+     * @param cb callback, instance of {@link BaseCallback<String>}
      */
-    open fun createDap(dapSchema: JSONObject, userId: String, cb: DapCallback) {
+    open fun createDap(dapSchema: JSONObject, userId: String, cb: BaseCallback<String>) {
         val dapContract = Create.createDapContract(dapSchema)
 
         val stPacket = Create.createSTPacketInstance()
@@ -247,7 +247,7 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
     /**
      * Load DAP and assign it to [dapContract]
      */
-    open fun getDap(dapId: String, cb: DapCallback) {
+    open fun getDap(dapId: String, cb: BaseCallback<String>) {
         dapiService.getDap(dapId).enqueue({ response ->
             if (response.isSuccessful) {
                 dapContract = JSONObject(response.body()!!.toString())
@@ -263,9 +263,9 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
     /**
      * Commit a Single Object update to a DAP Space
      * @param schemaObject object containing the update
-     * @param cb callback, instance of {@link DapCallback}
+     * @param cb callback, instance of {@link BaseTxCallback<String, String>}
      */
-    open fun commitSingleObject(schemaObject: JSONObject, cb: CommitDapObjectCallback) {
+    open fun commitSingleObject(schemaObject: JSONObject, cb: BaseTxCallback<String, String>) {
         if (!(checkAuth(cb) && checkDap(cb))) {
             return
         }
@@ -333,7 +333,7 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
     /**
      * Get User data in a DAP
      */
-    open fun getDapSpace(cb: GetDapSpaceCallback) {
+    open fun getDapSpace(cb: BaseCallback<DapSpace>) {
         if (!(checkAuth(cb) && checkDap(cb))) {
             return
         }
@@ -357,7 +357,7 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
     /**
      * Get User data and it's related data in a DAP
      */
-    open fun getDapContext(cb: GetDapContextCallback) {
+    open fun getDapContext(cb: BaseCallback<DapContext>) {
         if (!(checkAuth(cb) && checkDap(cb))) {
             return
         }
@@ -377,13 +377,13 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
         })
     }
 
-    open fun addObject(obj: JSONObject, cb: CommitDapObjectCallback) {
+    open fun addObject(obj: JSONObject, cb: BaseTxCallback<String, String>) {
         val idx = if (this.dapSpace!= null) this.dapSpace!!.maxidx + 1 else 0
         obj.put("idx", idx)
         commitSingleObject(obj, cb)
     }
 
-    open fun removeObject(schemaObject: JSONObject, cb: CommitDapObjectCallback) {
+    open fun removeObject(schemaObject: JSONObject, cb: BaseTxCallback<String, String>) {
         Object.prepareForRemoval(schemaObject)
         commitSingleObject(schemaObject, cb)
     }

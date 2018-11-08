@@ -7,6 +7,7 @@
 
 package org.dashevo.dapiclient.callback
 
-interface BaseCallback {
-    fun onError(errorMessage: String)
+interface BaseCallback<T> : ErrorCallback {
+
+    fun onSuccess(data: T)
 }

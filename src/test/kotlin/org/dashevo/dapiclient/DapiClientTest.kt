@@ -4,6 +4,7 @@ import com.nhaarman.mockitokotlin2.*
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.dashevo.dapiclient.callback.*
+import org.dashevo.dapiclient.model.BlockchainUser
 import org.dashevo.dapiclient.model.BlockchainUserContainer
 import org.dashevo.dapiclient.model.DapContext
 import org.dashevo.dapiclient.model.DapSpace
@@ -60,7 +61,7 @@ class DapiClientTest : BaseTest() {
         fun createUser() {
             enqueueRestCall("create_user_response", 200)
 
-            val cbMock = mock<CreateUserCallback>()
+            val cbMock = mock<BaseTxCallback<String, String>>()
             createDapiClient().createUser(username, pubKey, cbMock)
 
             Thread.sleep(sleepTime)
@@ -73,7 +74,7 @@ class DapiClientTest : BaseTest() {
         fun createUserError() {
             enqueueRestCall("create_user_error", 400)
 
-            val cbMock = mock<CreateUserCallback>()
+            val cbMock = mock<BaseTxCallback<String, String>>()
             createDapiClient().createUser(username, pubKey, cbMock)
 
             Thread.sleep(sleepTime)
@@ -86,7 +87,7 @@ class DapiClientTest : BaseTest() {
         fun searchUser() {
             enqueueRestCall("search_users_response", 200)
 
-            val cbMock = mock<UsersCallback>()
+            val cbMock = mock<BaseCallback<List<BlockchainUserContainer>>>()
             createDapiClient().searchUsers("ali", cbMock)
 
             Thread.sleep(sleepTime)
@@ -102,7 +103,7 @@ class DapiClientTest : BaseTest() {
         fun searchUserEmpty() {
             enqueueRestCall("search_users_empty_response", 200)
 
-            val cbMock = mock<UsersCallback>()
+            val cbMock = mock<BaseCallback<List<BlockchainUserContainer>>>()
             createDapiClient().searchUsers("bob", cbMock)
 
             Thread.sleep(sleepTime)
@@ -118,7 +119,7 @@ class DapiClientTest : BaseTest() {
         fun searchUserError() {
             enqueueRestCall("get_user_response_error", 400)
 
-            val cbMock = mock<UsersCallback>()
+            val cbMock = mock<BaseCallback<List<BlockchainUserContainer>>>()
             createDapiClient().searchUsers("bob", cbMock)
 
             Thread.sleep(sleepTime)
@@ -131,7 +132,7 @@ class DapiClientTest : BaseTest() {
         fun getByUsername() {
             enqueueRestCall("get_user_response", 200)
 
-            val cbMock = mock<GetUserCallback>()
+            val cbMock = mock<BaseCallback<BlockchainUserContainer>>()
             createDapiClient().getUser(username, cbMock)
 
             Thread.sleep(sleepTime)
@@ -144,7 +145,7 @@ class DapiClientTest : BaseTest() {
         fun getByUsernameError() {
             enqueueRestCall("get_user_response_error", 404)
 
-            val cbMock = mock<GetUserCallback>()
+            val cbMock = mock<BaseCallback<BlockchainUserContainer>>()
             createDapiClient().getUser(username, cbMock)
 
             Thread.sleep(sleepTime)
@@ -158,7 +159,7 @@ class DapiClientTest : BaseTest() {
             val dapiClient = createDapiClient()
             enqueueRestCall("get_user_response", 200)
 
-            val cbMock = mock<LoginCallback>()
+            val cbMock = mock<BaseCallback<BlockchainUser>>()
             dapiClient.login(username, cbMock)
 
             Thread.sleep(sleepTime)
@@ -174,7 +175,7 @@ class DapiClientTest : BaseTest() {
             val dapiClient = createDapiClient()
             enqueueRestCall("get_user_response_error", 400)
 
-            val cbMock = mock<LoginCallback>()
+            val cbMock = mock<BaseCallback<BlockchainUser>>()
             dapiClient.login(username, cbMock)
 
             Thread.sleep(sleepTime)
@@ -190,7 +191,7 @@ class DapiClientTest : BaseTest() {
             val dapiClient = createDapiClient()
             enqueueRestCall("get_user_response_invalid_blockchain_user", 200)
 
-            val cbMock = mock<LoginCallback>()
+            val cbMock = mock<BaseCallback<BlockchainUser>>()
             dapiClient.login(username, cbMock)
 
             Thread.sleep(sleepTime)
@@ -206,7 +207,7 @@ class DapiClientTest : BaseTest() {
             val dapiClient = createDapiClient()
             enqueueRestCall("get_dap_response", 200)
 
-            val getDapCbMock = mock<DapCallback>()
+            val getDapCbMock = mock<BaseCallback<String>>()
             dapiClient.getDap("7c9f91a044e7db796e48ae3a8e1392f6d62cca3d70b42406cc46781563fb43dc", getDapCbMock)
 
             Thread.sleep(sleepTime)
@@ -214,7 +215,7 @@ class DapiClientTest : BaseTest() {
             enqueueRestCall("get_user_response", 200)
             enqueueRestCall("get_dapcontext_response", 200)
 
-            val cbMock = mock<LoginCallback>()
+            val cbMock = mock<BaseCallback<BlockchainUser>>()
             dapiClient.login(username, cbMock)
 
             Thread.sleep(sleepTime)
@@ -230,14 +231,14 @@ class DapiClientTest : BaseTest() {
             val dapiClient = createDapiClient()
             enqueueRestCall("get_dap_error", 400)
 
-            val getDapCbMock = mock<DapCallback>()
+            val getDapCbMock = mock<BaseCallback<String>>()
             dapiClient.getDap("7c9f91a044e7db796e48ae3a8e1392f6d62cca3d70b42406cc46781563fb43dc", getDapCbMock)
 
             Thread.sleep(sleepTime)
 
             enqueueRestCall("get_user_response", 200)
 
-            val cbMock = mock<LoginCallback>()
+            val cbMock = mock<BaseCallback<BlockchainUser>>()
             dapiClient.login(username, cbMock)
 
             Thread.sleep(sleepTime)
@@ -253,7 +254,7 @@ class DapiClientTest : BaseTest() {
             val dapiClient = createDapiClient()
             enqueueRestCall("get_dap_response", 200)
 
-            val getDapCbMock = mock<DapCallback>()
+            val getDapCbMock = mock<BaseCallback<String>>()
             dapiClient.getDap("7c9f91a044e7db796e48ae3a8e1392f6d62cca3d70b42406cc46781563fb43dc", getDapCbMock)
 
             Thread.sleep(sleepTime)
@@ -261,7 +262,7 @@ class DapiClientTest : BaseTest() {
             enqueueRestCall("get_user_response", 200)
             enqueueRestCall("get_dapcontext_error", 400)
 
-            val cbMock = mock<LoginCallback>()
+            val cbMock = mock<BaseCallback<BlockchainUser>>()
             dapiClient.login(username, cbMock)
 
             Thread.sleep(sleepTime)
@@ -306,7 +307,7 @@ class DapiClientTest : BaseTest() {
             val dapJson = JSONObject(getJson("dashpay-dap"))
             enqueueRestCall("create_dap_response", 200)
 
-            val cbMock = mock<DapCallback>()
+            val cbMock = mock<BaseCallback<String>>()
             dapiClient.createDap(dapJson, userId, cbMock)
 
             Thread.sleep(sleepTime)
@@ -322,7 +323,7 @@ class DapiClientTest : BaseTest() {
             val dapJson = JSONObject(getJson("dashpay-dap"))
             enqueueRestCall("create_dap_error", 400)
 
-            val cbMock = mock<DapCallback>()
+            val cbMock = mock<BaseCallback<String>>()
             dapiClient.createDap(dapJson, userId, cbMock)
 
             Thread.sleep(sleepTime)
@@ -337,7 +338,7 @@ class DapiClientTest : BaseTest() {
             val dapiClient = createDapiClient()
             enqueueRestCall("get_dap_response", 200)
 
-            val cbMock = mock<DapCallback>()
+            val cbMock = mock<BaseCallback<String>>()
             dapiClient.getDap("7c9f91a044e7db796e48ae3a8e1392f6d62cca3d70b42406cc46781563fb43dc", cbMock)
 
             Thread.sleep(sleepTime)
@@ -352,7 +353,7 @@ class DapiClientTest : BaseTest() {
             val dapiClient = createDapiClient()
             enqueueRestCall("get_dap_error", 404)
 
-            val cbMock = mock<DapCallback>()
+            val cbMock = mock<BaseCallback<String>>()
             dapiClient.getDap("7c9f91a044e7db796e48ae3a8e1392f6d62cca3d70b42406cc46781563fb43dc", cbMock)
 
             Thread.sleep(sleepTime)
@@ -375,7 +376,7 @@ class DapiClientTest : BaseTest() {
             //Send Dap Object
             enqueueRestCall("send_dapobject_response", 200)
             enqueueRestCall("get_dapcontext_response", 200)
-            val cbMock = mock<CommitDapObjectCallback>()
+            val cbMock = mock<BaseTxCallback<String, String>>()
             dapiClient.commitSingleObject(JSONObject(), cbMock)
 
             Thread.sleep(sleepTime)
@@ -394,7 +395,7 @@ class DapiClientTest : BaseTest() {
 
             //Send Dap Object
             enqueueRestCall("send_dapobject_error", 400)
-            val cbMock = mock<CommitDapObjectCallback>()
+            val cbMock = mock<BaseTxCallback<String, String>>()
             dapiClient.commitSingleObject(JSONObject(), cbMock)
 
             Thread.sleep(sleepTime)
@@ -411,7 +412,7 @@ class DapiClientTest : BaseTest() {
             getDap(dapiClient)
 
             //Send Dap Object
-            val cbMock = mock<CommitDapObjectCallback>()
+            val cbMock = mock<BaseTxCallback<String, String>>()
             dapiClient.commitSingleObject(JSONObject(), cbMock)
 
             Thread.sleep(sleepTime)
@@ -429,7 +430,7 @@ class DapiClientTest : BaseTest() {
             login(dapiClient)
 
             //Send Dap Object
-            val cbMock = mock<CommitDapObjectCallback>()
+            val cbMock = mock<BaseTxCallback<String, String>>()
             dapiClient.commitSingleObject(JSONObject(), cbMock)
 
             Thread.sleep(sleepTime)
@@ -448,7 +449,7 @@ class DapiClientTest : BaseTest() {
             getDap(dapiClient)
 
             enqueueRestCall("get_dapspace_response", 200)
-            val cbMock = mock<GetDapSpaceCallback>()
+            val cbMock = mock<BaseCallback<DapSpace>>()
             dapiClient.getDapSpace(cbMock)
 
             Thread.sleep(sleepTime)
@@ -463,7 +464,7 @@ class DapiClientTest : BaseTest() {
 
             getDap(dapiClient)
 
-            val cbMock = mock<GetDapSpaceCallback>()
+            val cbMock = mock<BaseCallback<DapSpace>>()
             dapiClient.getDapSpace(cbMock)
 
             Thread.sleep(sleepTime)
@@ -479,7 +480,7 @@ class DapiClientTest : BaseTest() {
 
             login(dapiClient)
 
-            val cbMock = mock<GetDapSpaceCallback>()
+            val cbMock = mock<BaseCallback<DapSpace>>()
             dapiClient.getDapSpace(cbMock)
 
             Thread.sleep(sleepTime)
@@ -496,7 +497,7 @@ class DapiClientTest : BaseTest() {
             getDap(dapiClient)
 
             enqueueRestCall("get_dapspace_error", 400)
-            val cbMock = mock<GetDapSpaceCallback>()
+            val cbMock = mock<BaseCallback<DapSpace>>()
             dapiClient.getDapSpace(cbMock)
 
             Thread.sleep(sleepTime)
@@ -513,7 +514,7 @@ class DapiClientTest : BaseTest() {
             getDap(dapiClient)
 
             enqueueRestCall("get_dapcontext_response", 200)
-            val cbMock = mock<GetDapContextCallback>()
+            val cbMock = mock<BaseCallback<DapContext>>()
             dapiClient.getDapContext(cbMock)
 
             Thread.sleep(sleepTime)
@@ -531,7 +532,7 @@ class DapiClientTest : BaseTest() {
 
             getDap(dapiClient)
 
-            val cbMock = mock<GetDapContextCallback>()
+            val cbMock = mock<BaseCallback<DapContext>>()
             dapiClient.getDapContext(cbMock)
 
             Thread.sleep(sleepTime)
@@ -547,7 +548,7 @@ class DapiClientTest : BaseTest() {
 
             login(dapiClient)
 
-            val cbMock = mock<GetDapContextCallback>()
+            val cbMock = mock<BaseCallback<DapContext>>()
             dapiClient.getDapContext(cbMock)
 
             Thread.sleep(sleepTime)
@@ -564,7 +565,7 @@ class DapiClientTest : BaseTest() {
             getDap(dapiClient)
 
             enqueueRestCall("get_dapcontext_no_relations_response", 200)
-            val cbMock = mock<GetDapContextCallback>()
+            val cbMock = mock<BaseCallback<DapContext>>()
             dapiClient.getDapContext(cbMock)
 
             Thread.sleep(sleepTime)
@@ -584,7 +585,7 @@ class DapiClientTest : BaseTest() {
             getDap(dapiClient)
 
             enqueueRestCall("get_dapcontext_error", 400)
-            val cbMock = mock<GetDapContextCallback>()
+            val cbMock = mock<BaseCallback<DapContext>>()
             dapiClient.getDapContext(cbMock)
 
             Thread.sleep(sleepTime)
