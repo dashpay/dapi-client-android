@@ -7,6 +7,7 @@
 
 package org.dashevo.dapiclient.callback
 
-interface DapCallback : BaseCallback {
-    fun onSuccess(dapId: String)
+interface BaseTxCallback<T, V> : ErrorCallback {
+
+    fun onSuccess(id: T, txId: V)
 }
