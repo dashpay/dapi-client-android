@@ -1,13 +1,16 @@
 buildscript {
     ext.kotlin_version = '1.2.51'
+    ext.objectbox_version = '2.2.0'
 
     repositories {
         jcenter()
         mavenLocal()
         mavenCentral()
+        maven { url "https://plugins.gradle.org/m2/" }
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "io.objectbox:objectbox-gradle-plugin:$objectbox_version"
     }
 }
 
@@ -23,7 +26,9 @@ version '1.0-SNAPSHOT'
 
 apply plugin: 'java'
 apply plugin: 'kotlin'
+apply plugin: 'kotlin-kapt'
 apply plugin: 'maven-publish'
+apply plugin: 'io.objectbox'
 
 sourceCompatibility = 1.8
 
@@ -49,6 +54,10 @@ dependencies {
     testImplementation 'com.squareup.okhttp3:mockwebserver:3.11.0'
     testImplementation "com.nhaarman.mockitokotlin2:mockito-kotlin:2.0.0-RC1"
 
+    implementation "io.objectbox:objectbox-kotlin:$objectbox_version"
+    implementation "io.objectbox:objectbox-linux:$objectbox_version"
+    implementation "io.objectbox:objectbox-macos:$objectbox_version"
+    implementation "io.objectbox:objectbox-windows:$objectbox_version"
 }
 
 compileKotlin {

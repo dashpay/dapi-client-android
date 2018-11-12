@@ -8,10 +8,16 @@ package org.dashevo.dapiclient
 
 import com.google.gson.Gson
 import com.google.gson.JsonParser
+import io.objectbox.BoxStore
 import okhttp3.OkHttpClient
-import org.dashevo.dapiclient.callback.*
+import okhttp3.logging.HttpLoggingInterceptor
+import org.dashevo.dapiclient.callback.BaseCallback
+import org.dashevo.dapiclient.callback.BaseTxCallback
+import org.dashevo.dapiclient.callback.ErrorCallback
 import org.dashevo.dapiclient.extensions.enqueue
 import org.dashevo.dapiclient.model.*
+import org.dashevo.dapiclient.persistance.PersistenceInterceptor
+import org.dashevo.dapiclient.persistance.model.MyObjectBox
 import org.dashevo.dapiclient.rest.DapiService
 import org.dashevo.schema.Create
 import org.dashevo.schema.Object
@@ -20,6 +26,7 @@ import org.jsonorg.JSONArray
 import org.jsonorg.JSONObject
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.io.File
 import java.util.concurrent.TimeUnit
 
 open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) {
@@ -34,22 +41,41 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
     var currentUser: BlockchainUser? = null
     var dapContract = JSONObject()
 
+    val persistenceInterceptor: PersistenceInterceptor
+    lateinit var boxStore: BoxStore
+
     companion object {
         private const val PVER = 1
+        private const val DATABASE_NAME = "objectbox-cache-db"
     }
 
     init {
+        val loggingInterceptor = HttpLoggingInterceptor()
+        loggingInterceptor.level = HttpLoggingInterceptor.Level.BODY
+
+        persistenceInterceptor = PersistenceInterceptor()
+
+        val okHttpClient = OkHttpClient.Builder()
+                .addInterceptor(persistenceInterceptor)
+                .build()
         val debugOkHttpClient = OkHttpClient.Builder()
                 .connectTimeout(1, TimeUnit.MINUTES)
                 .readTimeout(1, TimeUnit.MINUTES)
                 .writeTimeout(1, TimeUnit.MINUTES)
+                .addInterceptor(loggingInterceptor)
+                .addInterceptor(persistenceInterceptor)
                 .build()
         retrofit = Retrofit.Builder()
                 .addConverterFactory(GsonConverterFactory.create())
                 .baseUrl("http://$mnIP:$mnDapiPort/")
-                .client(if (debug) debugOkHttpClient else OkHttpClient())
+                .client(if (debug) debugOkHttpClient else okHttpClient)
                 .build()
         dapiService = retrofit.create(DapiService::class.java)
+    }
+
+    fun enablePersistence(baseDirectory: File) {
+        boxStore = MyObjectBox.builder().baseDirectory(baseDirectory).name(DATABASE_NAME).build()
+        persistenceInterceptor.boxStore = boxStore
     }
 
     /**
