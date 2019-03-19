@@ -1,12 +1,15 @@
 {
-  "blockchainuser": {
-    "pver": 1,
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
     "uname": "alice",
-    "buid": "87153bca4e5a0c449061dc54696cb951488575b4d8964f0e54243c8336fc39fb",
-    "pubkey": "024964f06ea5cfec1890d7e526653b083c12360f79164c1e8163327d0849fa7bca",
-    "credits": 100000,
-    "meta": {
-      "height": 2
-    }
+    "regtxid": "cd19eb33c95860786be600c1a26a5189a81c546760280fde2f309f49c102a72d",
+    "pubkeyid": "22666bc0bb4bbc6979b261edfac5a1c323473983",
+    "credits": 10000000,
+    "data": "0000000000000000000000000000000000000000000000000000000000000000",
+    "state": "open",
+    "subtx": [
+      "cd19eb33c95860786be600c1a26a5189a81c546760280fde2f309f49c102a72d"
+    ]
   }
 }

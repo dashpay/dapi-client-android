@@ -1,6 +1,5 @@
 buildscript {
-    ext.kotlin_version = '1.2.51'
-
+    ext.kotlin_version = '1.2.71'
     repositories {
         jcenter()
         mavenLocal()
@@ -73,6 +72,12 @@ publishing {
             artifact sourcesJar
             from components.java
         }
+    }
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+    kotlinOptions {
+        jvmTarget = "1.8"
     }
 }
 
