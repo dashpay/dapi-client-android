@@ -15,5 +15,5 @@ data class BlockchainUser(
         val data: String,
         //TODO: convert to enum
         val state: String,
-        val subtx: List<String>
+        val subtx: ArrayList<String>
 )

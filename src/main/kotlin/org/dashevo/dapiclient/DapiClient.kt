@@ -28,6 +28,7 @@ import org.dashevo.schema.toHexString
 import org.jsonorg.JSONArray
 import org.jsonorg.JSONException
 import org.jsonorg.JSONObject
+import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
@@ -66,7 +67,6 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
             Create.createDapContract(dapSchema)
         } catch (e: JSONException) {
             cb.onError(e.localizedMessage)
-            null
             return
         }
         dapContract!!.put("pver", 1)
@@ -113,16 +113,16 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
         val stateTransitionTx = SubTxTransition(1, userRegTxId, hashPrevSubTx, Coin.valueOf(1000),
                 stPacketHash, privKey)
 
-        val serializedStHex = stateTransitionTx.unsafeBitcoinSerialize2().toHexString()
+        val serializedStHex = stateTransitionTx.unsafeBitcoinSerialize().toHexString()
         val serializedPacketHex = serializedPacket.toHexString()
 
         sendRawTransition(serializedStHex, serializedPacketHex, object : DapiRequestCallback<String> {
-            override fun onError(errorMessage: String) {
-                cb.onError(errorMessage)
-            }
-
             override fun onSuccess(data: JsonRPCResponse<String>) {
                 cb.onSuccess(data)
+            }
+
+            override fun onError(errorMessage: String) {
+                cb.onError(errorMessage)
             }
         })
     }
@@ -133,9 +133,14 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
      * @param cb: Callback.
      */
     fun getUser(username: String, cb: DapiRequestCallback<BlockchainUser>) {
-        dapiService.getUser(JsonRPCRequest("getUser", mapOf("username" to username))).enqueue({ it ->
-            if (it.isSuccessful && it.body() != null) {
-                cb.onSuccess(it.body()!!)
+        dapiService.getUser(JsonRPCRequest("getUser", mapOf("username" to username))).enqueue(fun(it: Response<JsonRPCResponse<BlockchainUser>>) {
+            val body = it.body()
+            if (it.isSuccessful && body != null) {
+                if (body.error != null) {
+                    cb.onError(body.error["message"] as String)
+                } else {
+                    cb.onSuccess(body)
+                }
             } else {
                 cb.onError(it.message())
             }
@@ -149,11 +154,16 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
      * @param dapId: DAP ID of registered contract.
      * @param cb: Callback.
      */
-    fun fetchDapContract(dapId: String, cb: DapiRequestCallback<HashMap<String, String>>) {
+    fun fetchDapContract(dapId: String, cb: DapiRequestCallback<HashMap<String, Any>>) {
         val request = JsonRPCRequest("fetchDapContract", mapOf("dapId" to dapId))
-        dapiService.fetchDapContract(request).enqueue({ it ->
-            if (it.isSuccessful && it.body() != null) {
-                cb.onSuccess(it.body()!!)
+        dapiService.fetchDapContract(request).enqueue({
+            val body = it.body()
+            if (it.isSuccessful && body != null) {
+                if (body.error != null) {
+                    cb.onError(body.error["message"] as String)
+                } else {
+                    cb.onSuccess(body)
+                }
             } else {
                 cb.onError(it.message())
             }
@@ -178,11 +188,16 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
             val gson = Gson()
             val list = ArrayList<T>()
 
-            it.body()?.result?.forEach {
-                list.add(gson.fromJson(it))
-            }
-            if (it.isSuccessful && it.body() != null) {
-                cb.onSuccess(JsonRPCResponse(list, it.body()!!.id, ""))
+            val body = it.body()
+            if (it.isSuccessful && body != null) {
+                if (body.error != null) {
+                    cb.onError(body.error["message"] as String)
+                } else {
+                    body.result?.forEach {
+                        list.add(gson.fromJson(it))
+                    }
+                    cb.onSuccess(JsonRPCResponse(list, body.id, "", null))
+                }
             } else {
                 cb.onError(it.message())
             }
@@ -198,10 +213,15 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
      * @param cb interface to be called after Dapi call is finished.
      */
     fun sendRawTransition(header: String, packet: String, cb: DapiRequestCallback<String>) {
-        dapiService.sendRawTransition(JsonRPCRequest("sendRawTransition", mapOf("header" to header,
-                "packet" to packet))).enqueue({ it ->
-            if (it.isSuccessful && it.body() != null) {
-                cb.onSuccess(it.body()!!)
+        dapiService.sendRawTransition(JsonRPCRequest("sendRawTransition", mapOf("rawTransitionHeader" to header,
+                "rawTransitionPacket" to packet))).enqueue({
+            val body = it.body()
+            if (it.isSuccessful && body != null) {
+                if (body.error != null) {
+                    cb.onError(body.error["message"] as String)
+                } else {
+                    cb.onSuccess(body)
+                }
             } else {
                 cb.onError(it.message())
             }

@@ -86,17 +86,27 @@ class DapiClientTest : BaseTest() {
         @DisplayName("Fetch Dap")
         fun fetchDapContract() {
             enqueueRestCall("fetch_dap_contract_response", 200)
-            val cbMock = mock<DapiRequestCallback<HashMap<String, String>>>()
+            val cbMock = mock<DapiRequestCallback<HashMap<String, Any>>>()
             createDapiClient().fetchDapContract("6c9f91a044e7db796e48ae3a8e1392f6d62cca3d70b42406cc46781563fb43dc", cbMock)
             Thread.sleep(sleepTime)
             verify(cbMock, only()).onSuccess(any())
         }
 
         @Test
+        @DisplayName("Fetch Inexistent Dap Contract")
+        fun fetchInexistentDapContract() {
+            enqueueRestCall("fetch_dap_contract_inexistent", 200)
+            val cbMock = mock<DapiRequestCallback<HashMap<String, Any>>>()
+            createDapiClient().fetchDapContract("6c9f91a044e7db796e48ae3a8e1392f6d62cca3d70b42406cc46781563fb43dc", cbMock)
+            Thread.sleep(sleepTime)
+            verify(cbMock, only()).onError(any())
+        }
+
+        @Test
         @DisplayName("Fetch Dap Contract Error")
         fun fetchDapContractError() {
             enqueueRestCall("fetch_dap_contract_error", 400)
-            val cbMock = mock<DapiRequestCallback<HashMap<String, String>>>()
+            val cbMock = mock<DapiRequestCallback<HashMap<String, Any>>>()
             createDapiClient().fetchDapContract("6c9f91a044e7db796e48ae3a8e1392f6d62cca3d70b42406cc46781563fb43dc", cbMock)
             Thread.sleep(sleepTime)
             verify(cbMock, only()).onError(any())
