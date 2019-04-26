@@ -11,7 +11,7 @@ data class BlockchainUser(
         val uname: String,
         val regtxid: String,
         val pubkeyid: String,
-        val credits: Int,
+        val credits: Long,
         val data: String,
         //TODO: convert to enum
         val state: String,
