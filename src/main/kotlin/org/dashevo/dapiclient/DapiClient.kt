@@ -10,6 +10,7 @@ import com.google.gson.Gson
 import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
 import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import org.bitcoinj.core.Coin
 import org.bitcoinj.core.ECKey
 import org.bitcoinj.core.Sha256Hash
@@ -21,13 +22,7 @@ import org.dashevo.dapiclient.model.FetchDapObjectParams
 import org.dashevo.dapiclient.model.JsonRPCRequest
 import org.dashevo.dapiclient.model.JsonRPCResponse
 import org.dashevo.dapiclient.rest.DapiService
-import org.dashevo.schema.Create
-import org.dashevo.schema.Object
-import org.dashevo.schema.Serialize
-import org.dashevo.schema.toHexString
-import org.jsonorg.JSONArray
-import org.jsonorg.JSONException
-import org.jsonorg.JSONObject
+import org.dashevo.dpp.*
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -40,7 +35,11 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
     val dapiService: DapiService
 
     init {
+        val logging = HttpLoggingInterceptor()
+        logging.level = HttpLoggingInterceptor.Level.BODY
+
         val debugOkHttpClient = OkHttpClient.Builder()
+                .addInterceptor(logging)
                 .connectTimeout(1, TimeUnit.MINUTES)
                 .readTimeout(1, TimeUnit.MINUTES)
                 .writeTimeout(1, TimeUnit.MINUTES)
@@ -61,20 +60,10 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
      * @param userRegTxId hash of Blockchain User registration transaction (SubTx)
      * @param cb callback, instance of {@link DapCallback}
      */
-    open fun registerDap(dapSchema: JSONObject, userRegTxId: Sha256Hash, hashPrevSubTx: Sha256Hash,
+    open fun registerDap(dapSchema: Map<String, Any>, userRegTxId: Sha256Hash, hashPrevSubTx: Sha256Hash,
                          privKey: ECKey, cb: DapiRequestCallback<String>) {
-        val dapContract: JSONObject? = try {
-            Create.createDapContract(dapSchema)
-        } catch (e: JSONException) {
-            cb.onError(e.localizedMessage)
-            return
-        }
-        dapContract!!.put("pver", 1)
 
-        val stPacket = Create.createSTPacketInstance()
-        stPacket.getJSONObject(Object.STPACKET).put("dapcontract", dapContract.getJSONObject("dapcontract"))
-
-        sendStateTransition(stPacket, userRegTxId, hashPrevSubTx, privKey, cb)
+        sendStateTransition(ContractSTPacket("", Contract("", mutableMapOf())), userRegTxId, hashPrevSubTx, privKey, cb)
     }
 
     /**
@@ -86,16 +75,11 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
      * @param privKey: Private Key of User's pubKey.
      * @param cb: Callback.
      */
-    fun sendDapObject(dapObject: JSONObject, dapId: String, userRegTxId: Sha256Hash, hashPrevSubTx: Sha256Hash,
+    fun sendDapObject(dapObject: MutableMap<String, Any>, dapId: String, userRegTxId: Sha256Hash, hashPrevSubTx: Sha256Hash,
                       privKey: ECKey, cb: DapiRequestCallback<String>) {
 
-        val dapObjects = JSONArray()
-        dapObjects.put(dapObject)
-
-        val stPacket = Create.createSTPacketInstance()
-        stPacket.getJSONObject(Object.STPACKET).put("dapobjects", dapObjects)
-        stPacket.getJSONObject(Object.STPACKET).put("dapid", dapId)
-
+        val document = Document(dapObject)
+        val stPacket = DocumentsSTPacket(dapId, listOf(document))
         sendStateTransition(stPacket, userRegTxId, hashPrevSubTx, privKey, cb)
     }
 
@@ -104,11 +88,11 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
      * @param stPacket: data packet.
      * @param userRegTxId: Transaction ID of User creating the object.
      */
-    fun sendStateTransition(stPacket: JSONObject, userRegTxId: Sha256Hash, hashPrevSubTx: Sha256Hash, privKey: ECKey,
+    fun sendStateTransition(stPacket: STPacket, userRegTxId: Sha256Hash, hashPrevSubTx: Sha256Hash, privKey: ECKey,
                             cb: DapiRequestCallback<String>) {
 
-        val serializedPacket = Serialize.encode(stPacket.getJSONObject("stpacket"))
-        val stPacketHash = Sha256Hash.wrap(Sha256Hash.hashTwice(serializedPacket))
+        val serializedPacket = stPacket.serialize()
+        val stPacketHash = Sha256Hash.wrap(stPacket.hash())
 
         val stateTransitionTx = SubTxTransition(1, userRegTxId, hashPrevSubTx, Coin.valueOf(1000),
                 stPacketHash, privKey)
@@ -151,18 +135,20 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
 
     /**
      * Fetch DAP Contract.
-     * @param dapId: DAP ID of registered contract.
+     * @param contractId: DAP ID of registered contract.
      * @param cb: Callback.
      */
-    fun fetchDapContract(dapId: String, cb: DapiRequestCallback<HashMap<String, Any>>) {
-        val request = JsonRPCRequest("fetchDapContract", mapOf("dapId" to dapId))
-        dapiService.fetchDapContract(request).enqueue({
+    fun fetchContract(contractId: String, cb: DapiRequestCallback<Contract>) {
+        val request = JsonRPCRequest("fetchContract",
+                mapOf("contractId" to contractId))
+        dapiService.fetchContract(request).enqueue({
             val body = it.body()
             if (it.isSuccessful && body != null) {
                 if (body.error != null) {
                     cb.onError(body.error["message"] as String)
                 } else {
-                    cb.onSuccess(body)
+                    val contract = ContractFactory().create(body.result!!.toMutableMap())
+                    cb.onSuccess(JsonRPCResponse(contract, body.id, body.jsonrpc, body.error))
                 }
             } else {
                 cb.onError(it.message())
@@ -179,10 +165,10 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
      * @param cb: Callback.
      * @param query: query to filter objects.
      */
-    inline fun <reified T : Any> fetchDapObjects(dapId: String, type: String, cb: DapiRequestCallback<List<T>>,
-                                                 query: Map<String, Any> = mapOf()) {
+    inline fun <reified T : Any> fetchObjects(dapId: String, type: String, cb: DapiRequestCallback<List<T>>,
+                                              query: Map<String, Any> = mapOf()) {
 
-        val request = JsonRPCRequest("fetchDapObjects",
+        val request = JsonRPCRequest("fetchObjects",
                 FetchDapObjectParams(dapId, type, mapOf("where" to query)))
         dapiService.fetchDapObjects(request).enqueue({ it ->
             val gson = Gson()
@@ -213,8 +199,8 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
      * @param cb interface to be called after Dapi call is finished.
      */
     fun sendRawTransition(header: String, packet: String, cb: DapiRequestCallback<String>) {
-        dapiService.sendRawTransition(JsonRPCRequest("sendRawTransition", mapOf("rawTransitionHeader" to header,
-                "rawTransitionPacket" to packet))).enqueue({
+        dapiService.sendRawTransition(JsonRPCRequest("sendRawTransition", mapOf("rawStateTransition" to header,
+                "rawSTPacket" to packet))).enqueue({
             val body = it.body()
             if (it.isSuccessful && body != null) {
                 if (body.error != null) {

@@ -21,7 +21,7 @@ interface DapiService {
     fun getUser(@Body body: JsonRPCRequest<Map<String, String>>) : Call<JsonRPCResponse<BlockchainUser>>
 
     @POST("/")
-    fun fetchDapContract(@Body body: JsonRPCRequest<Map<String, String>>) : Call<JsonRPCResponse<HashMap<String, Any>>>
+    fun fetchContract(@Body body: JsonRPCRequest<Map<String, String>>) : Call<JsonRPCResponse<Map<String, Any>>>
 
     @POST("/")
     fun fetchDapObjects (@Body body: JsonRPCRequest<FetchDapObjectParams>) : Call<JsonRPCResponse<List<JsonElement>>>
