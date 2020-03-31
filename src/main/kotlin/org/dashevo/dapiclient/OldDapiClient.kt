@@ -73,7 +73,7 @@ open class OldDapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = fals
     open fun registerDap(dapSchema: Map<String, Any>, userRegTxId: Sha256Hash, hashPrevSubTx: Sha256Hash,
                          privKey: ECKey, cb: DapiRequestCallback<String>) {
 
-        sendStateTransition(ContractStateTransition(Contract("", mutableMapOf())), userRegTxId, hashPrevSubTx, privKey, cb)
+        //sendStateTransition(ContractStateTransition(Contract("", mutableMapOf())), userRegTxId, hashPrevSubTx, privKey, cb)
     }
 
     /**
@@ -90,7 +90,7 @@ open class OldDapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = fals
 
         val document = Document(dapObject)
         val stPacket = DocumentsStateTransition(listOf(document))
-        sendStateTransition(stPacket, userRegTxId, hashPrevSubTx, privKey, cb)
+        //sendStateTransition(stPacket, userRegTxId, hashPrevSubTx, privKey, cb)
     }
 
     /**
@@ -98,7 +98,7 @@ open class OldDapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = fals
      * @param stPacket: data packet.
      * @param userRegTxId: Transaction ID of User creating the object.
      */
-    fun sendStateTransition(stPacket: StateTransition, userRegTxId: Sha256Hash, hashPrevSubTx: Sha256Hash, privKey: ECKey,
+    /*fun sendStateTransition(stPacket: StateTransition, userRegTxId: Sha256Hash, hashPrevSubTx: Sha256Hash, privKey: ECKey,
                             cb: DapiRequestCallback<String>) {
 
         val serializedPacket = stPacket.serialize()
@@ -119,14 +119,14 @@ open class OldDapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = fals
                 cb.onError(errorMessage)
             }
         })
-    }
+    }*/
 
     /**
      * Get blockchain user.
      * @param username: Username of registered user.
      * @param cb: Callback.
      */
-    fun getUser(username: String, cb: DapiRequestCallback<BlockchainUser>) {
+    /*fun getUser(username: String, cb: DapiRequestCallback<BlockchainUser>) {
         dapiService.getUser(JsonRPCRequest("getUser", mapOf("username" to username))).enqueue(fun(it: Response<JsonRPCResponse<BlockchainUser>>) {
             val body = it.body()
             if (it.isSuccessful && body != null) {
@@ -141,14 +141,14 @@ open class OldDapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = fals
         }, {
             cb.onError(it.localizedMessage)
         })
-    }
+    }*/
 
     /**
      * Fetch DAP Contract.
      * @param contractId: DAP ID of registered contract.
      * @param cb: Callback.
      */
-    fun fetchContract(contractId: String, cb: DapiRequestCallback<Contract>) {
+    /*fun fetchContract(contractId: String, cb: DapiRequestCallback<Contract>) {
         val request = JsonRPCRequest("fetchContract",
                 mapOf("contractId" to contractId))
         dapiService.fetchContract(request).enqueue({
@@ -166,7 +166,7 @@ open class OldDapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = fals
         }, {
             cb.onError(it.localizedMessage)
         })
-    }
+    }*/
 
     /**
      * Fetch DAP Objects
@@ -175,7 +175,7 @@ open class OldDapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = fals
      * @param cb: Callback.
      * @param query: query to filter objects.
      */
-    inline fun <reified T : Any> fetchObjects(dapId: String, type: String, cb: DapiRequestCallback<List<T>>,
+    /*inline fun <reified T : Any> fetchObjects(dapId: String, type: String, cb: DapiRequestCallback<List<T>>,
                                               query: Map<String, Any> = mapOf()) {
 
         val request = JsonRPCRequest("fetchObjects",
@@ -200,7 +200,7 @@ open class OldDapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = fals
         }, {
             cb.onError(it.localizedMessage)
         })
-    }
+    }*/
 
     /**
      * Send a Raw State Transition.
@@ -208,7 +208,7 @@ open class OldDapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = fals
      * @param packet State Transition Packet in hex format.
      * @param cb interface to be called after Dapi call is finished.
      */
-    fun sendRawTransition(header: String, packet: String, cb: DapiRequestCallback<String>) {
+    /*fun sendRawTransition(header: String, packet: String, cb: DapiRequestCallback<String>) {
         dapiService.sendRawTransition(JsonRPCRequest("sendRawTransition", mapOf("rawStateTransition" to header,
                 "rawSTPacket" to packet))).enqueue({
             val body = it.body()
@@ -224,7 +224,7 @@ open class OldDapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = fals
         }, {
             cb.onError(it.localizedMessage)
         })
-    }
+    }*/
 
     fun getBestBlockHash(cb: DapiRequestCallback<String>) {
         dapiService.getBestBlockHash(JsonRPCRequest("getBestBlockHash", mapOf())).enqueue({
