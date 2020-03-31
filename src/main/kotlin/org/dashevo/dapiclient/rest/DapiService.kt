@@ -5,10 +5,6 @@
  * COPYING file in the root directory of this source tree.
  */
 package org.dashevo.dapiclient.rest
-
-import com.google.gson.JsonElement
-import org.dashevo.dapiclient.model.BlockchainUser
-import org.dashevo.dapiclient.model.FetchDapObjectParams
 import org.dashevo.dapiclient.model.JsonRPCRequest
 import org.dashevo.dapiclient.model.JsonRPCResponse
 import retrofit2.Call
@@ -18,15 +14,19 @@ import retrofit2.http.POST
 interface DapiService {
 
     @POST("/")
-    fun getUser(@Body body: JsonRPCRequest<Map<String, String>>) : Call<JsonRPCResponse<BlockchainUser>>
+    fun getAddressSummary(@Body body: JsonRPCRequest<Map<String, String>>) : Call<JsonRPCResponse<Map<String, Any>>>
 
     @POST("/")
-    fun fetchContract(@Body body: JsonRPCRequest<Map<String, String>>) : Call<JsonRPCResponse<Map<String, Any>>>
+    fun getBestBlockHash(@Body body: JsonRPCRequest<Map<String, String>>) : Call<JsonRPCResponse<String>>
 
-    @POST("/")
-    fun fetchDapObjects (@Body body: JsonRPCRequest<FetchDapObjectParams>) : Call<JsonRPCResponse<List<JsonElement>>>
+    @POST ("/")
+    fun getBlockHash(@Body body: JsonRPCRequest<Map<String, String>>): Call<JsonRPCResponse<String>>
 
-    @POST("/")
-    fun sendRawTransition(@Body body: JsonRPCRequest<Map<String, String>>) : Call<JsonRPCResponse<String>>
+    @POST ("/")
+    fun getBlockHashgetMnListDiff(@Body body: JsonRPCRequest<Map<String, String>>) : Call<JsonRPCResponse<Map<String, Any>>>
+
+    @POST ("/")
+    fun getUTXO(@Body body: JsonRPCRequest<Map<String, String>>) : Call<JsonRPCResponse<Map<String, Any>>>
+
 
 }
