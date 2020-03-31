@@ -11,10 +11,8 @@ import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
-import org.bitcoinj.core.Coin
 import org.bitcoinj.core.ECKey
 import org.bitcoinj.core.Sha256Hash
-import org.bitcoinj.evolution.SubTxTransition
 import org.dashevo.dapiclient.callback.DapiRequestCallback
 import org.dashevo.dapiclient.extensions.enqueue
 import org.dashevo.dapiclient.model.BlockchainUser
@@ -22,13 +20,25 @@ import org.dashevo.dapiclient.model.FetchDapObjectParams
 import org.dashevo.dapiclient.model.JsonRPCRequest
 import org.dashevo.dapiclient.model.JsonRPCResponse
 import org.dashevo.dapiclient.rest.DapiService
-import org.dashevo.dpp.*
+import org.dashevo.dpp.contract.Contract
+import org.dashevo.dpp.contract.ContractFactory
+import org.dashevo.dpp.contract.ContractStateTransition
+import org.dashevo.dpp.document.Document
+import org.dashevo.dpp.document.DocumentsStateTransition
+import org.dashevo.dpp.statetransition.StateTransition
+import org.dashevo.dpp.toHexString
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
+import java.util.logging.Logger
 
-open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) {
+open class OldDapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) {
+
+    companion object {
+        private val logger = Logger.getLogger(OldDapiClient::class.java.name)
+        val DEFAULT_JRPC_PORT = 3000
+    }
 
     private val retrofit: Retrofit
 
@@ -46,7 +56,7 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
                 .build()
         retrofit = Retrofit.Builder()
                 .addConverterFactory(GsonConverterFactory.create())
-                .baseUrl("$mnIP:$mnDapiPort/")
+                .baseUrl("http://$mnIP:$mnDapiPort/")
                 .client(if (debug) debugOkHttpClient else OkHttpClient())
                 .build()
         dapiService = retrofit.create(DapiService::class.java)
@@ -63,7 +73,7 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
     open fun registerDap(dapSchema: Map<String, Any>, userRegTxId: Sha256Hash, hashPrevSubTx: Sha256Hash,
                          privKey: ECKey, cb: DapiRequestCallback<String>) {
 
-        sendStateTransition(ContractSTPacket("", Contract("", mutableMapOf())), userRegTxId, hashPrevSubTx, privKey, cb)
+        sendStateTransition(ContractStateTransition(Contract("", mutableMapOf())), userRegTxId, hashPrevSubTx, privKey, cb)
     }
 
     /**
@@ -75,11 +85,11 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
      * @param privKey: Private Key of User's pubKey.
      * @param cb: Callback.
      */
-    fun sendDapObject(dapObject: MutableMap<String, Any>, dapId: String, userRegTxId: Sha256Hash, hashPrevSubTx: Sha256Hash,
+    fun sendDapObject(dapObject: MutableMap<String, Any?>, dapId: String, userRegTxId: Sha256Hash, hashPrevSubTx: Sha256Hash,
                       privKey: ECKey, cb: DapiRequestCallback<String>) {
 
         val document = Document(dapObject)
-        val stPacket = DocumentsSTPacket(dapId, listOf(document))
+        val stPacket = DocumentsStateTransition(listOf(document))
         sendStateTransition(stPacket, userRegTxId, hashPrevSubTx, privKey, cb)
     }
 
@@ -88,16 +98,16 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
      * @param stPacket: data packet.
      * @param userRegTxId: Transaction ID of User creating the object.
      */
-    fun sendStateTransition(stPacket: STPacket, userRegTxId: Sha256Hash, hashPrevSubTx: Sha256Hash, privKey: ECKey,
+    fun sendStateTransition(stPacket: StateTransition, userRegTxId: Sha256Hash, hashPrevSubTx: Sha256Hash, privKey: ECKey,
                             cb: DapiRequestCallback<String>) {
 
         val serializedPacket = stPacket.serialize()
         val stPacketHash = Sha256Hash.wrap(stPacket.hash())
 
-        val stateTransitionTx = SubTxTransition(1, userRegTxId, hashPrevSubTx, Coin.valueOf(1000),
-                stPacketHash, privKey)
+        //val stateTransitionTx = SubTxTransition(1, userRegTxId, hashPrevSubTx, Coin.valueOf(1000),
+        //        stPacketHash, privKey)
 
-        val serializedStHex = stateTransitionTx.unsafeBitcoinSerialize().toHexString()
+        val serializedStHex = stPacket.serialize(false).toHexString()
         val serializedPacketHex = serializedPacket.toHexString()
 
         sendRawTransition(serializedStHex, serializedPacketHex, object : DapiRequestCallback<String> {
@@ -147,7 +157,7 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
                 if (body.error != null) {
                     cb.onError(body.error["message"] as String)
                 } else {
-                    val contract = ContractFactory().create(body.result!!.toMutableMap())
+                    val contract = ContractFactory().create(contractId, body.result!!.toMutableMap())
                     cb.onSuccess(JsonRPCResponse(contract, body.id, body.jsonrpc, body.error))
                 }
             } else {
@@ -216,4 +226,29 @@ open class DapiClient(mnIP: String, mnDapiPort: String, debug: Boolean = false) 
         })
     }
 
+    fun getBestBlockHash(cb: DapiRequestCallback<String>) {
+        dapiService.getBestBlockHash(JsonRPCRequest("getBestBlockHash", mapOf())).enqueue({
+            val body = it.body()
+            if (it.isSuccessful && body != null) {
+                if (body.error != null) {
+                    cb.onError(body.error["message"] as String)
+                } else {
+                    cb.onSuccess(body)
+                }
+            } else {
+                cb.onError(it.message())
+            }
+        }, {
+            cb.onError(it.localizedMessage)
+        })
+    }
+
+    fun getBestBlockHash() : String? {
+        val response = dapiService.getBestBlockHash(JsonRPCRequest("getBestBlockHash", mapOf())).execute()
+        if(response.isSuccessful) {
+            return response.body()!!.result
+        } else {
+            throw Exception("jRPC error code: ${response.code()})")
+        }
+    }
 }
