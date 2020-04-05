@@ -26,6 +26,7 @@ import org.dashevo.dapiclient.model.GetStatusResponse
 import org.dashevo.dapiclient.model.JsonRPCRequest
 import org.dashevo.dapiclient.rest.DapiService
 import org.dashevo.dpp.statetransition.StateTransition
+import org.json.JSONObject
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.logging.Level
@@ -117,7 +118,7 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
                 serializedIdentityBinaryArray
             else null
         } catch (e: StatusRuntimeException) {
-            if (e.status == Status.NOT_FOUND) {
+            if (e.status.code == Status.NOT_FOUND.code) {
                 return null;
             }
             throw e;
@@ -379,6 +380,15 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
         if(diffMasternodeEachCall && initialized) {
             channel.shutdown().awaitTermination(5, TimeUnit.SECONDS)
             initialized = false
+        }
+    }
+
+    fun processException(exception: StatusRuntimeException) {
+        val x = JSONObject(exception.trailers.toString())
+        when(exception.status.code) {
+            Status.Code.INVALID_ARGUMENT -> {
+
+            }
         }
     }
 }
