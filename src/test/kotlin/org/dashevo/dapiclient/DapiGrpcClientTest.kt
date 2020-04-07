@@ -35,7 +35,7 @@ class DapiGrpcClientTest {
 
     @Test
     fun getStatusTest() {
-        val client = DapiClient("18.237.82.208")
+        val client = DapiClient(EvoNetParams.MASTERNODES[1])
         try {
             val status = client.getStatus()
             println(status)
@@ -46,7 +46,7 @@ class DapiGrpcClientTest {
 
     @Test
     fun getBlockTest() {
-        val client = DapiClient(SingleMasternode("18.237.82.208"))
+        val client = DapiClient(SingleMasternode(EvoNetParams.MASTERNODES[1]))
         try {
             //devnet-mobile
             val block1 = "040000002e3df23eec5cd6a86edd509539028e2c3a3dc05315eb28f2baa43218ca08000073c0af0969b638432ca0744be69fdcf419e476c59ee08368002df63a28f6c0bbba968054ffff7f20000000000101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff0f510d6465766e65742d6d6f62696c65ffffffff0100f2052a01000000016a00000000"
