@@ -190,14 +190,11 @@ class DapiGrpcClientTest {
         val contractId = "77w8Xqn25HwJhjodrHW133aXhjuTsTv9ozQaYpSHACE3"//""EzLBmQdQXYMaoeXWNaegK18iaaCDShitN3s14US3DunM"
         try {
             //devnet-evonet
-            val where2 = listOf(
-                    listOf("normalizedParentDomainName", "==", "dash").toMutableList(),
-                    listOf("normalizedLabel", "startsWith", "a").toMutableList()
-            ).toMutableList()
-
-            val empty = listOf<String>().toMutableList()
-            //listOf("message", "startsWith", "Tut").toMutableList()).toMutableList()
-            val documents = client.getDocuments(contractId, "domain", DocumentQuery(where2, null, 100, 0, 0))
+            val query = DocumentQuery.Builder()
+                    .where(listOf("normalizedParentDomainName", "==", "dash").toMutableList())
+                    .where(listOf("normalizedLabel", "startsWith", "test").toMutableList())
+                    .build()
+            val documents = client.getDocuments(contractId, "domain", query)
             println(documents!![0].toHexString())
 
             val document = Document(Cbor.decode(documents!![0]))

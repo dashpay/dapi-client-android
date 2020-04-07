@@ -6,7 +6,9 @@
  */
 package org.dashevo.dapiclient.model
 
+import org.dashevo.dpp.BaseObject
 import org.dashevo.dpp.util.Cbor
+import org.json.JSONArray
 
 /**
  * These options are used by getDocument to filter results
@@ -16,27 +18,69 @@ import org.dashevo.dpp.util.Cbor
  * @property startAt Int
  * @property startAfter Int
  */
-class DocumentQuery {
+class DocumentQuery private constructor(var where: List<List<String>>? = null,
+                                        var orderBy: List<List<String>>? = null,
+                                        var limit: Int = -1,
+                                        var startAt: Int = -1,
+                                        var startAfter: Int = -1) : BaseObject() {
 
     companion object {
         val emptyByteArray = ByteArray(0)
     }
-    var where: MutableList<MutableList<String>>? = null
-    var orderBy: MutableList<MutableList<String>>? = null
-    var limit: Int = 100
-    var startAt: Int = 0
-    var startAfter: Int = 0
 
-    constructor(where: MutableList<MutableList<String>>?,
-                orderBy: MutableList<MutableList<String>>?,
-                limit: Int,
-                startAt: Int,
-                startAfter: Int) {
-        this.where = where
-        this.orderBy = orderBy
-        this.limit = limit
-        this.startAfter = startAfter
-        this.startAt = startAt
+    data class Builder(var where: MutableList<List<String>>? = null,
+                       var orderBy: MutableList<List<String>>? = null,
+                       var limit: Int = -1,
+                       var startAt: Int = -1,
+                       var startAfter: Int = -1) {
+
+        fun where(where: List<String>) = apply {
+            if (this.where == null) {
+                this.where = ArrayList()
+            }
+            this.where!!.add(where)
+        }
+
+        fun where(where: String): Builder {
+            return where(JSONArray(where) as MutableList<String>)
+        }
+
+        fun where(left: String, operator: String, right: String): Builder {
+            return where(listOf(left, operator, right))
+        }
+
+        fun orderBy(orderBy: MutableList<String>)  = apply {
+            if (this.orderBy == null) {
+                this.orderBy = ArrayList()
+            }
+            this.orderBy!!.add(orderBy)
+        }
+
+        fun orderBy(orderBy: List<String>) {
+            orderBy(orderBy.toMutableList())
+        }
+
+        fun orderBy(orderBy: String) {
+            orderBy(JSONArray(orderBy).toMutableList() as MutableList<String>)
+        }
+
+        fun limit(limit: Int) = apply { this.limit = limit }
+        fun startAt(startAt: Int) = apply { this.startAt = startAt }
+        fun startAfter(startAfter: Int) = apply {this.startAfter = startAfter}
+
+        fun build() = DocumentQuery(where, orderBy, limit, startAt, startAfter)
+    }
+
+    fun hasLimit(): Boolean {
+        return limit != -1
+    }
+
+    fun hasStartAt(): Boolean {
+        return startAt != -1
+    }
+
+    fun hasStartAfter(): Boolean {
+        return startAfter != -1
     }
 
     fun encodeWhere(): ByteArray {
@@ -51,5 +95,18 @@ class DocumentQuery {
         } else emptyByteArray
     }
 
-    //TODO: Add methods to clear and add more filters to where and orderBy
+    override fun toJSON(): Map<String, Any?> {
+        val json = HashMap<String, Any?>(5)
+        if(where != null)
+            json["where"] = where
+        if(orderBy != null)
+            json["orderBy"] = orderBy
+        if(limit != -1)
+            json["limit"] = limit
+        if(startAt != -1)
+            json["startAt"] = startAt
+        if(startAfter != -1)
+            json["startAfter"] = startAfter
+        return json
+    }
 }

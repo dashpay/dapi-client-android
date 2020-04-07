@@ -161,15 +161,19 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
      */
     fun getDocuments(contractId: String, type: String, documentQuery: DocumentQuery): List<ByteArray>? {
 
-        val getDocumentsRequest = PlatformOuterClass.GetDocumentsRequest.newBuilder()
+        val builder = PlatformOuterClass.GetDocumentsRequest.newBuilder()
                 .setDataContractId(contractId)
                 .setDocumentType(type)
                 .setWhere(ByteString.copyFrom(documentQuery.encodeWhere()))
                 .setOrderBy(ByteString.copyFrom(documentQuery.encodeOrderBy()))
-                .setLimit(documentQuery.limit)
-                .setStartAfter(documentQuery.startAfter)
-                .setStartAt(documentQuery.startAt)
-                .build()
+        if(documentQuery.hasLimit())
+            builder.setLimit(documentQuery.limit)
+        if(documentQuery.hasStartAfter())
+            builder.setStartAfter(documentQuery.startAfter)
+        if(documentQuery.hasStartAt())
+            builder.setStartAt(documentQuery.startAt)
+
+        val getDocumentsRequest = builder.build()
 
         val service = getPlatformService()
 
