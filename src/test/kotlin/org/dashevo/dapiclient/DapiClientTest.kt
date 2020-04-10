@@ -14,11 +14,7 @@ class DapiClientTest {
 
     @Test
     fun jRPCTests() {
-        val masternodeList = EvoNetParams.MASTERNODES
-        val client = OldDapiClient(SingleMasternode(masternodeList[0]).host, "3000")
-
-        val client2 = DapiClient(EvoNetParams.MASTERNODES[0])
-        println("blocking=> hash: " + client2.getBestBlockHash())
-        sleep(12000)
+        val client = DapiClient(EvoNetParams.MASTERNODES[0])
+        println("blocking=> hash: " + client.getBestBlockHash())
     }
 }
