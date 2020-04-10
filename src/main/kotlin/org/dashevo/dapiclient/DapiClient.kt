@@ -110,7 +110,7 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
 
         val getIdentityResponse: PlatformOuterClass.GetIdentityResponse
         try {
-            getIdentityResponse = service.getIdentity(getIdentityRequest);
+            getIdentityResponse = service.getIdentity(getIdentityRequest)
 
             val serializedIdentityBinaryArray = getIdentityResponse.identity
 
@@ -119,9 +119,9 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
             else null
         } catch (e: StatusRuntimeException) {
             if (e.status.code == Status.NOT_FOUND.code) {
-                return null;
+                return null
             }
-            throw e;
+            throw e
         } finally {
             shutdownInternal()
         }
@@ -140,12 +140,12 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
         val service = getPlatformService()
 
         try {
-            var getDataContractResponse = service.getDataContract(getDataContractRequest);
+            var getDataContractResponse = service.getDataContract(getDataContractRequest)
             return getDataContractResponse.dataContract ?: return null
         } catch (e: StatusRuntimeException) {
             if (e.status.code == Status.NOT_FOUND.code) {
                 return null
-            } else throw e;
+            } else throw e
         } finally {
             shutdownInternal()
         }
@@ -167,18 +167,18 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
                 .setWhere(ByteString.copyFrom(documentQuery.encodeWhere()))
                 .setOrderBy(ByteString.copyFrom(documentQuery.encodeOrderBy()))
         if(documentQuery.hasLimit())
-            builder.setLimit(documentQuery.limit)
+            builder.limit = documentQuery.limit
         if(documentQuery.hasStartAfter())
-            builder.setStartAfter(documentQuery.startAfter)
+            builder.startAfter = documentQuery.startAfter
         if(documentQuery.hasStartAt())
-            builder.setStartAt(documentQuery.startAt)
+            builder.startAt = documentQuery.startAt
 
         val getDocumentsRequest = builder.build()
 
         val service = getPlatformService()
 
         try {
-            val getDocumentsResponse = service.getDocuments(getDocumentsRequest);
+            val getDocumentsResponse = service.getDocuments(getDocumentsRequest)
 
             return getDocumentsResponse.documentsList.map { it.toByteArray() }
         } finally {
