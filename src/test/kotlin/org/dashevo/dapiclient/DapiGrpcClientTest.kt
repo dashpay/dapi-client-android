@@ -3,13 +3,17 @@ package org.dashevo.dapiclient
 import com.hashengineering.crypto.X11
 import io.grpc.Status
 import io.grpc.StatusRuntimeException
+import org.bitcoinj.core.ECKey
 import org.bitcoinj.core.Sha256Hash
+import org.bitcoinj.core.TransactionOutPoint
 import org.bitcoinj.evolution.CreditFundingTransaction
 import org.bitcoinj.params.EvoNetParams
 import org.dashevo.dapiclient.model.DocumentQuery
 import org.dashevo.dpp.contract.Contract
 import org.dashevo.dpp.document.Document
 import org.dashevo.dpp.identity.Identity
+import org.dashevo.dpp.identity.IdentityCreateTransition
+import org.dashevo.dpp.identity.IdentityPublicKey
 import org.dashevo.dpp.toBase64
 import org.dashevo.dpp.toHexString
 import org.dashevo.dpp.util.Cbor
@@ -208,46 +212,6 @@ class DapiGrpcClientTest {
         } finally {
             client.shutdown()
         }
-    }
-    /*
-    CreditFundingTransaction{78b7f924ce99982d7bc95160984e38a2b17e88ba98b5583d4320116565c2763d
-      type TRANSACTION_NORMAL(0)
-    purpose: UNKNOWN
-       in   PUSHDATA(72)[3045022100fc7cab994fb62bce2e286124d696cdd09120ac8ae94e4598977f1a27a582f747022074da17c595b531ce81b70d4116425a6df9b2a71f958f399dcabab9f205b2ae9e01] PUSHDATA(33)[0326e680733eefbf271cd20fddf40e75a89923b1cf39a6162baf770de040efb718]
-            unconnected  outpoint:4953fde90ca2b118755d144ed1fa86cef5a93106a1efd317c895f37506935e74:0
-       out  DUP HASH160 PUSHDATA(20)[7b560e12927197cfc4267f752280910a09db8fdb] EQUALVERIFY CHECKSIG  0.19959776 DASH
-            P2PKH addr:yXZb416KVDkaMG8AuqpPRnGkftPWyyJR4b
-       out  RETURN PUSHDATA(20)[6d22ab738e8b321738b382e1a10f4d0c50c905e9]  0.0004 DASH
-            CREDITBURN addr:yWGW31QSArqjncjmn74AFaay7SCrP1oYUa
-    }
-
-      DeterministicKey{pub HEX=027874912e5d8e99cb129d4d0dc7c8285343c181c4c8272f89752c65b68ceb2c94,
-        priv HEX=0c82adc6e085cfc27c6620b1fa8eb8ea630bccaf47b459fb128f7c1827994e8d,
-        priv WIF=cN128hmiUpcpEX5AceYMyu9LDsnsqhqSoSufVU1HRBha1jebwhBx, isEncrypted=false, isPubKeyOnly=false}
-        addr:yWGW31QSArqjncjmn74AFaay7SCrP1oYUa  hash160:6d22ab738e8b321738b382e1a10f4d0c50c905e9  (M/9H/1H/12H/0, external)
-
-     */
-
-    @Test
-    fun registerIdentityTest() {
-        /*val publicKeyHex = "027874912e5d8e99cb129d4d0dc7c8285343c181c4c8272f89752c65b68ceb2c94"
-        val privateKeyHex = "0c82adc6e085cfc27c6620b1fa8eb8ea630bccaf47b459fb128f7c1827994e8d"
-        val key = ECKey(Utils.HEX.decode(privateKeyHex), Utils.HEX.decode(publicKeyHex))
-        val identityPublicKey = IdentityPublicKey(1,
-                IdentityPublicKey.TYPES.ECDSA_SECP256K1, key.pubKey.toBase64(), true)
-        val keyList = java.util.ArrayList<IdentityPublicKey>()
-        keyList.add(identityPublicKey)
-
-        val st = IdentityCreateTransition(Identity.IdentityType.USER,
-                TransactionOutPoint(EvoNetParams.get(),1,
-                        Sha256Hash.wrapReversed(Utils.HEX.decode("78b7f924ce99982d7bc95160984e38a2b17e88ba98b5583d4320116565c2763d"))).toStringBase64(),
-                        keyList, 0)
-
-        st.sign(identityPublicKey, Utils.HEX.encode(key.privKeyBytes))
-
-        val client = DapiClient(SingleMasternode(EvoNetParams.MASTERNODES[1]), true)
-        client.applyStateTransition(st)
-        client.shutdown()*/
     }
 
     @Test
