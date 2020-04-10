@@ -57,7 +57,6 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
     }
 
 
-
     init {
         val logging = HttpLoggingInterceptor()
         logging.level = HttpLoggingInterceptor.Level.BODY
@@ -71,7 +70,7 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
 
     }
 
-    constructor(masternodeAddress: String, diffMasternodeEachCall: Boolean = true):
+    constructor(masternodeAddress: String, diffMasternodeEachCall: Boolean = true) :
             this(SingleMasternode(masternodeAddress), diffMasternodeEachCall)
 
     /* Platform gRPC methods */
@@ -114,7 +113,7 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
 
             val serializedIdentityBinaryArray = getIdentityResponse.identity
 
-            return if(!serializedIdentityBinaryArray.isEmpty)
+            return if (!serializedIdentityBinaryArray.isEmpty)
                 serializedIdentityBinaryArray
             else null
         } catch (e: StatusRuntimeException) {
@@ -166,11 +165,11 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
                 .setDocumentType(type)
                 .setWhere(ByteString.copyFrom(documentQuery.encodeWhere()))
                 .setOrderBy(ByteString.copyFrom(documentQuery.encodeOrderBy()))
-        if(documentQuery.hasLimit())
+        if (documentQuery.hasLimit())
             builder.limit = documentQuery.limit
-        if(documentQuery.hasStartAfter())
+        if (documentQuery.hasStartAfter())
             builder.startAfter = documentQuery.startAfter
-        if(documentQuery.hasStartAt())
+        if (documentQuery.hasStartAt())
             builder.startAt = documentQuery.startAt
 
         val getDocumentsRequest = builder.build()
@@ -194,7 +193,7 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
 
         val service = getCoreService()
 
-        val response: CoreOuterClass.GetStatusResponse =  try {
+        val response: CoreOuterClass.GetStatusResponse = try {
             service.getStatus(request)
         } catch (e: StatusRuntimeException) {
             logger.log(Level.WARNING, "RPC failed: {0}", e.status)
@@ -306,10 +305,10 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
      *
      * @return String?
      */
-    fun getBestBlockHash() : String? {
+    fun getBestBlockHash(): String? {
         val service = getJRPCService()
         val response = service.getBestBlockHash(JsonRPCRequest("getBestBlockHash", mapOf())).execute()
-        if(response.isSuccessful) {
+        if (response.isSuccessful) {
             return response.body()!!.result
         } else {
             throw Exception("jRPC error code: ${response.code()})")
@@ -323,7 +322,7 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
     }
 
     private fun getPlatformService(): PlatformGrpc.PlatformBlockingStub {
-        if(diffMasternodeEachCall && initialized)
+        if (diffMasternodeEachCall && initialized)
             return platform
 
         initializeService()
@@ -348,7 +347,7 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
     }
 
     private fun getCoreService(): CoreGrpc.CoreBlockingStub {
-        if(diffMasternodeEachCall && initialized)
+        if (diffMasternodeEachCall && initialized)
             return core
 
         initializeService()
@@ -356,8 +355,8 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
         return core
     }
 
-    private fun getJRPCService() : DapiService {
-        if(diffMasternodeEachCall && initializedJRPC)
+    private fun getJRPCService(): DapiService {
+        if (diffMasternodeEachCall && initializedJRPC)
             return dapiService
 
         val mnIP = getGrpcHost()
@@ -375,13 +374,13 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
 
     fun shutdown() {
         logger.info("shutdown:" + !channel.isShutdown)
-        if(!channel.isShutdown)
+        if (!channel.isShutdown)
             channel.shutdown().awaitTermination(5, TimeUnit.SECONDS)
     }
 
     private fun shutdownInternal() {
         logger.info("shutdown:internal" + (diffMasternodeEachCall && initialized))
-        if(diffMasternodeEachCall && initialized) {
+        if (diffMasternodeEachCall && initialized) {
             channel.shutdown().awaitTermination(5, TimeUnit.SECONDS)
             initialized = false
         }
@@ -389,7 +388,7 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
 
     fun processException(exception: StatusRuntimeException) {
         val x = JSONObject(exception.trailers.toString())
-        when(exception.status.code) {
+        when (exception.status.code) {
             Status.Code.INVALID_ARGUMENT -> {
 
             }
