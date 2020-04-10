@@ -32,9 +32,6 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.logging.Level
 
 
-/**
- * A simple client that requests a greeting from the [HelloWorldServer].
- */
 class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEachCall: Boolean = true, val debug: Boolean = false) {
 
     // gRPC properties
@@ -54,6 +51,8 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
         private val logger = Logger.getLogger(DapiClient::class.java.name)
         const val DEFAULT_GRPC_PORT = 3010
         const val DEFAULT_JRPC_PORT = 3000
+
+        const val BLOCK_HASH_LENGTH = 64 // length of a hex string of a hash
     }
 
 
@@ -230,7 +229,7 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
      */
 
     fun getBlockByHash(hash: String): ByteArray? {
-        Preconditions.checkArgument(hash.length == 64)
+        Preconditions.checkArgument(hash.length == BLOCK_HASH_LENGTH)
         val request = CoreOuterClass.GetBlockRequest.newBuilder()
                 .setHash(hash)
                 .build()
