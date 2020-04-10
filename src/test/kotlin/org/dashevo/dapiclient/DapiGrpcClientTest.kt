@@ -26,7 +26,7 @@ class DapiGrpcClientTest {
             val status = client.getStatus()
             fail<Nothing>("This test should throw and exception")
         } catch (e: StatusRuntimeException) {
-            if(e.status.code != Status.UNAVAILABLE.code)
+            if (e.status.code != Status.UNAVAILABLE.code)
                 fail<Nothing>("Invalid node test failed with a differnet error")
         } finally {
             client.shutdown()
@@ -81,9 +81,9 @@ class DapiGrpcClientTest {
             //devnet-evonet
             val contractBytes = client.getDataContract(contractId)
             println(contractBytes!!.toByteArray().toHexString())
-            println(contractBytes!!.toByteArray().toBase64())
+            println(contractBytes.toByteArray().toBase64())
 
-            val contract = Contract(Cbor.decode(contractBytes!!.toByteArray()))
+            val contract = Contract(Cbor.decode(contractBytes.toByteArray()))
             println(contract)
         } finally {
             client.shutdown()
@@ -100,11 +100,11 @@ class DapiGrpcClientTest {
             //devnet-evonet
             val contractBytes = client.getDataContract(contractId)
             println(contractBytes!!.toByteArray().toHexString())
-            println(contractBytes!!.toByteArray().toBase64())
+            println(contractBytes.toByteArray().toBase64())
             val contractBytes2 = client.getDataContract(contractId)
 
 
-            val contract = Contract(Cbor.decode(contractBytes!!.toByteArray()))
+            val contract = Contract(Cbor.decode(contractBytes.toByteArray()))
             println(contract)
         } finally {
             client.shutdown()
@@ -121,11 +121,11 @@ class DapiGrpcClientTest {
             //devnet-evonet
             val contractBytes = client.getDataContract(contractId)
             println(contractBytes!!.toByteArray().toHexString())
-            println(contractBytes!!.toByteArray().toBase64())
+            println(contractBytes.toByteArray().toBase64())
             val contractBytes2 = client.getDataContract(contractId)
 
 
-            val contract = Contract(Cbor.decode(contractBytes!!.toByteArray()))
+            val contract = Contract(Cbor.decode(contractBytes.toByteArray()))
             println(contract)
         } finally {
             client.shutdown()
@@ -154,7 +154,7 @@ class DapiGrpcClientTest {
         try {
             val contractBytes = client.getDataContract(contractId)
             fail<Nothing>("The node queried should not exist")
-        } catch(e: StatusRuntimeException) {
+        } catch (e: StatusRuntimeException) {
             assertTrue(e.status.code == Status.UNAVAILABLE.code)
         } finally {
             client.shutdown()
@@ -197,14 +197,14 @@ class DapiGrpcClientTest {
             val documents = client.getDocuments(contractId, "domain", query)
             println(documents!![0].toHexString())
 
-            val document = Document(Cbor.decode(documents!![0]))
+            val document = Document(Cbor.decode(documents[0]))
 
             val docs = ArrayList<Document>(documents.size)
             for (d in documents) {
                 docs.add(Document(Cbor.decode(d)))
             }
 
-            println(document)
+            println(document.toJSON())
         } finally {
             client.shutdown()
         }
