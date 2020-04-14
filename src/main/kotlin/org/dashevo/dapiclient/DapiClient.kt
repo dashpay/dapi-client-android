@@ -26,6 +26,7 @@ import org.dashevo.dapiclient.model.GetStatusResponse
 import org.dashevo.dapiclient.model.JsonRPCRequest
 import org.dashevo.dapiclient.rest.DapiService
 import org.dashevo.dpp.statetransition.StateTransition
+import org.dashevo.dpp.toHexString
 import org.json.JSONObject
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -80,6 +81,7 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
      * @param stateTransition
      */
     fun applyStateTransition(stateTransition: StateTransition) {
+        logger.log(Level.INFO, "applyStateTransition()")
         val applyStateTransitionRequest = PlatformOuterClass.ApplyStateTransitionRequest.newBuilder()
                 .setStateTransition(ByteString.copyFrom(stateTransition.serialize()))
                 .build()
@@ -89,17 +91,18 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
         try {
             service.applyStateTransition(applyStateTransitionRequest)
         } catch (e: StatusRuntimeException) {
-            logger.log(Level.WARNING, "RPC failed: {0}", e.status)
+            logException(e)
             throw e
         }
     }
 
     /**
      * Fetch the identity by id
-     * @param {string} id
-     * @returns {Promise<!Buffer|null>}
+     * @param id String
+     * @return ByteString?
      */
     fun getIdentity(id: String): ByteString? {
+        logger.log(Level.INFO, "getDataContract($id)")
         val getIdentityRequest = PlatformOuterClass.GetIdentityRequest.newBuilder()
                 .setId(id)
                 .build()
@@ -116,6 +119,7 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
                 serializedIdentityBinaryArray
             else null
         } catch (e: StatusRuntimeException) {
+            logException(e)
             if (e.status.code == Status.NOT_FOUND.code) {
                 return null
             }
@@ -131,6 +135,8 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
      * @return ByteString? The contract bytes or null if not found
      */
     fun getDataContract(contractId: String): ByteString? {
+        logger.log(Level.INFO, "getDataContract($contractId)")
+
         val getDataContractRequest = PlatformOuterClass.GetDataContractRequest.newBuilder()
                 .setId(contractId)
                 .build()
@@ -141,6 +147,7 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
             var getDataContractResponse = service.getDataContract(getDataContractRequest)
             return getDataContractResponse.dataContract ?: return null
         } catch (e: StatusRuntimeException) {
+            logException(e)
             if (e.status.code == Status.NOT_FOUND.code) {
                 return null
             } else throw e
@@ -158,7 +165,7 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
      * @return List<ByteArray>? a list of documents matching the provided parameters
      */
     fun getDocuments(contractId: String, type: String, documentQuery: DocumentQuery): List<ByteArray>? {
-
+        logger.log(Level.INFO, "getDocuments($contractId, $type, ${documentQuery.toJSON()})")
         val builder = PlatformOuterClass.GetDocumentsRequest.newBuilder()
                 .setDataContractId(contractId)
                 .setDocumentType(type)
@@ -187,7 +194,7 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
     /* Core */
     /** get status of platform node  */
     fun getStatus(): GetStatusResponse? {
-        logger.log(Level.INFO, "getStatus")
+        logger.log(Level.INFO, "getStatus()")
         val request = CoreOuterClass.GetStatusRequest.newBuilder().build()
 
         val service = getCoreService()
@@ -195,7 +202,7 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
         val response: CoreOuterClass.GetStatusResponse = try {
             service.getStatus(request)
         } catch (e: StatusRuntimeException) {
-            logger.log(Level.WARNING, "RPC failed: {0}", e.status)
+            logException(e)
             throw e
         } finally {
             shutdownInternal()
@@ -214,7 +221,12 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
                 response.network)
     }
 
+    private fun logException(e: StatusRuntimeException) {
+        logger.log(Level.WARNING, "RPC failed: ${e.status}: ${e.trailers}")
+    }
+
     fun getBlockByHeight(height: Int): ByteArray? {
+        logger.log(Level.INFO, "getBlockByHeight($height)")
         Preconditions.checkArgument(height > 0)
         val request = CoreOuterClass.GetBlockRequest.newBuilder()
                 .setHeight(height)
@@ -229,6 +241,7 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
      */
 
     fun getBlockByHash(hash: String): ByteArray? {
+        logger.log(Level.INFO, "getBlockByHash($hash)")
         Preconditions.checkArgument(hash.length == BLOCK_HASH_LENGTH)
         val request = CoreOuterClass.GetBlockRequest.newBuilder()
                 .setHash(hash)
@@ -242,7 +255,7 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
         val response: CoreOuterClass.GetBlockResponse = try {
             service.getBlock(request)
         } catch (e: StatusRuntimeException) {
-            logger.log(Level.WARNING, "RPC failed: {0}", e.status)
+            logException(e)
             if (e.status.code == Status.NOT_FOUND.code) {
                 return null
             } else throw e
@@ -254,6 +267,7 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
     }
 
     fun sendTransaction(txBytes: ByteString, allowHighFees: Boolean = false, bypassLimits: Boolean = false): String {
+        logger.info("sendTransaction(${txBytes.toByteArray().toHexString()}, allowHighFees=$allowHighFees, bypassLimits=$bypassLimits): jRPC")
         val request = CoreOuterClass.SendTransactionRequest.newBuilder()
                 .setTransaction(txBytes)
                 .setAllowHighFees(allowHighFees)
@@ -266,7 +280,7 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
             logger.info("Response: $response")
             response.transactionId
         } catch (e: StatusRuntimeException) {
-            logger.log(Level.WARNING, "RPC failed: {0}", e.status)
+            logException(e)
             throw e
         } finally {
             shutdownInternal()
@@ -275,11 +289,11 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
 
     /**
      *
-     * @param txHex String This transaction has must be in reverse order compared to Sha256Hash.toString
+     * @param txHex String
      * @return ByteString?
      */
     fun getTransaction(txHex: String): ByteString? {
-        logger.log(Level.INFO, "getTransaction")
+        logger.log(Level.INFO, "getTransaction($txHex)")
         val request = CoreOuterClass.GetTransactionRequest.newBuilder()
                 .setId(txHex)
                 .build()
@@ -291,7 +305,7 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
             logger.info("Response: $response")
             response.transaction
         } catch (e: StatusRuntimeException) {
-            logger.log(Level.WARNING, "RPC failed: {0}", e.status)
+            logException(e)
             if (e.status.code == Status.NOT_FOUND.code) {
                 null
             } else throw e
@@ -305,6 +319,7 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
      * @return String?
      */
     fun getBestBlockHash(): String? {
+        logger.info("getBestBlockHash(): jRPC")
         val service = getJRPCService()
         val response = service.getBestBlockHash(JsonRPCRequest("getBestBlockHash", mapOf())).execute()
         if (response.isSuccessful) {
@@ -331,6 +346,7 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
 
     private fun initializeService() {
         val host = getGrpcHost()
+        logger.info("Connecting to GRPC host: $host:$DEFAULT_GRPC_PORT")
         channel = ManagedChannelBuilder.forAddress(host, DEFAULT_GRPC_PORT)
                 // Channels are secure by default (via SSL/TLS). For the example we disable TLS to avoid
                 // needing certificates.
@@ -360,6 +376,8 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
 
         val mnIP = getGrpcHost()
 
+        logger.info("Connecting to GRPC host: $mnIP:$DEFAULT_JRPC_PORT")
+
         retrofit = Retrofit.Builder()
                 .addConverterFactory(GsonConverterFactory.create())
                 .baseUrl("http://$mnIP:$DEFAULT_JRPC_PORT/")
@@ -372,14 +390,17 @@ class DapiClient(val masternodeService: MasternodeService, val diffMasternodeEac
 
 
     fun shutdown() {
-        logger.info("shutdown:" + !channel.isShutdown)
-        if (!channel.isShutdown)
+        logger.info("shutdown: " + !channel.isShutdown)
+        if (!channel.isShutdown) {
+            logger.info("Shutting down: " + channel.shutdown())
             channel.shutdown().awaitTermination(5, TimeUnit.SECONDS)
+        }
     }
 
     private fun shutdownInternal() {
-        logger.info("shutdown:internal" + (diffMasternodeEachCall && initialized))
+        logger.info("shutdown:internal: " + (diffMasternodeEachCall && initialized))
         if (diffMasternodeEachCall && initialized) {
+            logger.info("Shutting down: " + channel.shutdown())
             channel.shutdown().awaitTermination(5, TimeUnit.SECONDS)
             initialized = false
         }
