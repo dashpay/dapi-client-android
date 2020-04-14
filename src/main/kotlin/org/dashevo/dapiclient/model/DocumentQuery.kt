@@ -6,6 +6,7 @@
  */
 package org.dashevo.dapiclient.model
 
+import com.google.common.base.Preconditions
 import org.dashevo.dpp.BaseObject
 import org.dashevo.dpp.util.Cbor
 import org.json.JSONArray
@@ -18,7 +19,7 @@ import org.json.JSONArray
  * @property startAt Int
  * @property startAfter Int
  */
-class DocumentQuery private constructor(var where: List<List<String>>? = null,
+class DocumentQuery private constructor(var where: List<Any>? = null,
                                         var orderBy: List<List<String>>? = null,
                                         var limit: Int = -1,
                                         var startAt: Int = -1,
@@ -28,13 +29,14 @@ class DocumentQuery private constructor(var where: List<List<String>>? = null,
         val emptyByteArray = ByteArray(0)
     }
 
-    data class Builder(var where: MutableList<List<String>>? = null,
+    data class Builder(var where: MutableList<List<Any>>? = null,
                        var orderBy: MutableList<List<String>>? = null,
                        var limit: Int = -1,
                        var startAt: Int = -1,
                        var startAfter: Int = -1) {
 
-        fun where(where: List<String>) = apply {
+        fun where(where: List<Any>) = apply {
+            Preconditions.checkArgument(where.size == 3, "A where clause must have three items")
             if (this.where == null) {
                 this.where = ArrayList()
             }
@@ -47,6 +49,10 @@ class DocumentQuery private constructor(var where: List<List<String>>? = null,
 
         fun where(left: String, operator: String, right: String): Builder {
             return where(listOf(left, operator, right))
+        }
+
+        fun whereIn(left: String, right: List<String>): Builder {
+            return where(listOf(left, "IN", right))
         }
 
         fun orderBy(orderBy: MutableList<String>)  = apply {
