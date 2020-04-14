@@ -47,11 +47,11 @@ protobuf {
     generateProtoTasks {
         all().each { task ->
             task.builtins {
-                java { option 'lite' }
+                java// { option 'lite' }
             }
             task.plugins {
-                grpc { // Options added to --grpc_out
-                    option 'lite' }
+                grpc //{ // Options added to --grpc_out
+                    //option 'lite' }
             }
         }
     }
