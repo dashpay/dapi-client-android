@@ -3,23 +3,19 @@ package org.dashevo.dapiclient
 import com.hashengineering.crypto.X11
 import io.grpc.Status
 import io.grpc.StatusRuntimeException
-import org.bitcoinj.core.ECKey
 import org.bitcoinj.core.Sha256Hash
-import org.bitcoinj.core.TransactionOutPoint
 import org.bitcoinj.evolution.CreditFundingTransaction
 import org.bitcoinj.params.EvoNetParams
 import org.dashevo.dapiclient.model.DocumentQuery
-import org.dashevo.dpp.contract.Contract
+import org.dashevo.dpp.contract.ContractFactory
 import org.dashevo.dpp.document.Document
-import org.dashevo.dpp.identity.Identity
-import org.dashevo.dpp.identity.IdentityCreateTransition
-import org.dashevo.dpp.identity.IdentityPublicKey
-import org.dashevo.dpp.toBase64
 import org.dashevo.dpp.toHexString
 import org.dashevo.dpp.util.Cbor
 import org.dashj.bls.Utils
+import org.json.JSONObject
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import java.io.File
 
 class DapiGrpcClientTest {
 
@@ -27,11 +23,11 @@ class DapiGrpcClientTest {
     fun getStatusOfInvalidNodeTest() {
         val client = DapiClient("19.233.82.208")
         try {
-            val status = client.getStatus()
-            fail<Nothing>("This test should throw and exception")
+            client.getStatus()
+            fail<Nothing>("The node queried should not exist")
         } catch (e: StatusRuntimeException) {
             if (e.status.code != Status.UNAVAILABLE.code)
-                fail<Nothing>("Invalid node test failed with a differnet error")
+                fail<Nothing>("Invalid node test failed with a different error")
         } finally {
             client.shutdown()
         }
@@ -52,9 +48,9 @@ class DapiGrpcClientTest {
     fun getBlockTest() {
         val client = DapiClient(SingleMasternode(EvoNetParams.MASTERNODES[1]))
         try {
-            //devnet-mobile
-            val block1 = "040000002e3df23eec5cd6a86edd509539028e2c3a3dc05315eb28f2baa43218ca08000073c0af0969b638432ca0744be69fdcf419e476c59ee08368002df63a28f6c0bbba968054ffff7f20000000000101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff0f510d6465766e65742d6d6f62696c65ffffffff0100f2052a01000000016a00000000"
-            val block1Hash = "674f4f0bcd708edd9fafaf7236db7971a43c2497f335e57582f1eaca5cb48f09"
+            //devnet-mobile, devnet genesis block
+            val block1 = "040000002e3df23eec5cd6a86edd509539028e2c3a3dc05315eb28f2baa43218ca080000188aec7c22b0e388dd15c30aec5392625bf604b9a097455570a153c900dd5a04ba968054ffff7f20010000000101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff0f510d6465766e65742d65766f6e6574ffffffff0100f2052a01000000016a00000000"
+            val block1Hash = "5ad690bcbedeb8be47e840cd869485d802c9331488604d57a5a14e8e5db3129d"
 
             // request the block from the height
             val blockFromHeight = client.getBlockByHeight(1)
@@ -62,7 +58,7 @@ class DapiGrpcClientTest {
 
             // hash the block header and compare to the actual value
             val hash = Sha256Hash.wrapReversed(X11.x11Digest(blockFromHeight.take(80).toByteArray()))
-            assertEquals("674f4f0bcd708edd9fafaf7236db7971a43c2497f335e57582f1eaca5cb48f09", hash.toString())
+            assertEquals("5ad690bcbedeb8be47e840cd869485d802c9331488604d57a5a14e8e5db3129d", hash.toString())
 
             // request the block from the hash and compare to the block obtained from the height
             val blockFromHash = client.getBlockByHash(block1Hash)
@@ -73,65 +69,56 @@ class DapiGrpcClientTest {
         }
     }
 
-    //77w8Xqn25HwJhjodrHW133aXhjuTsTv9ozQaYpSHACE3
 
     @Test
-    fun getContractTest() {
+    fun getDPNSContractTest() {
 
-        val masternodeList = EvoNetParams.MASTERNODES
-        val client = DapiClient(SingleMasternode(masternodeList[0]))
+        val client = DapiClient(SingleMasternode(EvoNetParams.MASTERNODES[0]))
         val contractId = "77w8Xqn25HwJhjodrHW133aXhjuTsTv9ozQaYpSHACE3"
         try {
-            //devnet-evonet
             val contractBytes = client.getDataContract(contractId)
-            println(contractBytes!!.toByteArray().toHexString())
-            println(contractBytes.toByteArray().toBase64())
 
-            val contract = Contract(Cbor.decode(contractBytes.toByteArray()))
-            println(contract)
+            val contract = ContractFactory().createFromSerialized(contractBytes!!.toByteArray())
+
+            val jsonDpnsFile = File("src/test/resources/dpns-contract.json").readText()
+            val jsonDpns = JSONObject(jsonDpnsFile)
+            val rawContract = jsonDpns.toMap()
+            val dpnsContract = ContractFactory().createFromObject(rawContract)
+
+            assertEquals(dpnsContract.toJSON(), contract.toJSON())
         } finally {
             client.shutdown()
         }
     }
 
     @Test
-    fun getContractTest2() {
+    fun useOneServerForAllCallsTest() {
 
         val masternodeList = EvoNetParams.MASTERNODES
         val client = DapiClient(SingleMasternode(masternodeList[0]), false)
         val contractId = "77w8Xqn25HwJhjodrHW133aXhjuTsTv9ozQaYpSHACE3"
         try {
-            //devnet-evonet
-            val contractBytes = client.getDataContract(contractId)
-            println(contractBytes!!.toByteArray().toHexString())
-            println(contractBytes.toByteArray().toBase64())
-            val contractBytes2 = client.getDataContract(contractId)
+            for(i in 0..2)
+                client.getDataContract(contractId)
 
-
-            val contract = Contract(Cbor.decode(contractBytes.toByteArray()))
-            println(contract)
         } finally {
+            //this shutdown is necessary
             client.shutdown()
         }
     }
 
     @Test
-    fun getContractTest3() {
-
-        val masternodeList = EvoNetParams.MASTERNODES
-        val client = DapiClient(SingleMasternode(masternodeList[0]), true)
+    fun useDifferentServerForEachCallTest() {
+        val client = DapiClient(MultipleMasternodes(EvoNetParams.MASTERNODES.toList()), true)
         val contractId = "77w8Xqn25HwJhjodrHW133aXhjuTsTv9ozQaYpSHACE3"
         try {
-            //devnet-evonet
-            val contractBytes = client.getDataContract(contractId)
-            println(contractBytes!!.toByteArray().toHexString())
-            println(contractBytes.toByteArray().toBase64())
-            val contractBytes2 = client.getDataContract(contractId)
 
-
-            val contract = Contract(Cbor.decode(contractBytes.toByteArray()))
-            println(contract)
+            for (i in 0..2)
+                client.getDataContract(contractId)
+        } catch (e: Exception) {
+            //swallow, exceptions are OK as long as a different masternode is called each time
         } finally {
+            //this shutdown is unnecessary because, it is called after every gRPC call
             client.shutdown()
         }
     }
@@ -143,23 +130,8 @@ class DapiGrpcClientTest {
         val client = DapiClient(SingleMasternode(masternodeList[0]), true)
         val contractId = "88w8Xqn25HwJhjodrHW133aXhjuTsTv9ozQaYpSHACE3"
         try {
-            //devnet-evonet
             val contractBytes = client.getDataContract(contractId)
             assertTrue(contractBytes == null)
-        } finally {
-            client.shutdown()
-        }
-    }
-
-    @Test
-    fun queryInvalidNode() {
-        val client = DapiClient(SingleMasternode("111.111.111.111"), true)
-        val contractId = "88w8Xqn25HwJhjodrHW133aXhjuTsTv9ozQaYpSHACE3"
-        try {
-            val contractBytes = client.getDataContract(contractId)
-            fail<Nothing>("The node queried should not exist")
-        } catch (e: StatusRuntimeException) {
-            assertTrue(e.status.code == Status.UNAVAILABLE.code)
         } finally {
             client.shutdown()
         }
@@ -215,18 +187,17 @@ class DapiGrpcClientTest {
     }
 
     @Test
-    fun getIdentityTest() {
+    fun getIdentityAndTransactionTest() {
         val tx = "0100000001745e930675f395c817d3efa10631a9f5ce86fad14e145d7518b1a20ce9fd5349000000006b483045022100fc7cab994fb62bce2e286124d696cdd09120ac8ae94e4598977f1a27a582f747022074da17c595b531ce81b70d4116425a6df9b2a71f958f399dcabab9f205b2ae9e01210326e680733eefbf271cd20fddf40e75a89923b1cf39a6162baf770de040efb718ffffffff02e08f3001000000001976a9147b560e12927197cfc4267f752280910a09db8fdb88ac409c000000000000166a146d22ab738e8b321738b382e1a10f4d0c50c905e900000000"
 
         val cftx = CreditFundingTransaction(EvoNetParams.get(), Utils.HEX.decode(tx))
 
-        val client = DapiClient(SingleMasternode(EvoNetParams.MASTERNODES[1]), true)
+        val client = DapiClient(SingleMasternode(EvoNetParams.MASTERNODES[1]), false)
         val identity = client.getIdentity(cftx.creditBurnIdentityIdentifier.toStringBase58())
-        val i = Identity(Cbor.decode(identity!!.toByteArray()))
+        assertTrue(identity != null)
 
-        val identity2 = client.getIdentity(cftx.creditBurnIdentityIdentifier.toStringBase58())
-
-        val txData = client.getTransaction(cftx.txId.reversedBytes.toHexString())
+        val txData = client.getTransaction(cftx.txId.toString())!!.toByteArray().toHexString()
+        assertEquals(tx, txData)
 
         client.shutdown()
     }
