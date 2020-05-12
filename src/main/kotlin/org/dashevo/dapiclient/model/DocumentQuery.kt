@@ -55,24 +55,24 @@ class DocumentQuery private constructor(var where: List<Any>? = null,
             return where(listOf(left, "IN", right))
         }
 
-        fun orderBy(orderBy: List<String>)  = apply {
+        fun orderBy(orderBy: List<String>) = apply {
             if (this.orderBy == null) {
                 this.orderBy = ArrayList()
             }
             this.orderBy!!.add(orderBy)
         }
 
-        fun orderBy(orderBy: String) : Builder {
+        fun orderBy(orderBy: String): Builder {
             return orderBy(JSONArray(orderBy).toList() as List<String>)
         }
 
-        fun orderBy(index: String, ascending: Boolean) : Builder {
+        fun orderBy(index: String, ascending: Boolean): Builder {
             return orderBy(listOf(index, if (ascending) "asc" else "dec"))
         }
 
         fun limit(limit: Int) = apply { this.limit = limit }
         fun startAt(startAt: Int) = apply { this.startAt = startAt }
-        fun startAfter(startAfter: Int) = apply {this.startAfter = startAfter}
+        fun startAfter(startAfter: Int) = apply { this.startAfter = startAfter }
 
         fun build() = DocumentQuery(where, orderBy, limit, startAt, startAfter)
     }
@@ -90,28 +90,28 @@ class DocumentQuery private constructor(var where: List<Any>? = null,
     }
 
     fun encodeWhere(): ByteArray {
-        return if(where != null) {
+        return if (where != null) {
             Cbor.encode(where!!)
         } else emptyByteArray
     }
 
     fun encodeOrderBy(): ByteArray {
-        return if(orderBy != null) {
+        return if (orderBy != null) {
             Cbor.encode(orderBy!!)
         } else emptyByteArray
     }
 
     override fun toJSON(): Map<String, Any?> {
         val json = HashMap<String, Any?>(5)
-        if(where != null)
+        if (where != null)
             json["where"] = where
-        if(orderBy != null)
+        if (orderBy != null)
             json["orderBy"] = orderBy
-        if(limit != -1)
+        if (limit != -1)
             json["limit"] = limit
-        if(startAt != -1)
+        if (startAt != -1)
             json["startAt"] = startAt
-        if(startAfter != -1)
+        if (startAfter != -1)
             json["startAfter"] = startAfter
         return json
     }
