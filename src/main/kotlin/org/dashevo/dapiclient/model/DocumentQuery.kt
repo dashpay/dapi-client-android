@@ -55,19 +55,19 @@ class DocumentQuery private constructor(var where: List<Any>? = null,
             return where(listOf(left, "IN", right))
         }
 
-        fun orderBy(orderBy: MutableList<String>)  = apply {
+        fun orderBy(orderBy: List<String>)  = apply {
             if (this.orderBy == null) {
                 this.orderBy = ArrayList()
             }
             this.orderBy!!.add(orderBy)
         }
 
-        fun orderBy(orderBy: List<String>) {
-            orderBy(orderBy.toMutableList())
+        fun orderBy(orderBy: String) : Builder {
+            return orderBy(JSONArray(orderBy).toList() as List<String>)
         }
 
-        fun orderBy(orderBy: String) {
-            orderBy(JSONArray(orderBy).toMutableList() as MutableList<String>)
+        fun orderBy(index: String, ascending: Boolean) : Builder {
+            return orderBy(listOf(index, if (ascending) "asc" else "dec"))
         }
 
         fun limit(limit: Int) = apply { this.limit = limit }
