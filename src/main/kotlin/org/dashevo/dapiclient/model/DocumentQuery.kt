@@ -52,7 +52,7 @@ class DocumentQuery private constructor(var where: List<Any>? = null,
         }
 
         fun whereIn(left: String, right: List<String>): Builder {
-            return where(listOf(left, "IN", right))
+            return where(listOf(left, "in", right))
         }
 
         fun orderBy(orderBy: List<String>) = apply {
