@@ -10,6 +10,7 @@ import org.bitcoinj.params.MobileDevNetParams
 import org.dashevo.dapiclient.model.DocumentQuery
 import org.dashevo.dpp.contract.ContractFactory
 import org.dashevo.dpp.document.Document
+import org.dashevo.dpp.identity.IdentityFactory
 import org.dashevo.dpp.toHexString
 import org.dashevo.dpp.util.Cbor
 import org.dashj.bls.Utils
@@ -50,8 +51,8 @@ class DapiGrpcClientTest {
         val client = DapiClient(nodes)
         try {
             //devnet-mobile, devnet genesis block
-            val block1 = "040000002e3df23eec5cd6a86edd509539028e2c3a3dc05315eb28f2baa43218ca080000188aec7c22b0e388dd15c30aec5392625bf604b9a097455570a153c900dd5a04ba968054ffff7f20010000000101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff0f510d6465766e65742d65766f6e6574ffffffff0100f2052a01000000016a00000000"
-            val block1Hash = "5ad690bcbedeb8be47e840cd869485d802c9331488604d57a5a14e8e5db3129d"
+            val block1 = "040000002e3df23eec5cd6a86edd509539028e2c3a3dc05315eb28f2baa43218ca0800000f43a8b2bd200c9bc0c4767663ee1db6c98ef977a709434da085f45b4e9ea16dba968054ffff7f20000000000101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff11510f6465766e65742d65766f6e65742d34ffffffff0100f2052a01000000016a00000000"
+            val block1Hash = "13d210271ede6692c39244c613a6d3aab8bdb71be2c0d269749f6a202ec5e324"
 
             // request the block from the height
             val blockFromHeight = client.getBlockByHeight(1)
@@ -59,7 +60,7 @@ class DapiGrpcClientTest {
 
             // hash the block header and compare to the actual value
             val hash = Sha256Hash.wrapReversed(X11.x11Digest(blockFromHeight.take(80).toByteArray()))
-            assertEquals("5ad690bcbedeb8be47e840cd869485d802c9331488604d57a5a14e8e5db3129d", hash.toString())
+            assertEquals(block1Hash, hash.toString())
 
             // request the block from the hash and compare to the block obtained from the height
             val blockFromHash = client.getBlockByHash(block1Hash)
@@ -74,8 +75,8 @@ class DapiGrpcClientTest {
     @Test
     fun getDPNSContractTest() {
 
-        val client = DapiClient(MobileDevNetParams.MASTERNODES.toList())
-        val contractId = "ForwNrvKy8jdyoCNTYBK4gcV6o15n79DmFQio2gGac5p"
+        val client = DapiClient(EvoNetParams.MASTERNODES.toList())
+        val contractId = "7DVe2cDyZMf8sDjQ46XqDzbeGKncrmkD6L96QohLmLbg"
         try {
             val contractBytes = client.getDataContract(contractId)
 
@@ -130,9 +131,9 @@ class DapiGrpcClientTest {
     @Test
     fun getDocumentsTest() {
 
-        val masternodeList = MobileDevNetParams.MASTERNODES
+        val masternodeList = EvoNetParams.MASTERNODES
         val client = DapiClient(masternodeList.toList())
-        val contractId = "ForwNrvKy8jdyoCNTYBK4gcV6o15n79DmFQio2gGac5p"//""EzLBmQdQXYMaoeXWNaegK18iaaCDShitN3s14US3DunM"
+        val contractId = "7DVe2cDyZMf8sDjQ46XqDzbeGKncrmkD6L96QohLmLbg"//""EzLBmQdQXYMaoeXWNaegK18iaaCDShitN3s14US3DunM"
         try {
             //devnet-evonet
             val query = DocumentQuery.Builder()
@@ -155,7 +156,7 @@ class DapiGrpcClientTest {
         }
     }
 
-    @Test
+    //@Test
     fun getIdentityAndTransactionTest() {
         val tx = "0100000001745e930675f395c817d3efa10631a9f5ce86fad14e145d7518b1a20ce9fd5349000000006b483045022100fc7cab994fb62bce2e286124d696cdd09120ac8ae94e4598977f1a27a582f747022074da17c595b531ce81b70d4116425a6df9b2a71f958f399dcabab9f205b2ae9e01210326e680733eefbf271cd20fddf40e75a89923b1cf39a6162baf770de040efb718ffffffff02e08f3001000000001976a9147b560e12927197cfc4267f752280910a09db8fdb88ac409c000000000000166a146d22ab738e8b321738b382e1a10f4d0c50c905e900000000"
 
