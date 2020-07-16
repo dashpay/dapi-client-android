@@ -187,52 +187,6 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         return response?.block!!.toByteArray()
     }
 
-    /*private fun getBlock(request: CoreOuterClass.GetBlockRequest?): ByteArray? {
-        val service = getCoreService()
-
-        val response: CoreOuterClass.GetBlockResponse = try {
-            service.getBlock(request)
-        } catch (e: StatusRuntimeException) {
-            logException(e)
-            if (e.status.code == Status.NOT_FOUND.code) {
-                return null
-            } else throw e
-        } finally {
-            shutdownInternal()
-        }
-
-        return response.block.toByteArray()
-    }*/
-
-    /*private fun getBlock2(request: CoreOuterClass.GetBlockRequest?): ByteArray? {
-
-        val address = dapiAddressListProvider.getLiveAddress()
-        val grpcMasternode = DAPIGrpcMasternode(address)
-        var retry = 0
-        //val service = grpcMasternode.core
-
-        val response: CoreOuterClass.GetBlockResponse = try {
-            grpcMasternode.core.getBlock(request)
-        } catch (e: StatusRuntimeException) {
-            logException(e)
-            if (e.status.code == Status.NOT_FOUND.code) {
-                return null
-            } else {
-                address.markAsBanned()
-                if (retry < DEFAULT_RETRY_COUNT) {
-                    retry + 1
-                    return getBlock2(request)
-                }
-                throw e
-            }
-        } finally {
-            grpcMasternode.shutdown()
-        }
-
-        address.markAsLive()
-        return response.block.toByteArray()
-    }*/
-
     private fun grpcRequest(grpcMethod: GrpcMethod, retries: Int = DEFAULT_RETRY_COUNT, timeout: Int = DEFAULT_TIMEOUT): Any? {
         logger.info("grpcRequest ${grpcMethod.javaClass.simpleName}")
         val address = dapiAddressListProvider.getLiveAddress()
