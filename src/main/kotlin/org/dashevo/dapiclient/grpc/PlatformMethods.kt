@@ -7,7 +7,6 @@
 package org.dashevo.dapiclient.grpc
 
 import com.google.protobuf.ByteString
-import org.dash.platform.dapi.v0.CoreOuterClass
 import org.dash.platform.dapi.v0.PlatformOuterClass
 import org.dashevo.dapiclient.model.DocumentQuery
 import org.dashevo.dapiclient.provider.DAPIGrpcMasternode
