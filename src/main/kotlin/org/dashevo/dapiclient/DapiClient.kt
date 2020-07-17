@@ -107,6 +107,28 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
     }
 
     /**
+     * Fetch the identity by the first public key hash
+     * @param pubKeyHash ByteArray
+     * @return ByteString?
+     */
+    fun getIdentityByFirstPublicKey(pubKeyHash: ByteArray): ByteString? {
+        val method = GetIdentityByFirstPublicKeyMethod(pubKeyHash)
+        val response = grpcRequest(method) as PlatformOuterClass.GetIdentityByFirstPublicKeyResponse
+        return response.identity
+    }
+
+    /**
+     * Fetch the identity id by the first public key hash
+     * @param pubKeyHash ByteArray
+     * @return String
+     */
+    fun getIdentityIdByFirstPublicKey(pubKeyHash: ByteArray): String? {
+        val method = GetIdentityIdByFirstPublicKeyMethod(pubKeyHash)
+        val response = grpcRequest(method) as PlatformOuterClass.GetIdentityIdByFirstPublicKeyResponse
+        return response.id
+    }
+
+    /**
      * Fetch Data Contract by id
      * @param contractId String
      * @return ByteString? The contract bytes or null if not found

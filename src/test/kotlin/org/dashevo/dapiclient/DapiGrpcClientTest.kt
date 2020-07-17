@@ -3,17 +3,18 @@ package org.dashevo.dapiclient
 import com.hashengineering.crypto.X11
 import io.grpc.Status
 import io.grpc.StatusRuntimeException
+import org.bitcoinj.core.ECKey
 import org.bitcoinj.core.Sha256Hash
-import org.bitcoinj.evolution.CreditFundingTransaction
 import org.bitcoinj.params.EvoNetParams
 import org.bitcoinj.params.MobileDevNetParams
+import org.bitcoinj.params.PalinkaDevNetParams
 import org.dashevo.dapiclient.model.DocumentQuery
 import org.dashevo.dpp.contract.ContractFactory
 import org.dashevo.dpp.document.Document
 import org.dashevo.dpp.identity.IdentityFactory
 import org.dashevo.dpp.toHexString
 import org.dashevo.dpp.util.Cbor
-import org.dashj.bls.Utils
+import org.dashevo.dpp.util.HashUtils
 import org.json.JSONObject
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -156,17 +157,19 @@ class DapiGrpcClientTest {
         }
     }
 
-    //@Test
-    fun getIdentityAndTransactionTest() {
-        val tx = "0100000001745e930675f395c817d3efa10631a9f5ce86fad14e145d7518b1a20ce9fd5349000000006b483045022100fc7cab994fb62bce2e286124d696cdd09120ac8ae94e4598977f1a27a582f747022074da17c595b531ce81b70d4116425a6df9b2a71f958f399dcabab9f205b2ae9e01210326e680733eefbf271cd20fddf40e75a89923b1cf39a6162baf770de040efb718ffffffff02e08f3001000000001976a9147b560e12927197cfc4267f752280910a09db8fdb88ac409c000000000000166a146d22ab738e8b321738b382e1a10f4d0c50c905e900000000"
+    @Test
+    fun getIdentityTest() {
+        val id = "G3H7uJQHSC5NXqifnX1wqE6KB4PLTEBD5Q9dKQ3Woz38"
+        val client = DapiClient(PalinkaDevNetParams.get().defaultMasternodeList.toList(), false)
+        val identityBytes = client.getIdentity(id)
+        val identity = IdentityFactory().createFromSerialized(identityBytes!!.toByteArray())
 
-        val cftx = CreditFundingTransaction(EvoNetParams.get(), Utils.HEX.decode(tx))
+        val pubKeyHash = ECKey.fromPublicOnly(HashUtils.byteArrayFromString(identity.getPublicKeyById(0)!!.data)).pubKeyHash
+        val identityByPublicKeyBytes = client.getIdentityByFirstPublicKey(pubKeyHash)
+        val identityByPublicKey = IdentityFactory().createFromSerialized(identityByPublicKeyBytes!!.toByteArray())
+        val identityIdByPublicKey = client.getIdentityIdByFirstPublicKey(pubKeyHash)
 
-        val client = DapiClient(MobileDevNetParams.MASTERNODES.toList(), false)
-        val identity = client.getIdentity(cftx.creditBurnIdentityIdentifier.toStringBase58())
-        assertTrue(identity != null)
-
-        val txData = client.getTransaction(cftx.txId.toString())!!.toByteArray().toHexString()
-        assertEquals(tx, txData)
+        assertEquals(id, identityByPublicKey.id)
+        assertEquals(id, identityIdByPublicKey)
     }
 }

@@ -59,6 +59,28 @@ class GetIdentityMethod(identityId: String) : GrpcMethod {
     }
 }
 
+class GetIdentityByFirstPublicKeyMethod(pubKeyHash: ByteArray) : GrpcMethod {
+
+    val request = PlatformOuterClass.GetIdentityByFirstPublicKeyRequest.newBuilder()
+            .setPublicKeyHash(ByteString.copyFrom(pubKeyHash))
+            .build()
+
+    override fun execute(masternode: DAPIGrpcMasternode): Any {
+        return masternode.platform.getIdentityByFirstPublicKey(request)
+    }
+}
+
+class GetIdentityIdByFirstPublicKeyMethod(pubKeyHash: ByteArray) : GrpcMethod {
+
+    val request = PlatformOuterClass.GetIdentityIdByFirstPublicKeyRequest.newBuilder()
+            .setPublicKeyHash(ByteString.copyFrom(pubKeyHash))
+            .build()
+
+    override fun execute(masternode: DAPIGrpcMasternode): Any {
+        return masternode.platform.getIdentityIdByFirstPublicKey(request)
+    }
+}
+
 class ApplyStateTransitionMethod(stateTransition: StateTransition) : GrpcMethod {
 
     val request = PlatformOuterClass.ApplyStateTransitionRequest.newBuilder()
