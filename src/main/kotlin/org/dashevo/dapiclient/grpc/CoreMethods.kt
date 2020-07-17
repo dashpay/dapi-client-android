@@ -44,3 +44,13 @@ class GetTransactionMethod(txHex: String) : GrpcMethod {
         return masternode.core.getTransaction(request)
     }
 }
+
+class GetEstimatedTransactionFeeMethod(blocks: Int) : GrpcMethod {
+    val request = CoreOuterClass.GetEstimatedTransactionFeeRequest.newBuilder()
+            .setBlocks(blocks)
+            .build()
+
+    override fun execute(masternode: DAPIGrpcMasternode): Any {
+        return masternode.core.getEstimatedTransactionFee(request)
+    }
+}

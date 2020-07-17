@@ -187,6 +187,12 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         return response?.block!!.toByteArray()
     }
 
+    fun getEstimatedTransactionFee(blocks: Int): Double {
+        val method = GetEstimatedTransactionFeeMethod(blocks)
+        val response = grpcRequest(method) as CoreOuterClass.GetEstimatedTransactionFeeResponse?
+        return response?.fee!!
+    }
+
     private fun grpcRequest(grpcMethod: GrpcMethod, retries: Int = DEFAULT_RETRY_COUNT, timeout: Int = DEFAULT_TIMEOUT): Any? {
         logger.info("grpcRequest ${grpcMethod.javaClass.simpleName}")
         val address = dapiAddressListProvider.getLiveAddress()
