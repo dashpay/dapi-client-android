@@ -253,8 +253,8 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
     }
 
     fun sendTransaction(txBytes: ByteString, allowHighFees: Boolean = false, bypassLimits: Boolean = false): String {
-        val getBlock = SendTransactionMethod(txBytes, allowHighFees, bypassLimits)
-        val response = grpcRequest(getBlock) as CoreOuterClass.SendTransactionResponse?
+        val method = SendTransactionMethod(txBytes, allowHighFees, bypassLimits)
+        val response = grpcRequest(method) as CoreOuterClass.SendTransactionResponse?
         return response?.transactionId!!
     }
 
@@ -265,8 +265,8 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      */
     fun getTransaction(txHex: String): ByteString? {
         logger.log(Level.INFO, "getTransaction($txHex)")
-        val getBlock = GetTransactionMethod(txHex)
-        val response = grpcRequest(getBlock) as CoreOuterClass.GetTransactionResponse?
+        val method = GetTransactionMethod(txHex)
+        val response = grpcRequest(method) as CoreOuterClass.GetTransactionResponse?
         return response?.transaction
     }
     // jRPC methods

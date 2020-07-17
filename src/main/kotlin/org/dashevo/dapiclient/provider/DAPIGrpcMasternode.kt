@@ -17,10 +17,10 @@ import java.util.logging.Logger
 
 class DAPIGrpcMasternode(address: DAPIAddress, timeout: Int): DAPIMasternode(address) {
     // gRPC properties
-    private val channel: ManagedChannel
-    val platform: PlatformGrpc.PlatformBlockingStub
-    val core: CoreGrpc.CoreBlockingStub
-    val stream: TransactionsFilterStreamGrpc.TransactionsFilterStreamBlockingStub
+    private lateinit var channel: ManagedChannel
+    val platform: PlatformGrpc.PlatformBlockingStub by lazy { PlatformGrpc.newBlockingStub(channel) }
+    val core: CoreGrpc.CoreBlockingStub by lazy { CoreGrpc.newBlockingStub(channel) }
+    val stream: TransactionsFilterStreamGrpc.TransactionsFilterStreamBlockingStub by lazy { TransactionsFilterStreamGrpc.newBlockingStub(channel) }
 
     // Constants
     companion object {
@@ -36,11 +36,7 @@ class DAPIGrpcMasternode(address: DAPIAddress, timeout: Int): DAPIMasternode(add
                 .idleTimeout(timeout.toLong(), TimeUnit.MILLISECONDS)
                 .build()
 
-        core = CoreGrpc.newBlockingStub(channel)
-        platform = PlatformGrpc.newBlockingStub(channel)
-        stream = TransactionsFilterStreamGrpc.newBlockingStub(channel)
-
-        logger.info("Connecting to GRPC host: ${address.host}:${address.grpcPort} (time: $watch)")
+         logger.info("Connecting to GRPC host: ${address.host}:${address.grpcPort} (time: $watch)")
     }
 
     fun shutdown() {
