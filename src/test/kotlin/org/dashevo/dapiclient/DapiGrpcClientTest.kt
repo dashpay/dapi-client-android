@@ -52,8 +52,8 @@ class DapiGrpcClientTest {
         val client = DapiClient(nodes)
         try {
             //devnet-mobile, devnet genesis block
-            val block1 = "040000002e3df23eec5cd6a86edd509539028e2c3a3dc05315eb28f2baa43218ca0800000f43a8b2bd200c9bc0c4767663ee1db6c98ef977a709434da085f45b4e9ea16dba968054ffff7f20000000000101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff11510f6465766e65742d65766f6e65742d34ffffffff0100f2052a01000000016a00000000"
-            val block1Hash = "13d210271ede6692c39244c613a6d3aab8bdb71be2c0d269749f6a202ec5e324"
+            val block1 = "040000002e3df23eec5cd6a86edd509539028e2c3a3dc05315eb28f2baa43218ca080000b3a56d65316ffdb006163240a4380e94a4c2d8c0f0b3b2c1ddc486fae15ed065ba968054ffff7f20040000000101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff11510f6465766e65742d6d6f62696c652d32ffffffff0100f2052a01000000016a00000000"
+            val block1Hash = "14a0ccc3b747208c4d765cd0a583a1701287fa67e2d85cd30c3b6e0578ffe8ee"
 
             // request the block from the height
             val blockFromHeight = client.getBlockByHeight(1)
@@ -77,7 +77,7 @@ class DapiGrpcClientTest {
     fun getDPNSContractTest() {
 
         val client = DapiClient(EvoNetParams.MASTERNODES.toList())
-        val contractId = "7DVe2cDyZMf8sDjQ46XqDzbeGKncrmkD6L96QohLmLbg"
+        val contractId = "FiBkhut4LFPMJqDWbZrxVeT6Mr6LsH3mTNTSSHJY2ape"
         try {
             val contractBytes = client.getDataContract(contractId)
 
@@ -97,7 +97,7 @@ class DapiGrpcClientTest {
     @Test
     fun getNonExistantContract() {
 
-        val masternodeList = MobileDevNetParams.MASTERNODES
+        val masternodeList = EvoNetParams.MASTERNODES
         val client = DapiClient(masternodeList.toList(), true)
         val contractId = "88w8Xqn25HwJhjodrHW133aXhjuTsTv9ozQaYpSHACE3"
         try {
@@ -134,11 +134,11 @@ class DapiGrpcClientTest {
 
         val masternodeList = EvoNetParams.MASTERNODES
         val client = DapiClient(masternodeList.toList())
-        val contractId = "7DVe2cDyZMf8sDjQ46XqDzbeGKncrmkD6L96QohLmLbg"//""EzLBmQdQXYMaoeXWNaegK18iaaCDShitN3s14US3DunM"
+        val contractId = "FiBkhut4LFPMJqDWbZrxVeT6Mr6LsH3mTNTSSHJY2ape"
         try {
             //devnet-evonet
             val query = DocumentQuery.Builder()
-                    .where(listOf("normalizedParentDomainName", "==", "").toMutableList())
+                    .where(listOf("normalizedParentDomainName", "==", "dash").toMutableList())
                     .where(listOf("normalizedLabel", "startsWith", "test").toMutableList())
                     .build()
             val documents = client.getDocuments(contractId, "domain", query)
@@ -160,8 +160,11 @@ class DapiGrpcClientTest {
     @Test
     fun getIdentityTest() {
         val id = "G3H7uJQHSC5NXqifnX1wqE6KB4PLTEBD5Q9dKQ3Woz38"
+        val badId = "G3H7uJQHSC5NXqifnX1wqE6KB4PLTEBD5Q9dKQ3Woz39"
         val client = DapiClient(PalinkaDevNetParams.get().defaultMasternodeList.toList(), false)
         val identityBytes = client.getIdentity(id)
+        val badIdentityBytes = client.getIdentity(badId)
+        assertEquals(null, badIdentityBytes)
         val identity = IdentityFactory().createFromSerialized(identityBytes!!.toByteArray())
 
         val pubKeyHash = ECKey.fromPublicOnly(HashUtils.byteArrayFromString(identity.getPublicKeyById(0)!!.data)).pubKeyHash
