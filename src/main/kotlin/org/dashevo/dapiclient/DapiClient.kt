@@ -102,8 +102,8 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      */
     fun getIdentity(id: String): ByteString? {
         val method = GetIdentityMethod(id)
-        val response = grpcRequest(method) as PlatformOuterClass.GetIdentityResponse
-        return response.identity
+        val response = grpcRequest(method) as PlatformOuterClass.GetIdentityResponse?
+        return response?.identity
     }
 
     /**
@@ -113,8 +113,8 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      */
     fun getIdentityByFirstPublicKey(pubKeyHash: ByteArray): ByteString? {
         val method = GetIdentityByFirstPublicKeyMethod(pubKeyHash)
-        val response = grpcRequest(method) as PlatformOuterClass.GetIdentityByFirstPublicKeyResponse
-        return response.identity
+        val response = grpcRequest(method) as PlatformOuterClass.GetIdentityByFirstPublicKeyResponse?
+        return response?.identity
     }
 
     /**
@@ -124,8 +124,8 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      */
     fun getIdentityIdByFirstPublicKey(pubKeyHash: ByteArray): String? {
         val method = GetIdentityIdByFirstPublicKeyMethod(pubKeyHash)
-        val response = grpcRequest(method) as PlatformOuterClass.GetIdentityIdByFirstPublicKeyResponse
-        return response.id
+        val response = grpcRequest(method) as PlatformOuterClass.GetIdentityIdByFirstPublicKeyResponse?
+        return response?.id
     }
 
     /**
@@ -136,8 +136,8 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
     fun getDataContract(contractId: String): ByteString? {
         logger.log(Level.INFO, "getDataContract($contractId)")
         val method = GetContractMethod(contractId)
-        val response = grpcRequest(method) as PlatformOuterClass.GetDataContractResponse
-        return response.dataContract
+        val response = grpcRequest(method) as PlatformOuterClass.GetDataContractResponse?
+        return response?.dataContract
     }
 
     /**
@@ -160,19 +160,21 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
     /** get status of platform node  */
     fun getStatus(): GetStatusResponse? {
         val method = GetStatusMethod()
-        val response = (grpcRequest(method) as CoreOuterClass.GetStatusResponse?)!!
+        val response = grpcRequest(method) as CoreOuterClass.GetStatusResponse?
 
-        return GetStatusResponse(response.coreVersion,
-                response.protocolVersion,
-                response.blocks,
-                response.timeOffset,
-                response.connections,
-                response.proxy,
-                response.difficulty,
-                response.testnet,
-                response.relayFee,
-                response.errors,
-                response.network)
+        return response?.let {
+            GetStatusResponse(it.coreVersion,
+                    it.protocolVersion,
+                    it.blocks,
+                    it.timeOffset,
+                    it.connections,
+                    it.proxy,
+                    it.difficulty,
+                    it.testnet,
+                    it.relayFee,
+                    it.errors,
+                    it.network)
+        }
     }
 
     private fun logException(e: StatusRuntimeException) {
