@@ -17,6 +17,8 @@ class ListDAPIAddressProvider(var addresses: List<DAPIAddress>, val baseBanTime:
             return ListDAPIAddressProvider(addresses.map { DAPIAddress(it) }, baseBanTime)
         }
     }
+    private val alwaysBanAddresses = arrayListOf<String>()
+
     override fun getLiveAddress(): DAPIAddress {
         val liveAddresses = getLiveAddresses()
 
@@ -35,9 +37,14 @@ class ListDAPIAddressProvider(var addresses: List<DAPIAddress>, val baseBanTime:
         val now = Date().time
 
         return addresses.filter {
+            if (alwaysBanAddresses.contains(it.host)) {
+                false
+            }
+
             if (!it.isBanned) {
                 true
             }
+
             val coefficient: Double = exp(it.banCount.toDouble() -1)
             val banPeriod = floor(coefficient) * baseBanTime
 
@@ -51,4 +58,7 @@ class ListDAPIAddressProvider(var addresses: List<DAPIAddress>, val baseBanTime:
         return addresses[random.nextInt(addresses.size)]
     }
 
+    override fun addBannedAddress(address: String) {
+        alwaysBanAddresses.add(address)
+    }
 }
