@@ -9,4 +9,5 @@ package org.dashevo.dapiclient.provider
 interface DAPIAddressListProvider {
     fun getLiveAddress(): DAPIAddress
     fun hasLiveAddresses(): Boolean
+    fun addBannedAddress(address: String)
 }
