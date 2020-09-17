@@ -81,13 +81,13 @@ class GetIdentityIdByFirstPublicKeyMethod(pubKeyHash: ByteArray) : GrpcMethod {
     }
 }
 
-class ApplyStateTransitionMethod(stateTransition: StateTransition) : GrpcMethod {
+class BroadcastStateTransitionMethod(stateTransition: StateTransition) : GrpcMethod {
 
-    val request = PlatformOuterClass.ApplyStateTransitionRequest.newBuilder()
+    val request = PlatformOuterClass.BroadcastStateTransitionRequest.newBuilder()
             .setStateTransition(ByteString.copyFrom(stateTransition.serialize()))
             .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
-        return masternode.platform.applyStateTransition(request)
+        return masternode.platform.broadcastStateTransition(request)
     }
 }

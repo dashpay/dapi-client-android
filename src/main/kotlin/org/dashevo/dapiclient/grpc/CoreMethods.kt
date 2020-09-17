@@ -22,16 +22,16 @@ class GetStatusMethod : GrpcMethod {
     }
 }
 
-class SendTransactionMethod(txBytes: ByteString, allowHighFees: Boolean, bypassLimits: Boolean) : GrpcMethod {
+class BroadcastTransactionMethod(txBytes: ByteString, allowHighFees: Boolean, bypassLimits: Boolean) : GrpcMethod {
 
-    val request = CoreOuterClass.SendTransactionRequest.newBuilder()
+    val request = CoreOuterClass.BroadcastTransactionRequest.newBuilder()
             .setTransaction(txBytes)
             .setAllowHighFees(allowHighFees)
             .setBypassLimits(bypassLimits)
             .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
-        return masternode.core.sendTransaction(request)
+        return masternode.core.broadcastTransaction(request)
     }
 }
 

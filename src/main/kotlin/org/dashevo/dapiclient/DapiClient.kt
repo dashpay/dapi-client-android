@@ -8,20 +8,15 @@
 package org.dashevo.dapiclient
 
 import com.google.common.base.Preconditions
-import com.google.common.base.Stopwatch
 import com.google.protobuf.ByteString
-import io.grpc.ManagedChannel
-import io.grpc.ManagedChannelBuilder
 import io.grpc.Status
 import io.grpc.StatusRuntimeException
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import org.bitcoinj.evolution.SimplifiedMasternodeListManager
-import org.dash.platform.dapi.v0.CoreGrpc
 import org.dash.platform.dapi.v0.CoreOuterClass
 import java.util.concurrent.TimeUnit
 import java.util.logging.Logger
-import org.dash.platform.dapi.v0.PlatformGrpc
 import org.dash.platform.dapi.v0.PlatformOuterClass
 import org.dashevo.dapiclient.grpc.*
 import org.dashevo.dapiclient.model.DocumentQuery
@@ -90,8 +85,9 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      *
      * @param stateTransition
      */
-    fun applyStateTransition(stateTransition: StateTransition) {
-        val method = ApplyStateTransitionMethod(stateTransition)
+    fun broadcastStateTransition(stateTransition: StateTransition) {
+        logger.info("broadcastStateTransition($stateTransition)")
+        val method = BroadcastStateTransitionMethod(stateTransition)
         grpcRequest(method)
     }
 
@@ -101,6 +97,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      * @return ByteString?
      */
     fun getIdentity(id: String): ByteString? {
+        logger.log(Level.INFO, "getIdentity($id)")
         val method = GetIdentityMethod(id)
         val response = grpcRequest(method) as PlatformOuterClass.GetIdentityResponse?
         return response?.identity
@@ -112,6 +109,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      * @return ByteString?
      */
     fun getIdentityByFirstPublicKey(pubKeyHash: ByteArray): ByteString? {
+        logger.log(Level.INFO, "getIdentityByFirstPublicKey(${ pubKeyHash.toHexString() })")
         val method = GetIdentityByFirstPublicKeyMethod(pubKeyHash)
         val response = grpcRequest(method) as PlatformOuterClass.GetIdentityByFirstPublicKeyResponse?
         return response?.identity
@@ -123,6 +121,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      * @return String
      */
     fun getIdentityIdByFirstPublicKey(pubKeyHash: ByteArray): String? {
+        logger.log(Level.INFO, "getIdentityIdByFirstPublicKey(${ pubKeyHash.toHexString() })")
         val method = GetIdentityIdByFirstPublicKeyMethod(pubKeyHash)
         val response = grpcRequest(method) as PlatformOuterClass.GetIdentityIdByFirstPublicKeyResponse?
         return response?.id
@@ -254,9 +253,9 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         return response
     }
 
-    fun sendTransaction(txBytes: ByteString, allowHighFees: Boolean = false, bypassLimits: Boolean = false): String {
-        val method = SendTransactionMethod(txBytes, allowHighFees, bypassLimits)
-        val response = grpcRequest(method) as CoreOuterClass.SendTransactionResponse?
+    fun broadcastTransaction(txBytes: ByteString, allowHighFees: Boolean = false, bypassLimits: Boolean = false): String {
+        val method = BroadcastTransactionMethod(txBytes, allowHighFees, bypassLimits)
+        val response = grpcRequest(method) as CoreOuterClass.BroadcastTransactionResponse?
         return response?.transactionId!!
     }
 

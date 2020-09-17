@@ -11,7 +11,6 @@ import io.grpc.ManagedChannel
 import io.grpc.ManagedChannelBuilder
 import org.dash.platform.dapi.v0.CoreGrpc
 import org.dash.platform.dapi.v0.PlatformGrpc
-import org.dash.platform.dapi.v0.TransactionsFilterStreamGrpc
 import java.util.concurrent.TimeUnit
 import java.util.logging.Logger
 
@@ -20,7 +19,6 @@ class DAPIGrpcMasternode(address: DAPIAddress, timeout: Int): DAPIMasternode(add
     private lateinit var channel: ManagedChannel
     val platform: PlatformGrpc.PlatformBlockingStub by lazy { PlatformGrpc.newBlockingStub(channel) }
     val core: CoreGrpc.CoreBlockingStub by lazy { CoreGrpc.newBlockingStub(channel) }
-    val stream: TransactionsFilterStreamGrpc.TransactionsFilterStreamBlockingStub by lazy { TransactionsFilterStreamGrpc.newBlockingStub(channel) }
 
     // Constants
     companion object {
