@@ -3,7 +3,7 @@ syntax = "proto3";
 package org.dash.platform.dapi.v0;
 
 service Platform {
-  rpc applyStateTransition (ApplyStateTransitionRequest) returns (ApplyStateTransitionResponse);
+  rpc broadcastStateTransition (BroadcastStateTransitionRequest) returns (BroadcastStateTransitionResponse);
   rpc getIdentity (GetIdentityRequest) returns (GetIdentityResponse);
   rpc getDataContract (GetDataContractRequest) returns (GetDataContractResponse);
   rpc getDocuments (GetDocumentsRequest) returns (GetDocumentsResponse);
@@ -11,11 +11,11 @@ service Platform {
   rpc getIdentityIdByFirstPublicKey (GetIdentityIdByFirstPublicKeyRequest) returns (GetIdentityIdByFirstPublicKeyResponse);
 }
 
-message ApplyStateTransitionRequest {
+message BroadcastStateTransitionRequest {
   bytes state_transition = 1;
 }
 
-message ApplyStateTransitionResponse {
+message BroadcastStateTransitionResponse {
 
 }
 
