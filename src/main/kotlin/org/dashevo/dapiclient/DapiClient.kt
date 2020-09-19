@@ -86,7 +86,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      * @param stateTransition
      */
     fun broadcastStateTransition(stateTransition: StateTransition) {
-        logger.info("broadcastStateTransition($stateTransition)")
+        logger.info("broadcastStateTransition(${stateTransition.toJSON()})")
         val method = BroadcastStateTransitionMethod(stateTransition)
         grpcRequest(method)
     }
