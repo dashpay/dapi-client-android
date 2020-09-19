@@ -3,12 +3,15 @@ package org.dashevo.dapiclient
 import com.hashengineering.crypto.X11
 import io.grpc.Status
 import io.grpc.StatusRuntimeException
+import org.bitcoinj.core.Base58
 import org.bitcoinj.core.ECKey
 import org.bitcoinj.core.Sha256Hash
 import org.bitcoinj.params.EvoNetParams
 import org.bitcoinj.params.MobileDevNetParams
 import org.bitcoinj.params.PalinkaDevNetParams
 import org.dashevo.dapiclient.model.DocumentQuery
+import org.dashevo.dapiclient.provider.DAPIAddress
+import org.dashevo.dapiclient.provider.ListDAPIAddressProvider
 import org.dashevo.dpp.contract.ContractFactory
 import org.dashevo.dpp.document.Document
 import org.dashevo.dpp.identity.IdentityFactory
@@ -24,7 +27,8 @@ class DapiGrpcClientTest {
 
     @Test
     fun getStatusOfInvalidNodeTest() {
-        val client = DapiClient("19.233.82.208")
+        val list = ListDAPIAddressProvider(listOf("127.0.0.1").map { DAPIAddress(it) }, 0)
+        val client = DapiClient(list)
         try {
             client.getStatus()
             fail<Nothing>("The node queried should not exist")
@@ -37,7 +41,7 @@ class DapiGrpcClientTest {
 
     @Test
     fun getStatusTest() {
-        val client = DapiClient(MobileDevNetParams.MASTERNODES[1])
+        val client = DapiClient(EvoNetParams.MASTERNODES.toList())
         try {
             val status = client.getStatus()
             println(status)
@@ -48,16 +52,18 @@ class DapiGrpcClientTest {
 
     @Test
     fun getBlockTest() {
-        val nodes = listOf("1.1.1.1", "2.2.2.2", MobileDevNetParams.MASTERNODES[1])
+        val nodes = listOf("127.0.0.1", EvoNetParams.MASTERNODES[1])
         val client = DapiClient(nodes)
         try {
+            val params = EvoNetParams.get()
             //devnet-mobile, devnet genesis block
-            val block1 = "040000002e3df23eec5cd6a86edd509539028e2c3a3dc05315eb28f2baa43218ca080000b3a56d65316ffdb006163240a4380e94a4c2d8c0f0b3b2c1ddc486fae15ed065ba968054ffff7f20040000000101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff11510f6465766e65742d6d6f62696c652d32ffffffff0100f2052a01000000016a00000000"
-            val block1Hash = "14a0ccc3b747208c4d765cd0a583a1701287fa67e2d85cd30c3b6e0578ffe8ee"
+            val block1 = params.devNetGenesisBlock
+            val block1data = block1.bitcoinSerialize().toHexString()
+            val block1Hash = block1.hashAsString
 
             // request the block from the height
             val blockFromHeight = client.getBlockByHeight(1)
-            assertEquals(block1, blockFromHeight!!.toHexString())
+            assertEquals(block1data, blockFromHeight!!.toHexString())
 
             // hash the block header and compare to the actual value
             val hash = Sha256Hash.wrapReversed(X11.x11Digest(blockFromHeight.take(80).toByteArray()))
@@ -77,7 +83,7 @@ class DapiGrpcClientTest {
     fun getDPNSContractTest() {
 
         val client = DapiClient(EvoNetParams.MASTERNODES.toList())
-        val contractId = "FiBkhut4LFPMJqDWbZrxVeT6Mr6LsH3mTNTSSHJY2ape"
+        val contractId = "566vcJkmebVCAb2Dkj2yVMSgGFcsshupnQqtsz1RFbcy"
         try {
             val contractBytes = client.getDataContract(contractId)
 
@@ -108,33 +114,12 @@ class DapiGrpcClientTest {
         }
     }
 
-    /*
-    {
-      "protocolVersion": 0,
-      "type": 2,
-      "actions": [
-        1
-      ],
-      "documents": [
-        {
-          "$type": "note",
-          "$contractId": "EzLBmQdQXYMaoeXWNaegK18iaaCDShitN3s14US3DunM",
-          "$userId": "At44pvrZXLwjbJp415E2kjav49goGosRF3SB1WW1QJoG",
-          "$entropy": "ydQUKu7QxqPxt4tytY7dtKM7uKPGzWG9Az",
-          "$rev": 1,
-          "message": "Tutorial Test @ Thu, 26 Mar 2020 20:19:49 GMT"
-        }
-      ],
-      "signaturePublicKeyId": 1,
-      "signature": "IFue3isoXSuYd0Ky8LvYjOMExwq69XaXPvi+IE+YT0sSD6N22P75xWZNFqO8RkZRqtmO7+EwyMX7NVETcD2HTmw=",
-    }
-     */
     @Test
     fun getDocumentsTest() {
 
         val masternodeList = EvoNetParams.MASTERNODES
         val client = DapiClient(masternodeList.toList())
-        val contractId = "FiBkhut4LFPMJqDWbZrxVeT6Mr6LsH3mTNTSSHJY2ape"
+        val contractId = "566vcJkmebVCAb2Dkj2yVMSgGFcsshupnQqtsz1RFbcy"
         try {
             //devnet-evonet
             val query = DocumentQuery.Builder()
@@ -159,7 +144,7 @@ class DapiGrpcClientTest {
 
     @Test
     fun getIdentityTest() {
-        val id = "G3H7uJQHSC5NXqifnX1wqE6KB4PLTEBD5Q9dKQ3Woz38"
+        val id = Base58.encode(HashUtils.fromHex("a2615875e74fc77c153d6dd0561dd9996a7fc8ca9f04d98addc2f9a7778ac702"))
         val badId = "G3H7uJQHSC5NXqifnX1wqE6KB4PLTEBD5Q9dKQ3Woz39"
         val client = DapiClient(PalinkaDevNetParams.get().defaultMasternodeList.toList(), false)
         val identityBytes = client.getIdentity(id)
