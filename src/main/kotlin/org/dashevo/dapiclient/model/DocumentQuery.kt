@@ -51,7 +51,11 @@ class DocumentQuery private constructor(var where: List<Any>? = null,
             return where(listOf(left, operator, right))
         }
 
-        fun whereIn(left: String, right: List<String>): Builder {
+        fun where(left: String, operator: String, right: ByteArray): Builder {
+            return where(listOf(left, operator, right))
+        }
+
+        fun whereIn(left: String, right: List<Any>): Builder {
             return where(listOf(left, "in", right))
         }
 
