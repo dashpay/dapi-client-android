@@ -14,9 +14,6 @@ import retrofit2.http.POST
 interface DapiService {
 
     @POST("/")
-    fun getAddressSummary(@Body body: JsonRPCRequest<Map<String, String>>) : Call<JsonRPCResponse<Map<String, Any>>>
-
-    @POST("/")
     fun getBestBlockHash(@Body body: JsonRPCRequest<Map<String, String>>) : Call<JsonRPCResponse<String>>
 
     @POST ("/")
@@ -24,8 +21,5 @@ interface DapiService {
 
     @POST ("/")
     fun getMnListDiff(@Body body: JsonRPCRequest<Map<String, String>>) : Call<JsonRPCResponse<Map<String, Any>>>
-
-    @POST ("/")
-    fun getUTXO(@Body body: JsonRPCRequest<Map<String, String>>) : Call<JsonRPCResponse<Map<String, Any>>>
 
 }
