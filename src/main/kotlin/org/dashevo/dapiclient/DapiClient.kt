@@ -60,11 +60,11 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
 
 
     init {
-        val logging = HttpLoggingInterceptor()
-        logging.level = HttpLoggingInterceptor.Level.BODY
+        val loggingInterceptor = HttpLoggingInterceptor { msg: String? -> logger.info(msg) }
+        loggingInterceptor.level = HttpLoggingInterceptor.Level.BODY
 
         debugOkHttpClient = OkHttpClient.Builder()
-                .addInterceptor(logging)
+                .addInterceptor(loggingInterceptor)
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(10, TimeUnit.SECONDS)
                 .writeTimeout(10, TimeUnit.SECONDS)
@@ -108,7 +108,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      * @return ByteString?
      */
     fun getIdentityByFirstPublicKey(pubKeyHash: ByteArray): ByteString? {
-        logger.info("getIdentityByFirstPublicKey(${ pubKeyHash.toHexString() })")
+        logger.info("getIdentityByFirstPublicKey(${pubKeyHash.toHexString()})")
         val method = GetIdentityByFirstPublicKeyMethod(pubKeyHash)
         val response = grpcRequest(method) as PlatformOuterClass.GetIdentityByFirstPublicKeyResponse?
         return response?.identity
@@ -120,7 +120,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      * @return String
      */
     fun getIdentityIdByFirstPublicKey(pubKeyHash: ByteArray): String? {
-        logger.info("getIdentityIdByFirstPublicKey(${ pubKeyHash.toHexString() })")
+        logger.info("getIdentityIdByFirstPublicKey(${pubKeyHash.toHexString()})")
         val method = GetIdentityIdByFirstPublicKeyMethod(pubKeyHash)
         val response = grpcRequest(method) as PlatformOuterClass.GetIdentityIdByFirstPublicKeyResponse?
         return response?.id
