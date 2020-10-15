@@ -11,8 +11,8 @@ import io.grpc.ManagedChannel
 import io.grpc.ManagedChannelBuilder
 import org.dash.platform.dapi.v0.CoreGrpc
 import org.dash.platform.dapi.v0.PlatformGrpc
+import org.slf4j.LoggerFactory
 import java.util.concurrent.TimeUnit
-import java.util.logging.Logger
 
 class DAPIGrpcMasternode(address: DAPIAddress, timeout: Int): DAPIMasternode(address) {
     // gRPC properties
@@ -22,7 +22,7 @@ class DAPIGrpcMasternode(address: DAPIAddress, timeout: Int): DAPIMasternode(add
 
     // Constants
     companion object {
-        private val logger = Logger.getLogger(DAPIGrpcMasternode::class.java.name)
+        private val logger = LoggerFactory.getLogger(DAPIGrpcMasternode::class.java.name)
     }
 
     init {

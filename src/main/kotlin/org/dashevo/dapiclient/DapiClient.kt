@@ -16,7 +16,6 @@ import okhttp3.logging.HttpLoggingInterceptor
 import org.bitcoinj.evolution.SimplifiedMasternodeListManager
 import org.dash.platform.dapi.v0.CoreOuterClass
 import java.util.concurrent.TimeUnit
-import java.util.logging.Logger
 import org.dash.platform.dapi.v0.PlatformOuterClass
 import org.dashevo.dapiclient.grpc.*
 import org.dashevo.dapiclient.model.DocumentQuery
@@ -27,9 +26,9 @@ import org.dashevo.dapiclient.rest.DapiService
 import org.dashevo.dpp.statetransition.StateTransition
 import org.dashevo.dpp.toHexString
 import org.json.JSONObject
+import org.slf4j.LoggerFactory
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import java.util.logging.Level
 
 
 class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
@@ -47,7 +46,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
 
     // Constants
     companion object {
-        private val logger = Logger.getLogger(DapiClient::class.java.name)
+        private val logger = LoggerFactory.getLogger(DapiClient::class.java.name)
         const val DEFAULT_GRPC_PORT = 3010
         const val DEFAULT_JRPC_PORT = 3000
 
@@ -97,7 +96,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      * @return ByteString?
      */
     fun getIdentity(id: String): ByteString? {
-        logger.log(Level.INFO, "getIdentity($id)")
+        logger.info("getIdentity($id)")
         val method = GetIdentityMethod(id)
         val response = grpcRequest(method) as PlatformOuterClass.GetIdentityResponse?
         return response?.identity
@@ -109,7 +108,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      * @return ByteString?
      */
     fun getIdentityByFirstPublicKey(pubKeyHash: ByteArray): ByteString? {
-        logger.log(Level.INFO, "getIdentityByFirstPublicKey(${ pubKeyHash.toHexString() })")
+        logger.info("getIdentityByFirstPublicKey(${ pubKeyHash.toHexString() })")
         val method = GetIdentityByFirstPublicKeyMethod(pubKeyHash)
         val response = grpcRequest(method) as PlatformOuterClass.GetIdentityByFirstPublicKeyResponse?
         return response?.identity
@@ -121,7 +120,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      * @return String
      */
     fun getIdentityIdByFirstPublicKey(pubKeyHash: ByteArray): String? {
-        logger.log(Level.INFO, "getIdentityIdByFirstPublicKey(${ pubKeyHash.toHexString() })")
+        logger.info("getIdentityIdByFirstPublicKey(${ pubKeyHash.toHexString() })")
         val method = GetIdentityIdByFirstPublicKeyMethod(pubKeyHash)
         val response = grpcRequest(method) as PlatformOuterClass.GetIdentityIdByFirstPublicKeyResponse?
         return response?.id
@@ -133,7 +132,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      * @return ByteString? The contract bytes or null if not found
      */
     fun getDataContract(contractId: String): ByteString? {
-        logger.log(Level.INFO, "getDataContract($contractId)")
+        logger.info("getDataContract($contractId)")
         val method = GetContractMethod(contractId)
         val response = grpcRequest(method) as PlatformOuterClass.GetDataContractResponse?
         return response?.dataContract
@@ -148,7 +147,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      * @return List<ByteArray>? a list of documents matching the provided parameters
      */
     fun getDocuments(contractId: String, type: String, documentQuery: DocumentQuery): List<ByteArray>? {
-        logger.log(Level.INFO, "getDocuments($contractId, $type, ${documentQuery.toJSON()})")
+        logger.info("getDocuments($contractId, $type, ${documentQuery.toJSON()})")
         val method = GetDocumentsMethod(contractId, type, documentQuery)
         val response = grpcRequest(method) as PlatformOuterClass.GetDocumentsResponse
 
@@ -177,11 +176,11 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
     }
 
     private fun logException(e: StatusRuntimeException) {
-        logger.log(Level.WARNING, "RPC failed: ${e.status}: ${e.trailers}")
+        logger.warn("RPC failed: ${e.status}: ${e.trailers}")
     }
 
     fun getBlockByHeight(height: Int): ByteArray? {
-        logger.log(Level.INFO, "getBlockByHeight($height)")
+        logger.info("getBlockByHeight($height)")
         Preconditions.checkArgument(height > 0)
         val request = CoreOuterClass.GetBlockRequest.newBuilder()
                 .setHeight(height)
@@ -196,7 +195,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      */
 
     fun getBlockByHash(hash: String): ByteArray? {
-        logger.log(Level.INFO, "getBlockByHash($hash)")
+        logger.info("getBlockByHash($hash)")
         Preconditions.checkArgument(hash.length == BLOCK_HASH_LENGTH)
         val request = CoreOuterClass.GetBlockRequest.newBuilder()
                 .setHash(hash)
@@ -265,7 +264,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      * @return ByteString?
      */
     fun getTransaction(txHex: String): ByteString? {
-        logger.log(Level.INFO, "getTransaction($txHex)")
+        logger.info("getTransaction($txHex)")
         val method = GetTransactionMethod(txHex)
         val response = grpcRequest(method) as CoreOuterClass.GetTransactionResponse?
         return response?.transaction
