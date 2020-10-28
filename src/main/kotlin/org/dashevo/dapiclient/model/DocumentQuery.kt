@@ -105,6 +105,21 @@ class DocumentQuery private constructor(var where: List<Any>? = null,
         } else emptyByteArray
     }
 
+    override fun toObject(): Map<String, Any?> {
+        val json = HashMap<String, Any?>(5)
+        if (where != null)
+            json["where"] = where
+        if (orderBy != null)
+            json["orderBy"] = orderBy
+        if (limit != -1)
+            json["limit"] = limit
+        if (startAt != -1)
+            json["startAt"] = startAt
+        if (startAfter != -1)
+            json["startAfter"] = startAfter
+        return json
+    }
+
     override fun toJSON(): Map<String, Any?> {
         val json = HashMap<String, Any?>(5)
         if (where != null)
