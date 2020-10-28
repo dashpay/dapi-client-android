@@ -6,8 +6,6 @@ import io.grpc.StatusRuntimeException
 import org.bitcoinj.core.Base58
 import org.bitcoinj.core.ECKey
 import org.bitcoinj.core.Sha256Hash
-import org.bitcoinj.params.EvoNetParams
-import org.bitcoinj.params.MobileDevNetParams
 import org.bitcoinj.params.PalinkaDevNetParams
 import org.dashevo.dapiclient.model.DocumentQuery
 import org.dashevo.dapiclient.provider.DAPIAddress
@@ -17,13 +15,18 @@ import org.dashevo.dpp.document.Document
 import org.dashevo.dpp.identity.IdentityFactory
 import org.dashevo.dpp.toHexString
 import org.dashevo.dpp.util.Cbor
-import org.dashevo.dpp.util.HashUtils
 import org.json.JSONObject
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.io.File
 
 class DapiGrpcClientTest {
+
+    val PARAMS = PalinkaDevNetParams.get();
+    val masternodeList = PalinkaDevNetParams.get().defaultMasternodeList.toList()
+    val dpnsContractId = Base58.decode("H9AxLAvgxEpq72pDg41nsqR3bY5Cv9hTT6yZdKzY3PaE") //DPNS contract
+    val identityIdString = "4jjwnJr2ufABdWqKKonoA9uBCRXF8jQ929KnHKEgZRJu"
+
 
     @Test
     fun getStatusOfInvalidNodeTest() {
@@ -41,7 +44,7 @@ class DapiGrpcClientTest {
 
     @Test
     fun getStatusTest() {
-        val client = DapiClient(EvoNetParams.MASTERNODES.toList())
+        val client = DapiClient(masternodeList)
         try {
             val status = client.getStatus()
             println(status)
@@ -52,12 +55,11 @@ class DapiGrpcClientTest {
 
     @Test
     fun getBlockTest() {
-        val nodes = listOf("127.0.0.1", EvoNetParams.MASTERNODES[1])
+        val nodes = listOf("127.0.0.1", masternodeList[-0])
         val client = DapiClient(nodes)
         try {
-            val params = EvoNetParams.get()
             //devnet-mobile, devnet genesis block
-            val block1 = params.devNetGenesisBlock
+            val block1 = PARAMS.devNetGenesisBlock
             val block1data = block1.bitcoinSerialize().toHexString()
             val block1Hash = block1.hashAsString
 
@@ -82,13 +84,11 @@ class DapiGrpcClientTest {
     @Test
     fun getDPNSContractTest() {
 
-        val client = DapiClient(EvoNetParams.MASTERNODES.toList())
-        val contractId = "566vcJkmebVCAb2Dkj2yVMSgGFcsshupnQqtsz1RFbcy"
+        val client = DapiClient(masternodeList)
         try {
-            val contractBytes = client.getDataContract(contractId)
+            val contractBytes = client.getDataContract(dpnsContractId)
 
             val contract = ContractFactory().createFromSerialized(contractBytes!!.toByteArray())
-
             val jsonDpnsFile = File("src/test/resources/dpns-contract.json").readText()
             val jsonDpns = JSONObject(jsonDpnsFile)
             val rawContract = jsonDpns.toMap()
@@ -103,9 +103,8 @@ class DapiGrpcClientTest {
     @Test
     fun getNonExistantContract() {
 
-        val masternodeList = EvoNetParams.MASTERNODES
         val client = DapiClient(masternodeList.toList(), true)
-        val contractId = "88w8Xqn25HwJhjodrHW133aXhjuTsTv9ozQaYpSHACE3"
+        val contractId = Base58.decode("88w8Xqn25HwJhjodrHW133aXhjuTsTv9ozQaYpSHACE3")
         try {
             val contractBytes = client.getDataContract(contractId)
             assertTrue(contractBytes == null)
@@ -117,16 +116,14 @@ class DapiGrpcClientTest {
     @Test
     fun getDocumentsTest() {
 
-        val masternodeList = EvoNetParams.MASTERNODES
         val client = DapiClient(masternodeList.toList())
-        val contractId = "566vcJkmebVCAb2Dkj2yVMSgGFcsshupnQqtsz1RFbcy"
         try {
             //devnet-evonet
             val query = DocumentQuery.Builder()
                     .where(listOf("normalizedParentDomainName", "==", "dash").toMutableList())
-                    .where(listOf("normalizedLabel", "startsWith", "test").toMutableList())
+                    //.where(listOf("normalizedLabel", "startsWith", "test").toMutableList())
                     .build()
-            val documents = client.getDocuments(contractId, "domain", query)
+            val documents = client.getDocuments(dpnsContractId, "domain", query)
             println(documents!![0].toHexString())
 
             val document = Document(Cbor.decode(documents[0]))
@@ -144,20 +141,26 @@ class DapiGrpcClientTest {
 
     @Test
     fun getIdentityTest() {
-        val id = Base58.encode(HashUtils.fromHex("a2615875e74fc77c153d6dd0561dd9996a7fc8ca9f04d98addc2f9a7778ac702"))
-        val badId = "G3H7uJQHSC5NXqifnX1wqE6KB4PLTEBD5Q9dKQ3Woz39"
-        val client = DapiClient(PalinkaDevNetParams.get().defaultMasternodeList.toList(), false)
+        val id = Base58.decode(identityIdString)
+        val badId = Base58.decode(identityIdString.replace("4", "3"))
+        val client = DapiClient(masternodeList, false)
         val identityBytes = client.getIdentity(id)
         val badIdentityBytes = client.getIdentity(badId)
         assertEquals(null, badIdentityBytes)
         val identity = IdentityFactory().createFromSerialized(identityBytes!!.toByteArray())
 
-        val pubKeyHash = ECKey.fromPublicOnly(HashUtils.byteArrayFromString(identity.getPublicKeyById(0)!!.data)).pubKeyHash
+        val pubKeyHash = ECKey.fromPublicOnly(identity.getPublicKeyById(0)!!.data).pubKeyHash
         val identityByPublicKeyBytes = client.getIdentityByFirstPublicKey(pubKeyHash)
+        val identitiesByPublicKeyHashes = client.getIdentitiesByPublicKeyHashes(listOf(pubKeyHash))
         val identityByPublicKey = IdentityFactory().createFromSerialized(identityByPublicKeyBytes!!.toByteArray())
+        val identityByPublicKeyHashes = IdentityFactory().createFromSerialized(identitiesByPublicKeyHashes!![0].toByteArray())
         val identityIdByPublicKey = client.getIdentityIdByFirstPublicKey(pubKeyHash)
 
-        assertEquals(id, identityByPublicKey.id)
-        assertEquals(id, identityIdByPublicKey)
+        val identityIdsByPublicKey = client.getIdentityIdsByPublicKeyHashes(listOf(pubKeyHash))
+
+        assertEquals(identityIdString, identityByPublicKey.id.toString())
+        assertEquals(identityIdString, identityByPublicKeyHashes!!.id.toString())
+        assertArrayEquals(id, identityIdByPublicKey!!.toByteArray())
+        assertArrayEquals(id, identityIdsByPublicKey!![0].toByteArray())
     }
 }
