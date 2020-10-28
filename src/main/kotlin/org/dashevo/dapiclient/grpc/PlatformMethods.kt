@@ -59,25 +59,26 @@ class GetIdentityMethod(identityId: ByteArray) : GrpcMethod {
     }
 }
 
-class GetIdentityByFirstPublicKeyMethod(pubKeyHash: ByteArray) : GrpcMethod {
+class GetIdentitiesByPublicKeyHashes(pubKeyHashes: List<ByteArray>) : GrpcMethod {
 
-    val request = PlatformOuterClass.GetIdentityByFirstPublicKeyRequest.newBuilder()
-            .setPublicKeyHash(ByteString.copyFrom(pubKeyHash))
-            .build()
+    val request = PlatformOuterClass.GetIdentitiesByPublicKeyHashesRequest.newBuilder()
+                .addAllPublicKeyHashes(pubKeyHashes.map { ByteString.copyFrom(it)})
+                .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
-        return masternode.platform.getIdentityByFirstPublicKey(request)
+        return masternode.platform.getIdentitiesByPublicKeyHashes(request) as PlatformOuterClass.GetIdentitiesByPublicKeyHashesResponse
     }
 }
 
-class GetIdentityIdByFirstPublicKeyMethod(pubKeyHash: ByteArray) : GrpcMethod {
 
-    val request = PlatformOuterClass.GetIdentityIdByFirstPublicKeyRequest.newBuilder()
-            .setPublicKeyHash(ByteString.copyFrom(pubKeyHash))
+class GetIdentityIdsByPublicKeyHashes(pubKeyHashes: List<ByteArray>) : GrpcMethod {
+
+    val request = PlatformOuterClass.GetIdentityIdsByPublicKeyHashesRequest.newBuilder()
+            .addAllPublicKeyHashes(pubKeyHashes.map { ByteString.copyFrom(it)})
             .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
-        return masternode.platform.getIdentityIdByFirstPublicKey(request)
+        return masternode.platform.getIdentityIdsByPublicKeyHashes(request)
     }
 }
 
