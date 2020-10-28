@@ -95,7 +95,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      * @param id String
      * @return ByteString?
      */
-    fun getIdentity(id: String): ByteString? {
+    fun getIdentity(id: ByteArray): ByteString? {
         logger.info("getIdentity($id)")
         val method = GetIdentityMethod(id)
         val response = grpcRequest(method) as PlatformOuterClass.GetIdentityResponse?
@@ -109,9 +109,21 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      */
     fun getIdentityByFirstPublicKey(pubKeyHash: ByteArray): ByteString? {
         logger.info("getIdentityByFirstPublicKey(${pubKeyHash.toHexString()})")
-        val method = GetIdentityByFirstPublicKeyMethod(pubKeyHash)
-        val response = grpcRequest(method) as PlatformOuterClass.GetIdentityByFirstPublicKeyResponse?
-        return response?.identity
+        val method = GetIdentitiesByPublicKeyHashes(listOf(pubKeyHash))
+        val response = grpcRequest(method) as PlatformOuterClass.GetIdentitiesByPublicKeyHashesResponse?
+        return response?.identitiesList?.get(0)
+    }
+
+    /**
+     * Fetch the identity ids by the public key hashes
+     * @param pubKeyHashes List<ByteArray>
+     * @return List<ByteString>?
+     */
+    fun getIdentitiesByPublicKeyHashes(pubKeyHashes: List<ByteArray>): List<ByteString>? {
+        logger.info("getIdentitiesByPublicKeyHashes(${pubKeyHashes.map { it.toHexString()}}")
+        val method = GetIdentitiesByPublicKeyHashes(pubKeyHashes)
+        val response = grpcRequest(method) as PlatformOuterClass.GetIdentitiesByPublicKeyHashesResponse?
+        return response?.identitiesList
     }
 
     /**
@@ -119,11 +131,23 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      * @param pubKeyHash ByteArray
      * @return String
      */
-    fun getIdentityIdByFirstPublicKey(pubKeyHash: ByteArray): String? {
+    fun getIdentityIdByFirstPublicKey(pubKeyHash: ByteArray): ByteString? {
         logger.info("getIdentityIdByFirstPublicKey(${pubKeyHash.toHexString()})")
-        val method = GetIdentityIdByFirstPublicKeyMethod(pubKeyHash)
-        val response = grpcRequest(method) as PlatformOuterClass.GetIdentityIdByFirstPublicKeyResponse?
-        return response?.id
+        val method = GetIdentityIdsByPublicKeyHashes(listOf(pubKeyHash))
+        val response = grpcRequest(method) as PlatformOuterClass.GetIdentityIdsByPublicKeyHashesResponse?
+        return response?.identityIdsList?.get(0)
+    }
+
+    /**
+     * Fetch the identity ids by the public key hashes
+     * @param pubKeyHashes List<ByteArray>
+     * @return List<ByteString>?
+     */
+    fun getIdentityIdsByPublicKeyHashes(pubKeyHashes: List<ByteArray>): List<ByteString>? {
+        logger.info("getIdentityIdsByPublicKeyHashes(${pubKeyHashes.map { it.toHexString()}}")
+        val method = GetIdentityIdsByPublicKeyHashes(pubKeyHashes)
+        val response = grpcRequest(method) as PlatformOuterClass.GetIdentityIdsByPublicKeyHashesResponse?
+        return response?.identityIdsList
     }
 
     /**
@@ -131,7 +155,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      * @param contractId String
      * @return ByteString? The contract bytes or null if not found
      */
-    fun getDataContract(contractId: String): ByteString? {
+    fun getDataContract(contractId: ByteArray): ByteString? {
         logger.info("getDataContract($contractId)")
         val method = GetContractMethod(contractId)
         val response = grpcRequest(method) as PlatformOuterClass.GetDataContractResponse?
@@ -146,7 +170,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      * and pagination
      * @return List<ByteArray>? a list of documents matching the provided parameters
      */
-    fun getDocuments(contractId: String, type: String, documentQuery: DocumentQuery): List<ByteArray>? {
+    fun getDocuments(contractId: ByteArray, type: String, documentQuery: DocumentQuery): List<ByteArray>? {
         logger.info("getDocuments($contractId, $type, ${documentQuery.toJSON()})")
         val method = GetDocumentsMethod(contractId, type, documentQuery)
         val response = grpcRequest(method) as PlatformOuterClass.GetDocumentsResponse
