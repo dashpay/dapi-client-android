@@ -12,13 +12,13 @@ import org.dashevo.dapiclient.model.DocumentQuery
 import org.dashevo.dapiclient.provider.DAPIGrpcMasternode
 import org.dashevo.dpp.statetransition.StateTransition
 
-class GetDocumentsMethod(contractId: String, type: String, documentQuery: DocumentQuery) : GrpcMethod {
+class GetDocumentsMethod(contractId: ByteArray, type: String, documentQuery: DocumentQuery) : GrpcMethod {
 
     val request: PlatformOuterClass.GetDocumentsRequest
 
     init {
         val builder = PlatformOuterClass.GetDocumentsRequest.newBuilder()
-                .setDataContractId(contractId)
+                .setDataContractId(ByteString.copyFrom(contractId))
                 .setDocumentType(type)
                 .setWhere(ByteString.copyFrom(documentQuery.encodeWhere()))
                 .setOrderBy(ByteString.copyFrom(documentQuery.encodeOrderBy()))
@@ -37,10 +37,10 @@ class GetDocumentsMethod(contractId: String, type: String, documentQuery: Docume
     }
 }
 
-class GetContractMethod(dataContractId: String) : GrpcMethod {
+class GetContractMethod(dataContractId: ByteArray) : GrpcMethod {
 
     val request = PlatformOuterClass.GetDataContractRequest.newBuilder()
-            .setId(dataContractId)
+            .setId(ByteString.copyFrom(dataContractId))
             .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
@@ -48,10 +48,10 @@ class GetContractMethod(dataContractId: String) : GrpcMethod {
     }
 }
 
-class GetIdentityMethod(identityId: String) : GrpcMethod {
+class GetIdentityMethod(identityId: ByteArray) : GrpcMethod {
 
     val request = PlatformOuterClass.GetIdentityRequest.newBuilder()
-            .setId(identityId)
+            .setId(ByteString.copyFrom(identityId))
             .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
