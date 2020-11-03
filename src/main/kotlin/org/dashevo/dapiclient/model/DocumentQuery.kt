@@ -8,6 +8,7 @@ package org.dashevo.dapiclient.model
 
 import com.google.common.base.Preconditions
 import org.dashevo.dpp.BaseObject
+import org.dashevo.dpp.identifier.Identifier
 import org.dashevo.dpp.util.Cbor
 import org.json.JSONArray
 
@@ -27,6 +28,11 @@ class DocumentQuery private constructor(var where: List<Any>? = null,
 
     companion object {
         val emptyByteArray = ByteArray(0)
+        const val ascending = "asc"
+        const val descending = "desc"
+        val operators = listOf("<", "<=", "==", ">", ">", "in", "startsWith", "elementMatch", "length", "contains")
+
+        fun builder(): Builder { return Builder() }
     }
 
     data class Builder(var where: MutableList<List<Any>>? = null,
@@ -37,6 +43,7 @@ class DocumentQuery private constructor(var where: List<Any>? = null,
 
         fun where(where: List<Any>) = apply {
             Preconditions.checkArgument(where.size == 3, "A where clause must have three items")
+            Preconditions.checkArgument(operators.contains(where[1]), "Where clause operator must be one of : $operators")
             if (this.where == null) {
                 this.where = ArrayList()
             }
@@ -55,6 +62,10 @@ class DocumentQuery private constructor(var where: List<Any>? = null,
             return where(listOf(left, operator, right))
         }
 
+        fun where(left: String, operator: String, right: Identifier): Builder {
+            return where(listOf(left, operator, right))
+        }
+
         fun whereIn(left: String, right: List<Any>): Builder {
             return where(listOf(left, "in", right))
         }
@@ -70,8 +81,8 @@ class DocumentQuery private constructor(var where: List<Any>? = null,
             return orderBy(JSONArray(orderBy).toList() as List<String>)
         }
 
-        fun orderBy(index: String, ascending: Boolean): Builder {
-            return orderBy(listOf(index, if (ascending) "asc" else "dec"))
+        fun orderBy(index: String, orderByAscending: Boolean = true): Builder {
+            return orderBy(listOf(index, if (orderByAscending) ascending else descending))
         }
 
         fun limit(limit: Int) = apply { this.limit = limit }
