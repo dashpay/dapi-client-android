@@ -1,0 +1,138 @@
+{
+  "protocolVersion": 0,
+  "$schema": "https://schema.dash.org/dpp-0-4-0/meta/data-contract",
+  "ownerId": "5SpfYEamefbSYpSKZGUh45W1qfKspUyZFaEYxxuGRjfk",
+  "documents": {
+    "contactInfo": {
+      "indices": [
+        {
+          "properties": [
+            {"$ownerId": "asc"},
+            {"rootEncryptionKeyIndex": "asc"},
+            {"derivationEncryptionKeyIndex": "asc"}
+          ],
+          "unique": true
+        },
+        {"properties": [
+          {"$ownerId": "asc"},
+          {"$updatedAt": "asc"}
+        ]}
+      ],
+      "additionalProperties": false,
+      "required": [
+        "$createdAt",
+        "$updatedAt",
+        "encToUserId",
+        "privateData",
+        "rootEncryptionKeyIndex",
+        "derivationEncryptionKeyIndex"
+      ],
+      "properties": {
+        "privateData": {
+          "minItems": 48,
+          "maxItems": 2048,
+          "description": "This is the encrypted values of aliasName + note + displayHidden encoded as an array in cbor",
+          "type": "array",
+          "byteArray": true
+        },
+        "rootEncryptionKeyIndex": {"type": "integer"},
+        "encToUserId": {
+          "minItems": 32,
+          "maxItems": 32,
+          "type": "array",
+          "byteArray": true
+        },
+        "derivationEncryptionKeyIndex": {"type": "integer"}
+      }
+    },
+    "contactRequest": {
+      "indices": [
+        {
+          "properties": [
+            {"$ownerId": "asc"},
+            {"toUserId": "asc"},
+            {"accountReference": "asc"}
+          ],
+          "unique": true
+        },
+        {"properties": [
+          {"$ownerId": "asc"},
+          {"toUserId": "asc"}
+        ]},
+        {"properties": [
+          {"toUserId": "asc"},
+          {"$createdAt": "asc"}
+        ]},
+        {"properties": [
+          {"$ownerId": "asc"},
+          {"$createdAt": "asc"}
+        ]}
+      ],
+      "additionalProperties": false,
+      "required": [
+        "$createdAt",
+        "toUserId",
+        "encryptedPublicKey",
+        "senderKeyIndex",
+        "recipientKeyIndex",
+        "accountReference"
+      ],
+      "properties": {
+        "encryptedPublicKey": {
+          "minItems": 96,
+          "maxItems": 96,
+          "type": "array",
+          "byteArray": true
+        },
+        "senderKeyIndex": {"type": "integer"},
+        "recipientKeyIndex": {"type": "integer"},
+        "accountReference": {"type": "integer"},
+        "encryptedAccountLabel": {
+          "minItems": 48,
+          "maxItems": 80,
+          "type": "array",
+          "byteArray": true
+        },
+        "toUserId": {
+          "minItems": 32,
+          "maxItems": 32,
+          "type": "array",
+          "byteArray": true
+        }
+      }
+    },
+    "profile": {
+      "indices": [
+        {
+          "properties": [{"$ownerId": "asc"}],
+          "unique": true
+        },
+        {"properties": [
+          {"$ownerId": "asc"},
+          {"$updatedAt": "asc"}
+        ]}
+      ],
+      "additionalProperties": false,
+      "required": [
+        "$createdAt",
+        "$updatedAt"
+      ],
+      "properties": {
+        "avatarUrl": {
+          "format": "url",
+          "type": "string",
+          "maxLength": 2048
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "publicMessage": {
+          "type": "string",
+          "maxLength": 140
+        }
+      }
+    }
+  },
+  "$id": "Fxf3w1rsUvRxW8WsVnQcUNgtgVn8w47BwZtQPAsJWkkH"
+}

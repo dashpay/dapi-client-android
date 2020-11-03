@@ -25,7 +25,9 @@ class DapiGrpcClientTest {
     val PARAMS = PalinkaDevNetParams.get();
     val masternodeList = PalinkaDevNetParams.get().defaultMasternodeList.toList()
     val dpnsContractId = Base58.decode("H9AxLAvgxEpq72pDg41nsqR3bY5Cv9hTT6yZdKzY3PaE") //DPNS contract
+    val dashPayContractId = Base58.decode("Fxf3w1rsUvRxW8WsVnQcUNgtgVn8w47BwZtQPAsJWkkH")
     val identityIdString = "4jjwnJr2ufABdWqKKonoA9uBCRXF8jQ929KnHKEgZRJu"
+    val stateRepository = StateRepositoryMock()
 
 
     @Test
@@ -88,11 +90,30 @@ class DapiGrpcClientTest {
         try {
             val contractBytes = client.getDataContract(dpnsContractId)
 
-            val contract = ContractFactory().createFromSerialized(contractBytes!!.toByteArray())
+            val contract = ContractFactory(stateRepository).createFromBuffer(contractBytes!!.toByteArray())
             val jsonDpnsFile = File("src/test/resources/dpns-contract.json").readText()
             val jsonDpns = JSONObject(jsonDpnsFile)
             val rawContract = jsonDpns.toMap()
-            val dpnsContract = ContractFactory().createFromObject(rawContract)
+            val dpnsContract = ContractFactory(stateRepository).createFromObject(rawContract)
+
+            assertEquals(dpnsContract.toJSON(), contract.toJSON())
+        } finally {
+
+        }
+    }
+
+    @Test
+    fun getDashPayContract() {
+
+        val client = DapiClient(masternodeList)
+        try {
+            val contractBytes = client.getDataContract(dashPayContractId)
+
+            val contract = ContractFactory(stateRepository).createFromBuffer(contractBytes!!.toByteArray())
+            val jsonDpnsFile = File("src/test/resources/dashpay-contract.json").readText()
+            val jsonDpns = JSONObject(jsonDpnsFile)
+            val rawContract = jsonDpns.toMap()
+            val dpnsContract = ContractFactory(stateRepository).createFromObject(rawContract)
 
             assertEquals(dpnsContract.toJSON(), contract.toJSON())
         } finally {
@@ -126,11 +147,16 @@ class DapiGrpcClientTest {
             val documents = client.getDocuments(dpnsContractId, "domain", query)
             println(documents!![0].toHexString())
 
-            val document = Document(Cbor.decode(documents[0]))
+            val jsonDpnsFile = File("src/test/resources/dpns-contract.json").readText()
+            val jsonDpns = JSONObject(jsonDpnsFile)
+            val rawContract = jsonDpns.toMap()
+            val dpnsContract = ContractFactory(stateRepository).createFromObject(rawContract)
+
+            val document = Document(Cbor.decode(documents[0]), dpnsContract)
 
             val docs = ArrayList<Document>(documents.size)
             for (d in documents) {
-                docs.add(Document(Cbor.decode(d)))
+                docs.add(Document(Cbor.decode(d), dpnsContract))
             }
 
             println(document.toJSON())
@@ -147,13 +173,15 @@ class DapiGrpcClientTest {
         val identityBytes = client.getIdentity(id)
         val badIdentityBytes = client.getIdentity(badId)
         assertEquals(null, badIdentityBytes)
-        val identity = IdentityFactory().createFromSerialized(identityBytes!!.toByteArray())
+        val identity = IdentityFactory(stateRepository).createFromBuffer(identityBytes!!.toByteArray())
+        println(JSONObject(identity.toJSON()).toString(2))
+
 
         val pubKeyHash = ECKey.fromPublicOnly(identity.getPublicKeyById(0)!!.data).pubKeyHash
         val identityByPublicKeyBytes = client.getIdentityByFirstPublicKey(pubKeyHash)
         val identitiesByPublicKeyHashes = client.getIdentitiesByPublicKeyHashes(listOf(pubKeyHash))
-        val identityByPublicKey = IdentityFactory().createFromSerialized(identityByPublicKeyBytes!!.toByteArray())
-        val identityByPublicKeyHashes = IdentityFactory().createFromSerialized(identitiesByPublicKeyHashes!![0].toByteArray())
+        val identityByPublicKey = IdentityFactory(stateRepository).createFromBuffer(identityByPublicKeyBytes!!.toByteArray())
+        val identityByPublicKeyHashes = IdentityFactory(stateRepository).createFromBuffer(identitiesByPublicKeyHashes!![0].toByteArray())
         val identityIdByPublicKey = client.getIdentityIdByFirstPublicKey(pubKeyHash)
 
         val identityIdsByPublicKey = client.getIdentityIdsByPublicKeyHashes(listOf(pubKeyHash))
@@ -162,5 +190,23 @@ class DapiGrpcClientTest {
         assertEquals(identityIdString, identityByPublicKeyHashes!!.id.toString())
         assertArrayEquals(id, identityIdByPublicKey!!.toByteArray())
         assertArrayEquals(id, identityIdsByPublicKey!![0].toByteArray())
+    }
+
+    @Test
+    fun getIdentityFromBadPubKeyBytes() {
+        val key = ECKey()
+        val client = DapiClient(masternodeList, false)
+
+        val identity = client.getIdentityByFirstPublicKey(key.pubKeyHash)
+        assertEquals(null, identity)
+
+        val identities = client.getIdentitiesByPublicKeyHashes(listOf(key.pubKeyHash))
+        assertEquals(null, identities)
+
+        val identityId = client.getIdentityIdByFirstPublicKey(key.pubKeyHash)
+        assertEquals(null, identityId)
+
+        val identityIdList = client.getIdentityIdsByPublicKeyHashes(listOf(key.pubKeyHash))
+        assertEquals(null, identityIdList)
     }
 }
