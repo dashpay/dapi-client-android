@@ -85,7 +85,7 @@ class GetIdentityIdsByPublicKeyHashes(pubKeyHashes: List<ByteArray>) : GrpcMetho
 class BroadcastStateTransitionMethod(stateTransition: StateTransition) : GrpcMethod {
 
     val request = PlatformOuterClass.BroadcastStateTransitionRequest.newBuilder()
-            .setStateTransition(ByteString.copyFrom(stateTransition.serialize()))
+            .setStateTransition(ByteString.copyFrom(stateTransition.toBuffer()))
             .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
