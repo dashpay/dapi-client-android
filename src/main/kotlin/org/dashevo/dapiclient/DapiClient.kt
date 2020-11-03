@@ -24,6 +24,7 @@ import org.dashevo.dapiclient.model.JsonRPCRequest
 import org.dashevo.dapiclient.provider.*
 import org.dashevo.dapiclient.rest.DapiService
 import org.dashevo.dpp.statetransition.StateTransition
+import org.dashevo.dpp.toBase58
 import org.dashevo.dpp.toHexString
 import org.json.JSONObject
 import org.slf4j.LoggerFactory
@@ -96,7 +97,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      * @return ByteString?
      */
     fun getIdentity(id: ByteArray): ByteString? {
-        logger.info("getIdentity($id)")
+        logger.info("getIdentity(${id.toBase58()})")
         val method = GetIdentityMethod(id)
         val response = grpcRequest(method) as PlatformOuterClass.GetIdentityResponse?
         return response?.identity
@@ -111,7 +112,12 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         logger.info("getIdentityByFirstPublicKey(${pubKeyHash.toHexString()})")
         val method = GetIdentitiesByPublicKeyHashes(listOf(pubKeyHash))
         val response = grpcRequest(method) as PlatformOuterClass.GetIdentitiesByPublicKeyHashesResponse?
-        return response?.identitiesList?.get(0)
+        val firstResult = response?.identitiesList?.get(0)
+        return if (firstResult != null && !firstResult.isEmpty) {
+            firstResult
+        } else {
+            null
+        }
     }
 
     /**
@@ -123,7 +129,11 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         logger.info("getIdentitiesByPublicKeyHashes(${pubKeyHashes.map { it.toHexString()}}")
         val method = GetIdentitiesByPublicKeyHashes(pubKeyHashes)
         val response = grpcRequest(method) as PlatformOuterClass.GetIdentitiesByPublicKeyHashesResponse?
-        return response?.identitiesList
+        return if (response != null && response.identitiesCount > 0 && !response.identitiesList[0].isEmpty) {
+            response.identitiesList
+        } else {
+            null
+        }
     }
 
     /**
@@ -135,7 +145,12 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         logger.info("getIdentityIdByFirstPublicKey(${pubKeyHash.toHexString()})")
         val method = GetIdentityIdsByPublicKeyHashes(listOf(pubKeyHash))
         val response = grpcRequest(method) as PlatformOuterClass.GetIdentityIdsByPublicKeyHashesResponse?
-        return response?.identityIdsList?.get(0)
+        val firstResult = response?.identityIdsList?.get(0)
+        return if (firstResult != null && !firstResult.isEmpty) {
+            firstResult
+        } else {
+            null
+        }
     }
 
     /**
@@ -147,7 +162,11 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         logger.info("getIdentityIdsByPublicKeyHashes(${pubKeyHashes.map { it.toHexString()}}")
         val method = GetIdentityIdsByPublicKeyHashes(pubKeyHashes)
         val response = grpcRequest(method) as PlatformOuterClass.GetIdentityIdsByPublicKeyHashesResponse?
-        return response?.identityIdsList
+        return if (response != null && response.identityIdsCount > 0 && !response.identityIdsList[0].isEmpty) {
+            response.identityIdsList
+        } else {
+            null
+        }
     }
 
     /**
@@ -156,7 +175,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      * @return ByteString? The contract bytes or null if not found
      */
     fun getDataContract(contractId: ByteArray): ByteString? {
-        logger.info("getDataContract($contractId)")
+        logger.info("getDataContract(${contractId.toBase58()})")
         val method = GetContractMethod(contractId)
         val response = grpcRequest(method) as PlatformOuterClass.GetDataContractResponse?
         return response?.dataContract
@@ -171,7 +190,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      * @return List<ByteArray>? a list of documents matching the provided parameters
      */
     fun getDocuments(contractId: ByteArray, type: String, documentQuery: DocumentQuery): List<ByteArray>? {
-        logger.info("getDocuments($contractId, $type, ${documentQuery.toJSON()})")
+        logger.info("getDocuments(${contractId.toBase58()}, $type, ${documentQuery.toJSON()})")
         val method = GetDocumentsMethod(contractId, type, documentQuery)
         val response = grpcRequest(method) as PlatformOuterClass.GetDocumentsResponse
 
@@ -185,7 +204,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         val response = grpcRequest(method) as CoreOuterClass.GetStatusResponse?
 
         return response?.let {
-            GetStatusResponse(it.coreVersion,
+            val result = GetStatusResponse(it.coreVersion,
                     it.protocolVersion,
                     it.blocks,
                     it.timeOffset,
@@ -196,6 +215,8 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
                     it.relayFee,
                     it.errors,
                     it.network)
+            logger.info("$result")
+            result
         }
     }
 
@@ -234,6 +255,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
     }
 
     fun getEstimatedTransactionFee(blocks: Int): Double {
+        logger.info("getEstimatedTransactionFee($blocks)")
         val method = GetEstimatedTransactionFeeMethod(blocks)
         val response = grpcRequest(method) as CoreOuterClass.GetEstimatedTransactionFeeResponse?
         return response?.fee!!
