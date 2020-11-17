@@ -220,8 +220,8 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         }
     }
 
-    private fun logException(e: StatusRuntimeException) {
-        logger.warn("RPC failed: ${e.status}: ${e.trailers}")
+    private fun logException(e: StatusRuntimeException, masternode: DAPIGrpcMasternode) {
+        logger.warn("RPC failed with ${masternode.address.host}: ${e.status}: ${e.trailers}")
     }
 
     fun getBlockByHeight(height: Int): ByteArray? {
@@ -270,7 +270,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         val response: Any = try {
             grpcMethod.execute(grpcMasternode)
         } catch (e: StatusRuntimeException) {
-            logException(e)
+            logException(e, grpcMasternode)
             return if (e.status.code == Status.NOT_FOUND.code) {
                 null
             } else {
