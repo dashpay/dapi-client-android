@@ -39,4 +39,12 @@ class DAPIAddress(var host: String, val httpPort: Int,
     val isBanned
         get() = banCount > 0
 
+    override fun toString(): String {
+        val sb = StringBuilder("DAPIAddress($host:$httpPort/$grpcPort")
+        if (proRegTxHash != Sha256Hash.ZERO_HASH) {
+            sb.append("proRegTxHash: $proRegTxHash")
+        }
+        sb.append(")")
+        return sb.toString()
+    }
 }
