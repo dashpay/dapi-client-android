@@ -210,7 +210,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
     fun getStatus(address: DAPIAddress? = null, retries: Int = USE_DEFAULT_RETRY_COUNT): GetStatusResponse? {
         val method = GetStatusMethod()
         val watch = Stopwatch.createStarted()
-        val response = grpcRequest(method, retries) as CoreOuterClass.GetStatusResponse?
+        val response = grpcRequest(method, retries, address) as CoreOuterClass.GetStatusResponse?
         watch.stop()
 
         return response?.let {
@@ -299,7 +299,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
                     throw e
                 }
                 address.markAsBanned()
-                if (retries == 0) {
+                if (retryAttemptsLeft == 0) {
                     throw MaxRetriesReachedException(e)
                 }
                 if (!dapiAddressListProvider.hasLiveAddresses()) {

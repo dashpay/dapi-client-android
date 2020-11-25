@@ -7,6 +7,7 @@ import io.grpc.StatusRuntimeException
 import org.bitcoinj.core.Base58
 import org.bitcoinj.core.ECKey
 import org.bitcoinj.core.Sha256Hash
+import org.bitcoinj.params.EvoNetParams
 import org.bitcoinj.params.PalinkaDevNetParams
 import org.dashevo.dapiclient.model.DocumentQuery
 import org.dashevo.dapiclient.provider.DAPIAddress
@@ -34,16 +35,18 @@ class DapiGrpcClientTest {
     @Test
     fun getStatusOfInvalidNodeTest() {
         val watch = Stopwatch.createStarted()
-        val list = ListDAPIAddressProvider(listOf("211.30.243.82").map { DAPIAddress(it) }, 0)
-        val client = DapiClient(list, 3000, 5)
+        val list = ListDAPIAddressProvider(listOf("211.30.243.83").map { DAPIAddress(it) }, 0)
+        val client = DapiClient(list, 3000, 0)
         try {
-            client.getStatus()
+            client.getStatus(DAPIAddress("211.30.243.82"), 0)
             fail<Nothing>("The node queried should not exist")
-        } catch (e: NoAvailableAddressesForRetryException) {
-            println("timeout after $watch")
-            val cause = e.cause as StatusRuntimeException
-            if (cause.status.code != Status.UNAVAILABLE.code && cause.status.code != Status.DEADLINE_EXCEEDED.code)
-                fail<Nothing>("Invalid node test failed with a different error")
+        } catch (e: Exception) {
+            if (e is NoAvailableAddressesForRetryException || e is MaxRetriesReachedException) {
+                println("timeout after $watch")
+                val cause = e.cause as StatusRuntimeException
+                if (cause.status.code != Status.UNAVAILABLE.code && cause.status.code != Status.DEADLINE_EXCEEDED.code)
+                    fail<Nothing>("Invalid node test failed with a different error")
+            }
         }
     }
 
