@@ -44,6 +44,8 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
     private lateinit var dapiService: DapiService
     private val debugOkHttpClient: OkHttpClient
     private var initializedJRPC = false
+    private var timeOut: Long = DEFAULT_TIMEOUT
+    private var retries: Int = DEFAULT_RETRY_COUNT
 
     // Constants
     companion object {
@@ -55,10 +57,16 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
 
         const val BASE_BAN_TIME = 60 * 1000 // 1 minute
 
-        const val DEFAULT_RETRY_COUNT = 5
-        const val DEFAULT_TIMEOUT = 5000
+        const val DEFAULT_RETRY_COUNT = 10
+        const val USE_DEFAULT_RETRY_COUNT = -1
+        const val DEFAULT_TIMEOUT = 5000L  //normally a timeout is 5 seconds longer than this
     }
 
+    constructor(dapiAddressListProvider: DAPIAddressListProvider, timeOut: Long, retries: Int)
+    : this(dapiAddressListProvider, true, true) {
+        this.timeOut = timeOut;
+        this.retries = retries;
+    }
 
     init {
         val loggingInterceptor = HttpLoggingInterceptor { msg: String? -> logger.info(msg) }
@@ -70,7 +78,6 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
                 .readTimeout(10, TimeUnit.SECONDS)
                 .writeTimeout(10, TimeUnit.SECONDS)
                 .build()
-
     }
 
     constructor(masternodeAddress: String, diffMasternodeEachCall: Boolean = true) :
@@ -261,10 +268,15 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         return response?.fee!!
     }
 
-    private fun grpcRequest(grpcMethod: GrpcMethod, retries: Int = DEFAULT_RETRY_COUNT, timeout: Int = DEFAULT_TIMEOUT): Any? {
+    private fun grpcRequest(grpcMethod: GrpcMethod, retriesLeft: Int = USE_DEFAULT_RETRY_COUNT): Any? {
         logger.info("grpcRequest ${grpcMethod.javaClass.simpleName}")
+        val retryAttemptsLeft = if (retriesLeft == USE_DEFAULT_RETRY_COUNT) {
+            retries // set in constructor
+        } else {
+            retriesLeft // if called recursively
+        }
         val address = dapiAddressListProvider.getLiveAddress()
-        val grpcMasternode = DAPIGrpcMasternode(address, timeout)
+        val grpcMasternode = DAPIGrpcMasternode(address, timeOut)
         lastUsedAddress = address
 
         val response: Any = try {
@@ -288,7 +300,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
                 if (!dapiAddressListProvider.hasLiveAddresses()) {
                     throw NoAvailableAddressesForRetryException(e)
                 }
-                grpcRequest(grpcMethod, retries - 1)
+                grpcRequest(grpcMethod, retryAttemptsLeft - 1)
             }
         } finally {
             grpcMasternode.shutdown()
