@@ -1,5 +1,6 @@
 package org.dashevo.dapiclient
 
+import com.google.common.base.Stopwatch
 import com.hashengineering.crypto.X11
 import io.grpc.Status
 import io.grpc.StatusRuntimeException
@@ -32,14 +33,16 @@ class DapiGrpcClientTest {
 
     @Test
     fun getStatusOfInvalidNodeTest() {
-        val list = ListDAPIAddressProvider(listOf("127.0.0.1").map { DAPIAddress(it) }, 0)
-        val client = DapiClient(list)
+        val watch = Stopwatch.createStarted()
+        val list = ListDAPIAddressProvider(listOf("211.30.243.82").map { DAPIAddress(it) }, 0)
+        val client = DapiClient(list, 3000, 5)
         try {
             client.getStatus()
             fail<Nothing>("The node queried should not exist")
         } catch (e: NoAvailableAddressesForRetryException) {
+            println("timeout after $watch")
             val cause = e.cause as StatusRuntimeException
-            if (cause.status.code != Status.UNAVAILABLE.code)
+            if (cause.status.code != Status.UNAVAILABLE.code && cause.status.code != Status.DEADLINE_EXCEEDED.code)
                 fail<Nothing>("Invalid node test failed with a different error")
         }
     }
