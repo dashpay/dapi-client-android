@@ -6,6 +6,8 @@
  */
 package org.dashevo.dapiclient.model
 
+import org.dashevo.dapiclient.provider.DAPIAddress
+
 data class GetStatusResponse(val coreVersion: Int,
                              val protocolVersion: Int,
                              val blocks: Int,
@@ -16,4 +18,6 @@ data class GetStatusResponse(val coreVersion: Int,
                              val testnet: Boolean,
                              val relayFee: Double,
                              val errors: String,
-                             val network: String)
+                             val network: String,
+                             val address: DAPIAddress? = null,
+                             val duration: Long)
