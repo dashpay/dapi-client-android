@@ -20,8 +20,14 @@ class DAPIGrpcMasternode(address: DAPIAddress, val timeout: Long) : DAPIMasterno
     val platform: PlatformGrpc.PlatformBlockingStub by lazy {
         PlatformGrpc.newBlockingStub(channel).withDeadlineAfter(timeout, TimeUnit.MILLISECONDS)
     }
+    val platformWithoutDeadline: PlatformGrpc.PlatformBlockingStub by lazy {
+        PlatformGrpc.newBlockingStub(channel)
+    }
     val core: CoreGrpc.CoreBlockingStub by lazy {
         CoreGrpc.newBlockingStub(channel).withDeadlineAfter(timeout, TimeUnit.MILLISECONDS)
+    }
+    val coreWithoutDeadline: CoreGrpc.CoreBlockingStub by lazy {
+        CoreGrpc.newBlockingStub(channel)
     }
 
     // Constants
