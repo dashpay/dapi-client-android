@@ -82,7 +82,7 @@ class GetIdentityIdsByPublicKeyHashes(pubKeyHashes: List<ByteArray>) : GrpcMetho
     }
 }
 
-class BroadcastStateTransitionMethod(stateTransition: StateTransition) : GrpcMethod {
+class BroadcastStateTransitionMethod(val stateTransition: StateTransition) : GrpcMethod {
 
     val request = PlatformOuterClass.BroadcastStateTransitionRequest.newBuilder()
             .setStateTransition(ByteString.copyFrom(stateTransition.toBuffer()))
