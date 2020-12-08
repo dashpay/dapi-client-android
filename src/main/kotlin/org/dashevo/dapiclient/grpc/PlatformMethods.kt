@@ -89,6 +89,6 @@ class BroadcastStateTransitionMethod(val stateTransition: StateTransition) : Grp
             .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
-        return masternode.platform.broadcastStateTransition(request)
+        return masternode.platformWithoutDeadline.broadcastStateTransition(request)
     }
 }
