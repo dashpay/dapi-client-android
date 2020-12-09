@@ -12,9 +12,7 @@ import org.dashevo.dapiclient.DapiClient
 import org.dashevo.dapiclient.model.DocumentQuery
 import org.dashevo.dpp.StateRepository
 import org.dashevo.dpp.contract.DataContractCreateTransition
-import org.dashevo.dpp.document.DocumentCreateTransition
 import org.dashevo.dpp.document.DocumentsBatchTransition
-import org.dashevo.dpp.identifier.Identifier
 import org.dashevo.dpp.identity.IdentityCreateTransition
 import org.slf4j.LoggerFactory
 
@@ -50,9 +48,11 @@ class DefaultShouldRetryCallback : GrpcMethodShouldRetryCallback {
  * @constructor
  */
 class DefaultBroadcastRetryCallback(private val stateRepository: StateRepository,
-                                    private val updatedAt: Long = -1): GrpcMethodShouldRetryCallback {
+                                    private val updatedAt: Long = -1,
+                                    private val retryCount: Int = DEFAULT_RETRY_COUNT): GrpcMethodShouldRetryCallback {
     companion object {
         private val logger = LoggerFactory.getLogger(DefaultBroadcastRetryCallback::class.java.name)
+        const val DEFAULT_RETRY_COUNT = 5
     }
 
     override fun shouldRetry(grpcMethod: GrpcMethod, e: StatusRuntimeException): Boolean {
@@ -61,7 +61,7 @@ class DefaultBroadcastRetryCallback(private val stateRepository: StateRepository
             when (grpcMethod.stateTransition) {
                 is DataContractCreateTransition -> {
                     val contactCreateTransition = grpcMethod.stateTransition as DataContractCreateTransition
-                    for (i in 0..5) {
+                    for (i in 0 until retryCount) {
                         //how to delay
                         delay()
                         val identityData = stateRepository.fetchDataContract(contactCreateTransition.dataContract.id)
@@ -75,7 +75,7 @@ class DefaultBroadcastRetryCallback(private val stateRepository: StateRepository
                 }
                 is IdentityCreateTransition -> {
                     val identityCreateTransition = grpcMethod.stateTransition as IdentityCreateTransition
-                    for (i in 0..5) {
+                    for (i in 0 until retryCount) {
                         //how to delay
                         delay()
                         val identityData = stateRepository.fetchIdentity(identityCreateTransition.identityId)
@@ -107,7 +107,7 @@ class DefaultBroadcastRetryCallback(private val stateRepository: StateRepository
                     val query = queryBuilder.build()
 
 
-                    for (i in 0..5) {
+                    for (i in 0 until retryCount) {
                         //how to delay
                         delay()
                         val documentsData = stateRepository.fetchDocuments(dataContractId, type, query)
