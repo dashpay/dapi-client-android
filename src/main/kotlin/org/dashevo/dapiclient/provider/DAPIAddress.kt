@@ -7,6 +7,7 @@
 package org.dashevo.dapiclient.provider
 
 import org.bitcoinj.core.Sha256Hash
+import org.dashevo.dapiclient.model.GetStatusResponse
 import java.util.*
 
 class DAPIAddress(var host: String, val httpPort: Int,
@@ -19,6 +20,7 @@ class DAPIAddress(var host: String, val httpPort: Int,
 
     var banCount: Int = 0
     var banStartTime: Long = -1L
+    var lastStatus: GetStatusResponse? = null
 
     constructor(host: String, proRegTxHash: Sha256Hash) : this(host, DEFAULT_HTTP_PORT, DEFAULT_GRPC_PORT, proRegTxHash)
 
@@ -39,4 +41,12 @@ class DAPIAddress(var host: String, val httpPort: Int,
     val isBanned
         get() = banCount > 0
 
+    override fun toString(): String {
+        val sb = StringBuilder("DAPIAddress($host:$httpPort/$grpcPort")
+        if (proRegTxHash != Sha256Hash.ZERO_HASH) {
+            sb.append("proRegTxHash: $proRegTxHash")
+        }
+        sb.append(")")
+        return sb.toString()
+    }
 }

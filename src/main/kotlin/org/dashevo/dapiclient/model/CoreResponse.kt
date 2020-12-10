@@ -6,6 +6,14 @@
  */
 package org.dashevo.dapiclient.model
 
+import org.dashevo.dapiclient.provider.DAPIAddress
+import org.dashevo.dapiclient.DapiClient
+
+/**
+ * GetStatusResponse contains the response of the [DapiClient.getStatus] DAPI call with some additional
+ * information that includes the timeStamp when the call was made, the address of the masternode and the
+ * duration of the response time.
+ */
 data class GetStatusResponse(val coreVersion: Int,
                              val protocolVersion: Int,
                              val blocks: Int,
@@ -16,4 +24,7 @@ data class GetStatusResponse(val coreVersion: Int,
                              val testnet: Boolean,
                              val relayFee: Double,
                              val errors: String,
-                             val network: String)
+                             val network: String,
+                             val timeStamp: Long,
+                             val address: DAPIAddress? = null,
+                             val duration: Long)

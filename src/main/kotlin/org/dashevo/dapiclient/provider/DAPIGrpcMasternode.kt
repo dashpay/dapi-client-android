@@ -14,11 +14,21 @@ import org.dash.platform.dapi.v0.PlatformGrpc
 import org.slf4j.LoggerFactory
 import java.util.concurrent.TimeUnit
 
-class DAPIGrpcMasternode(address: DAPIAddress, timeout: Int): DAPIMasternode(address) {
+class DAPIGrpcMasternode(address: DAPIAddress, val timeout: Long) : DAPIMasternode(address) {
     // gRPC properties
     private lateinit var channel: ManagedChannel
-    val platform: PlatformGrpc.PlatformBlockingStub by lazy { PlatformGrpc.newBlockingStub(channel) }
-    val core: CoreGrpc.CoreBlockingStub by lazy { CoreGrpc.newBlockingStub(channel) }
+    val platform: PlatformGrpc.PlatformBlockingStub by lazy {
+        PlatformGrpc.newBlockingStub(channel).withDeadlineAfter(timeout, TimeUnit.MILLISECONDS)
+    }
+    val platformWithoutDeadline: PlatformGrpc.PlatformBlockingStub by lazy {
+        PlatformGrpc.newBlockingStub(channel)
+    }
+    val core: CoreGrpc.CoreBlockingStub by lazy {
+        CoreGrpc.newBlockingStub(channel).withDeadlineAfter(timeout, TimeUnit.MILLISECONDS)
+    }
+    val coreWithoutDeadline: CoreGrpc.CoreBlockingStub by lazy {
+        CoreGrpc.newBlockingStub(channel)
+    }
 
     // Constants
     companion object {
@@ -31,10 +41,9 @@ class DAPIGrpcMasternode(address: DAPIAddress, timeout: Int): DAPIMasternode(add
                 // Channels are secure by default (via SSL/TLS). For the example we disable TLS to avoid
                 // needing certificates.
                 .usePlaintext()
-                .idleTimeout(timeout.toLong(), TimeUnit.MILLISECONDS)
                 .build()
 
-         logger.info("Connecting to GRPC host: ${address.host}:${address.grpcPort} (time: $watch)")
+        logger.info("Connecting to GRPC host: ${address.host}:${address.grpcPort} (time: $watch)")
     }
 
     fun shutdown() {
