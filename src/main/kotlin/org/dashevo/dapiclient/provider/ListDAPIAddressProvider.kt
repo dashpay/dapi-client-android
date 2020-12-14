@@ -37,18 +37,18 @@ class ListDAPIAddressProvider(var addresses: List<DAPIAddress>, val baseBanTime:
         val now = Date().time
 
         return addresses.filter {
-            if (alwaysBanAddresses.contains(it.host)) {
-                false
+            when {
+                alwaysBanAddresses.contains(it.host) -> false
+
+                !it.isBanned -> true
+
+                else -> {
+                    val coefficient: Double = exp(it.banCount.toDouble() - 1)
+                    val banPeriod = floor(coefficient) * baseBanTime
+
+                    now > it.banStartTime + banPeriod
+                }
             }
-
-            if (!it.isBanned) {
-                true
-            }
-
-            val coefficient: Double = exp(it.banCount.toDouble() -1)
-            val banPeriod = floor(coefficient) * baseBanTime
-
-            now > it.banStartTime + banPeriod
         }
     }
 
