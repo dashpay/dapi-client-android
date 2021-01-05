@@ -47,4 +47,12 @@ class StateRepositoryMock : StateRepository {
     override fun storeIdentityPublicKeyHashes(identity: Identifier, publicKeyHashes: List<ByteArray>) {
         TODO("Not yet implemented")
     }
+
+    override fun checkAssetLockTransactionOutPointExists(outPointBuffer: ByteArray) {
+        TODO("Not yet implemented")
+    }
+
+    override fun storeAssetLockTransactionOutPoint(outPointBuffer: ByteArray) {
+        TODO("Not yet implemented")
+    }
 }

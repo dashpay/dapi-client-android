@@ -4,11 +4,8 @@ import com.google.common.base.Stopwatch
 import com.hashengineering.crypto.X11
 import io.grpc.Status
 import io.grpc.StatusRuntimeException
-import org.bitcoinj.core.Base58
-import org.bitcoinj.core.ECKey
-import org.bitcoinj.core.Sha256Hash
-import org.bitcoinj.params.EvoNetParams
-import org.bitcoinj.params.PalinkaDevNetParams
+import org.bitcoinj.core.*
+import org.bitcoinj.params.*
 import org.dashevo.dapiclient.model.DocumentQuery
 import org.dashevo.dapiclient.provider.DAPIAddress
 import org.dashevo.dapiclient.provider.ListDAPIAddressProvider
@@ -24,11 +21,12 @@ import java.io.File
 
 class DapiGrpcClientTest {
 
-    val PARAMS = PalinkaDevNetParams.get();
-    val masternodeList = PalinkaDevNetParams.get().defaultMasternodeList.toList()
-    val dpnsContractId = Base58.decode("H9AxLAvgxEpq72pDg41nsqR3bY5Cv9hTT6yZdKzY3PaE") //DPNS contract
-    val dashPayContractId = Base58.decode("Fxf3w1rsUvRxW8WsVnQcUNgtgVn8w47BwZtQPAsJWkkH")
-    val identityIdString = "4jjwnJr2ufABdWqKKonoA9uBCRXF8jQ929KnHKEgZRJu"
+    val PARAMS = TestNet3Params.get()
+    val CONTEXT = Context.getOrCreate(PARAMS)
+    val masternodeList = PARAMS.defaultMasternodeList.toList()
+    val dpnsContractId = Base58.decode("36ez8VqoDbR8NkdXwFaf9Tp8ukBdQxN8eYs8JNMnUyKz") //DPNS contract
+    val dashPayContractId = Base58.decode("matk8g1YRpzZskecRfpG5GCAgRmWCGJfjUemrsLkFDg")
+    val identityIdString = "JDKr8qB2D2qwH1GE8Nbm2f6fqd9HLDeBG8gdsMWZu46W"
     val stateRepository = StateRepositoryMock()
 
 
@@ -67,7 +65,11 @@ class DapiGrpcClientTest {
         val client = DapiClient(nodes)
         try {
             //devnet-mobile, devnet genesis block
-            val block1 = PARAMS.devNetGenesisBlock
+            val block1 = when (PARAMS) {
+                is DevNetParams -> (PARAMS as DevNetParams).devNetGenesisBlock
+                is TestNet3Params -> Block(PARAMS, Utils.HEX.decode("020000002cbcf83b62913d56f605c0e581a48872839428c92e5eb76cd7ad94bcaf0b00007f11dcce14075520e8f74cc4ddf092b4e26ebd23b8d8665a1ae5bfc41b58fdb4c3a95e53ffff0f1ef37a00000101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff0a510101062f503253482fffffffff0100743ba40b0000002321020131f38ae3eb0714531dbfc3f45491b4131d1211e3777177636388bb5a74c3e4ac00000000"))
+                else -> fail("Invalid network")
+            }
             val block1data = block1.bitcoinSerialize().toHexString()
             val block1Hash = block1.hashAsString
 
@@ -76,7 +78,7 @@ class DapiGrpcClientTest {
             assertEquals(block1data, blockFromHeight!!.toHexString())
 
             // hash the block header and compare to the actual value
-            val hash = Sha256Hash.wrapReversed(X11.x11Digest(blockFromHeight.take(80).toByteArray()))
+            val hash = Sha256Hash.wrapReversed(X11.x11Digest(blockFromHeight!!.take(80).toByteArray()))
             assertEquals(block1Hash, hash.toString())
 
             // request the block from the hash and compare to the block obtained from the height
@@ -109,7 +111,7 @@ class DapiGrpcClientTest {
     }
 
     @Test
-    fun getDashPayContract() {
+    fun getDashPayContractTest() {
 
         val client = DapiClient(masternodeList)
         try {
