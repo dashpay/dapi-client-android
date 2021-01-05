@@ -315,7 +315,10 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
                     if (status == null) {
                         // throw exception and try another node
                         throw StatusRuntimeException(Status.UNAVAILABLE)
-                    } else if (status.errors.isNotEmpty()) {
+                    } else if (status.errors.isNotEmpty() &&
+                            !status.errors.contains("pre-release") &&
+                            !status.errors.contains("Warning")) {
+                        // see github.com/dashpay/dash/src/warnings.cpp
                         logger.warn("${grpcMasternode.address} has this error state ${status.errors}")
                         // throw exception and try another node
                         throw StatusRuntimeException(Status.UNAVAILABLE)
