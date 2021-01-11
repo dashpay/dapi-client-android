@@ -353,7 +353,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
                 if (!retryCallback.shouldRetry(grpcMethod, e)) {
                     return null
                 }
-                grpcRequest(grpcMethod, retryAttemptsLeft - 1, dapiAddress, statusCheck, retryCallback)
+                return grpcRequest(grpcMethod, retryAttemptsLeft - 1, dapiAddress, statusCheck, retryCallback)
             }
         } finally {
             grpcMasternode.shutdown()
