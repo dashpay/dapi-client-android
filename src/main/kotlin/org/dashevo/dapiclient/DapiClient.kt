@@ -392,13 +392,48 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
     }
     // jRPC methods
     /**
-     *
+     * Get the best block hash (tip of blockchain)
      * @return String?
      */
     fun getBestBlockHash(): String? {
         logger.info("getBestBlockHash(): jRPC")
         val service = getJRPCService()
         val response = service.getBestBlockHash(JsonRPCRequest("getBestBlockHash", mapOf())).execute()
+        if (response.isSuccessful) {
+            return response.body()!!.result
+        } else {
+            throw Exception("jRPC error code: ${response.code()})")
+        }
+    }
+
+    /**
+     * Get the block hash at the specified height
+     * @return String?
+     */
+    fun getBlockHash(height: Int): String? {
+        logger.info("getBlockHash(): jRPC")
+        val service = getJRPCService()
+        val parameters = mapOf("height" to height)
+        val response = service.getBlockHash(JsonRPCRequest("getBlockHash", parameters)).execute()
+        if (response.isSuccessful) {
+            return response.body()!!.result
+        } else {
+            throw Exception("jRPC error code: ${response.code()})")
+        }
+    }
+
+    /**
+     * Get the masternode list difference between two block hashes
+     * @return String?
+     */
+    fun getMnListDiff(baseBlockHash: String, blockHash: String): Map<String, Any>? {
+        logger.info("getMnListDiff(): jRPC")
+        val service = getJRPCService()
+        val parameters = mapOf(
+                "baseBlockHash" to baseBlockHash,
+                "blockHash" to blockHash
+        )
+        val response = service.getMnListDiff(JsonRPCRequest("getMnListDiff", parameters)).execute()
         if (response.isSuccessful) {
             return response.body()!!.result
         } else {
