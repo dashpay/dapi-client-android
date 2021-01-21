@@ -13,12 +13,30 @@ import retrofit2.http.POST
 
 interface DapiService {
 
+    /**
+     * Get the best block hash (block hash of the tip of the blockchain)
+     * @param body JsonRPCRequest<Map<String, String>> This should be an empty map
+     * @return Call<JsonRPCResponse<String>>
+     */
     @POST("/")
     fun getBestBlockHash(@Body body: JsonRPCRequest<Map<String, String>>) : Call<JsonRPCResponse<String>>
 
+    /**
+     * Get the block hash for the specified height
+     * @param body JsonRPCRequest<Map<String, Int>>
+     *      "height" = height for blockhash
+     * @return Call<JsonRPCResponse<String>>
+     */
     @POST ("/")
-    fun getBlockHash(@Body body: JsonRPCRequest<Map<String, String>>): Call<JsonRPCResponse<String>>
+    fun getBlockHash(@Body body: JsonRPCRequest<Map<String, Int>>): Call<JsonRPCResponse<String>>
 
+    /**
+     * Get the masternode list difference between two block hashes
+     * @param body JsonRPCRequest<Map<String, String>>
+     *     "baseBlockHash" = hash
+     *     "blockHash" = hash
+     * @return Call<JsonRPCResponse<Map<String, Any>>>
+     */
     @POST ("/")
     fun getMnListDiff(@Body body: JsonRPCRequest<Map<String, String>>) : Call<JsonRPCResponse<Map<String, Any>>>
 
