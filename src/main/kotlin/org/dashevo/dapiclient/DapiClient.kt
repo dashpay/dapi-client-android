@@ -21,13 +21,13 @@ import org.dash.platform.dapi.v0.PlatformOuterClass
 import org.dashevo.dapiclient.grpc.*
 import org.dashevo.dapiclient.model.DocumentQuery
 import org.dashevo.dapiclient.model.GetStatusResponse
+import org.dashevo.dapiclient.model.GrpcExceptionInfo
 import org.dashevo.dapiclient.model.JsonRPCRequest
 import org.dashevo.dapiclient.provider.*
 import org.dashevo.dapiclient.rest.DapiService
 import org.dashevo.dpp.statetransition.StateTransition
 import org.dashevo.dpp.toBase58
 import org.dashevo.dpp.toHexString
-import org.json.JSONObject
 import org.slf4j.LoggerFactory
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -48,6 +48,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
     private var initializedJRPC = false
     private var timeOut: Long = DEFAULT_TIMEOUT
     private var retries: Int = DEFAULT_RETRY_COUNT
+    private val defaultShouldRetryCallback = DefaultShouldRetryCallback()
 
     // Constants
     companion object {
@@ -200,10 +201,10 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      * and pagination
      * @return List<ByteArray>? a list of documents matching the provided parameters
      */
-    fun getDocuments(contractId: ByteArray, type: String, documentQuery: DocumentQuery): List<ByteArray>? {
+    fun getDocuments(contractId: ByteArray, type: String, documentQuery: DocumentQuery, retryCallback: GrpcMethodShouldRetryCallback = DefaultGetDocumentsRetryCallback() ): List<ByteArray>? {
         logger.info("getDocuments(${contractId.toBase58()}, $type, ${documentQuery.toJSON()})")
         val method = GetDocumentsMethod(contractId, type, documentQuery)
-        val response = grpcRequest(method) as PlatformOuterClass.GetDocumentsResponse
+        val response = grpcRequest(method, retryCallback = retryCallback) as PlatformOuterClass.GetDocumentsResponse
 
         return response.documentsList.map { it.toByteArray() }
     }
@@ -296,7 +297,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
                             retriesLeft: Int = USE_DEFAULT_RETRY_COUNT,
                             dapiAddress: DAPIAddress? = null,
                             statusCheck: Boolean = false,
-                            retryCallback: GrpcMethodShouldRetryCallback = DefaultShouldRetryCallback()): Any? {
+                            retryCallback: GrpcMethodShouldRetryCallback = defaultShouldRetryCallback): Any? {
         logger.info("grpcRequest ${grpcMethod.javaClass.simpleName}")
         val retryAttemptsLeft = if (retriesLeft == USE_DEFAULT_RETRY_COUNT) {
             retries // set in constructor
@@ -341,7 +342,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
             return if (e.status.code == Status.NOT_FOUND.code) {
                 null
             } else {
-                throwExceptionOnError(e)
+                throwExceptionOnError(e, retryCallback)
 
                 address.markAsBanned()
                 if (retryAttemptsLeft == 0) {
@@ -363,13 +364,18 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         return response
     }
 
-    private fun throwExceptionOnError(e: StatusRuntimeException) {
-        if (e.status.code != Status.DEADLINE_EXCEEDED.code
-                && e.status.code != Status.UNAVAILABLE.code
-                && e.status.code != Status.INTERNAL.code
-                && e.status.code != Status.CANCELLED.code
-                && e.status.code != Status.UNKNOWN.code) {
-            throw e
+    private fun throwExceptionOnError(e: StatusRuntimeException, retryCallback: GrpcMethodShouldRetryCallback? = null) {
+        if (retryCallback != null) {
+            if(retryCallback.shouldThrowException(e))
+                throw e
+        } else {
+            if (e.status.code != Status.DEADLINE_EXCEEDED.code
+                    && e.status.code != Status.UNAVAILABLE.code
+                    && e.status.code != Status.INTERNAL.code
+                    && e.status.code != Status.CANCELLED.code
+                    && e.status.code != Status.UNKNOWN.code) {
+                throw e
+            }
         }
     }
 
@@ -461,13 +467,9 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         return dapiService
     }
 
-    fun processException(exception: StatusRuntimeException) {
-        val x = JSONObject(exception.trailers.toString())
-        when (exception.status.code) {
-            Status.Code.INVALID_ARGUMENT -> {
-
-            }
-        }
+    fun extractException(exception: StatusRuntimeException): List<Map<String, Any>> {
+        val trailers = GrpcExceptionInfo(exception)
+        return trailers.errors
     }
 
     fun setSimplifiedMasternodeListManager(simplifiedMasternodeListManager: SimplifiedMasternodeListManager, defaultList: List<String>) {

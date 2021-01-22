@@ -7,12 +7,15 @@
 
 package org.dashevo.dapiclient.grpc
 
+import io.grpc.Status
 import io.grpc.StatusRuntimeException
 import org.dashevo.dapiclient.DapiClient
 import org.dashevo.dapiclient.model.DocumentQuery
+import org.dashevo.dapiclient.model.GrpcExceptionInfo
 import org.dashevo.dpp.StateRepository
 import org.dashevo.dpp.contract.DataContractCreateTransition
 import org.dashevo.dpp.document.DocumentsBatchTransition
+import org.dashevo.dpp.identifier.Identifier
 import org.dashevo.dpp.identity.IdentityCreateTransition
 import org.slf4j.LoggerFactory
 
@@ -25,14 +28,58 @@ import org.slf4j.LoggerFactory
  */
 interface GrpcMethodShouldRetryCallback {
     fun shouldRetry(grpcMethod: GrpcMethod, e: StatusRuntimeException): Boolean
+    fun shouldThrowException(e: StatusRuntimeException): Boolean
 }
 
 /**
  * shouldRetry always returns true
  */
-class DefaultShouldRetryCallback : GrpcMethodShouldRetryCallback {
+open class DefaultShouldRetryCallback : GrpcMethodShouldRetryCallback {
     override fun shouldRetry(grpcMethod: GrpcMethod, e: StatusRuntimeException): Boolean {
         return true
+    }
+
+    override fun shouldThrowException(e: StatusRuntimeException): Boolean {
+        return e.status.code != Status.DEADLINE_EXCEEDED.code
+                && e.status.code != Status.UNAVAILABLE.code
+                && e.status.code != Status.INTERNAL.code
+                && e.status.code != Status.CANCELLED.code
+                && e.status.code != Status.UNKNOWN.code
+    }
+}
+
+open class DefaultGetDocumentsRetryCallback() : DefaultShouldRetryCallback() {
+    override fun shouldRetry(grpcMethod: GrpcMethod, e: StatusRuntimeException): Boolean {
+        if (e.status == Status.INVALID_ARGUMENT) {
+            // do not retry any invalid argument errors
+            return false
+        }
+        return true
+    }
+}
+
+open class DefaultGetDocumentsWithContractIdRetryCallback(protected open val retryContractIds: List<Identifier>) : DefaultShouldRetryCallback() {
+    companion object {
+        private val logger = LoggerFactory.getLogger(DefaultGetDocumentsWithContractIdRetryCallback::class.java.name)
+    }
+    override fun shouldRetry(grpcMethod: GrpcMethod, e: StatusRuntimeException): Boolean {
+        grpcMethod as GetDocumentsMethod
+        if (e.status.code == Status.INVALID_ARGUMENT.code) {
+            val error = GrpcExceptionInfo(e).errors[0]
+            if (error.containsKey("name") && error["name"] == "InvalidContractIdError") {
+                if (retryContractIds.contains(Identifier.from(grpcMethod.request.dataContractId.toByteArray()))) {
+                    logger.info("Retry ${grpcMethod.javaClass.simpleName} ${e.status.code} since error was InvalidContractIdError")
+                    return true
+                }
+            }
+            // throw exception for any other invalid argument errors
+            throw e
+        }
+        return true
+    }
+
+    override fun shouldThrowException(e: StatusRuntimeException): Boolean {
+        return super.shouldThrowException(e) && e.status.code != Status.INVALID_ARGUMENT.code
     }
 }
 
@@ -49,7 +96,7 @@ class DefaultShouldRetryCallback : GrpcMethodShouldRetryCallback {
  */
 class DefaultBroadcastRetryCallback(private val stateRepository: StateRepository,
                                     private val updatedAt: Long = -1,
-                                    private val retryCount: Int = DEFAULT_RETRY_COUNT): GrpcMethodShouldRetryCallback {
+                                    private val retryCount: Int = DEFAULT_RETRY_COUNT) : DefaultShouldRetryCallback() {
     companion object {
         private val logger = LoggerFactory.getLogger(DefaultBroadcastRetryCallback::class.java.name)
         const val DEFAULT_RETRY_COUNT = 5
