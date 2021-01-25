@@ -62,6 +62,7 @@ open class DefaultGetDocumentsWithContractIdRetryCallback(protected open val ret
     companion object {
         private val logger = LoggerFactory.getLogger(DefaultGetDocumentsWithContractIdRetryCallback::class.java.name)
     }
+
     override fun shouldRetry(grpcMethod: GrpcMethod, e: StatusRuntimeException): Boolean {
         grpcMethod as GetDocumentsMethod
         if (e.status.code == Status.INVALID_ARGUMENT.code) {
@@ -94,9 +95,10 @@ open class DefaultGetDocumentsWithContractIdRetryCallback(protected open val ret
  * @property updatedAt Long If a document was updated in the broadcast, this will be used to identify the updated document.
  * @constructor
  */
-class DefaultBroadcastRetryCallback(private val stateRepository: StateRepository,
+open class DefaultBroadcastRetryCallback(private val stateRepository: StateRepository,
                                     private val updatedAt: Long = -1,
-                                    private val retryCount: Int = DEFAULT_RETRY_COUNT) : DefaultShouldRetryCallback() {
+                                    private val retryCount: Int = DEFAULT_RETRY_COUNT,
+                                    protected open val retryContractIds: List<Identifier> = listOf()) : DefaultShouldRetryCallback() {
     companion object {
         private val logger = LoggerFactory.getLogger(DefaultBroadcastRetryCallback::class.java.name)
         const val DEFAULT_RETRY_COUNT = 5
@@ -105,6 +107,11 @@ class DefaultBroadcastRetryCallback(private val stateRepository: StateRepository
     override fun shouldRetry(grpcMethod: GrpcMethod, e: StatusRuntimeException): Boolean {
         logger.info("Determining if we should retry ${grpcMethod.javaClass.simpleName} ${e.status.code}")
         if (grpcMethod is BroadcastStateTransitionMethod) {
+            if (e.status.code == Status.INVALID_ARGUMENT.code && grpcMethod.stateTransition !is DocumentsBatchTransition) {
+                // only retry if it is DocumentsBatchTransition
+                // throw exception for any other invalid argument errors
+                throw e
+            }
             when (grpcMethod.stateTransition) {
                 is DataContractCreateTransition -> {
                     val contactCreateTransition = grpcMethod.stateTransition as DataContractCreateTransition
@@ -135,7 +142,7 @@ class DefaultBroadcastRetryCallback(private val stateRepository: StateRepository
                     logger.info("identity not found, need to retry: ${identityCreateTransition.identityId}")
                 }
                 is DocumentsBatchTransition -> {
-                    val documentTransitions = (grpcMethod.stateTransition as DocumentsBatchTransition).transitions
+                    val documentTransitions = grpcMethod.stateTransition.transitions
 
                     // this only works for document create transitions, assume the first is similar to all the
                     // rest using the same contract and document type
@@ -143,6 +150,17 @@ class DefaultBroadcastRetryCallback(private val stateRepository: StateRepository
                     val dataContractId = documentTransitions[0].dataContractId
                     val type = documentTransitions[0].type
 
+                    if (e.status.code == Status.INVALID_ARGUMENT.code) {
+                        val error = GrpcExceptionInfo(e).errors[0]
+                        if (error.containsKey("name") && error["name"] == "InvalidContractIdError") {
+                            if (retryContractIds.contains(Identifier.from(dataContractId))) {
+                                logger.info("Retry ${grpcMethod.javaClass.simpleName} ${e.status.code} since error was InvalidContractIdError")
+                                return true
+                            }
+                        }
+                        // throw exception for any other invalid argument errors
+                        throw e
+                    }
 
                     val queryBuilder = DocumentQuery.builder()
                             .where(listOf("\$id", "in", idList))
@@ -169,6 +187,10 @@ class DefaultBroadcastRetryCallback(private val stateRepository: StateRepository
             }
         }
         return true
+    }
+
+    override fun shouldThrowException(e: StatusRuntimeException): Boolean {
+        return super.shouldThrowException(e) && e.status.code != Status.INVALID_ARGUMENT.code
     }
 
     private fun delay(milliseconds: Long = 3000) {
