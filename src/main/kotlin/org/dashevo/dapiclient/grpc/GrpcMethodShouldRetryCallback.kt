@@ -17,6 +17,7 @@ import org.dashevo.dpp.contract.DataContractCreateTransition
 import org.dashevo.dpp.document.DocumentsBatchTransition
 import org.dashevo.dpp.identifier.Identifier
 import org.dashevo.dpp.identity.IdentityCreateTransition
+import org.dashevo.dpp.statetransition.StateTransition
 import org.slf4j.LoggerFactory
 
 /**
@@ -36,7 +37,17 @@ interface GrpcMethodShouldRetryCallback {
  */
 open class DefaultShouldRetryCallback : GrpcMethodShouldRetryCallback {
     override fun shouldRetry(grpcMethod: GrpcMethod, e: StatusRuntimeException): Boolean {
-        return true
+        return when (e.status.code) {
+            Status.INVALID_ARGUMENT.code  -> {
+                // do not retry any invalid argument errors
+                false
+            }
+            Status.NOT_FOUND.code -> {
+                // do not retry any not found errors
+                false
+            }
+            else -> true
+        }
     }
 
     override fun shouldThrowException(e: StatusRuntimeException): Boolean {
@@ -48,17 +59,12 @@ open class DefaultShouldRetryCallback : GrpcMethodShouldRetryCallback {
     }
 }
 
-open class DefaultGetDocumentsRetryCallback() : DefaultShouldRetryCallback() {
-    override fun shouldRetry(grpcMethod: GrpcMethod, e: StatusRuntimeException): Boolean {
-        if (e.status == Status.INVALID_ARGUMENT) {
-            // do not retry any invalid argument errors
-            return false
-        }
-        return true
-    }
-}
+open class DefaultGetDocumentsRetryCallback() : DefaultShouldRetryCallback()
 
-open class DefaultGetDocumentsWithContractIdRetryCallback(protected open val retryContractIds: List<Identifier>) : DefaultShouldRetryCallback() {
+open class DefaultGetIdentityRetryCallback : DefaultShouldRetryCallback()
+
+open class DefaultGetDocumentsWithContractIdRetryCallback(protected open val retryContractIds: List<Identifier>) :
+    DefaultShouldRetryCallback() {
     companion object {
         private val logger = LoggerFactory.getLogger(DefaultGetDocumentsWithContractIdRetryCallback::class.java.name)
     }
@@ -76,7 +82,57 @@ open class DefaultGetDocumentsWithContractIdRetryCallback(protected open val ret
             // throw exception for any other invalid argument errors
             throw e
         }
-        return true
+        return super.shouldRetry(grpcMethod, e)
+    }
+
+    override fun shouldThrowException(e: StatusRuntimeException): Boolean {
+        return super.shouldThrowException(e) && e.status.code != Status.INVALID_ARGUMENT.code
+    }
+}
+
+open class DefaultGetIdentityWithIdentitiesRetryCallback(protected open val retryIdentityIds: List<Identifier> = listOf()) :
+    DefaultShouldRetryCallback() {
+    companion object {
+        private val logger = LoggerFactory.getLogger(DefaultGetIdentityWithIdentitiesRetryCallback::class.java.name)
+    }
+
+    override fun shouldRetry(grpcMethod: GrpcMethod, e: StatusRuntimeException): Boolean {
+        grpcMethod as GetIdentityMethod
+        if (e.status.code == Status.NOT_FOUND.code) {
+            if (retryIdentityIds.contains(Identifier.from(grpcMethod.request.id.toByteArray()))) {
+                logger.info("Retry $grpcMethod): ${e.status.code} since error was NOT_FOUND")
+                return true
+            }
+        }
+        return super.shouldRetry(grpcMethod, e)
+    }
+
+    override fun shouldThrowException(e: StatusRuntimeException): Boolean {
+        return super.shouldThrowException(e) && e.status.code != Status.INVALID_ARGUMENT.code
+    }
+}
+
+
+open class DefaultGetContractRetryCallback : DefaultShouldRetryCallback()
+
+open class DefaultGetDataContractWithContractIdRetryCallback(protected open val retryContractIds: List<Identifier> = listOf()) :
+    DefaultShouldRetryCallback() {
+    companion object {
+        private val logger = LoggerFactory.getLogger(DefaultGetDataContractWithContractIdRetryCallback::class.java.name)
+    }
+
+    override fun shouldRetry(grpcMethod: GrpcMethod, e: StatusRuntimeException): Boolean {
+        grpcMethod as GetContractMethod
+        if (e.status.code == Status.NOT_FOUND.code) {
+            if (retryContractIds.contains(Identifier.from(grpcMethod.request.id.toByteArray()))) {
+                logger.info("Retry $grpcMethod: ${e.status.code} since error was contract not found")
+                return true
+            }
+
+            // throw exception for any other invalid argument errors
+            throw e
+        }
+        return super.shouldRetry(grpcMethod, e)
     }
 
     override fun shouldThrowException(e: StatusRuntimeException): Boolean {
@@ -91,14 +147,22 @@ open class DefaultGetDocumentsWithContractIdRetryCallback(protected open val ret
  * For [DocumentsBatchTransition]s that contain more than one document, they are all assumed to be
  * the same type as the first transition.
  *
+ * Retry functionality
+ *    INTERNAL, DEADLINE exceptions: check to see if the document, identity or contract exists
+ *    INVALID_ARGUMENT: Invalid contract or identity. Check if the contract or identity is part of the
+ *      retry Id lists which should be verified through other calls to getDocuments, getIdentity, getContract
+ *
  * @property stateRepository StateRepository Used for DAPI calls to fetch documents, identities and contracts
  * @property updatedAt Long If a document was updated in the broadcast, this will be used to identify the updated document.
  * @constructor
  */
-open class DefaultBroadcastRetryCallback(private val stateRepository: StateRepository,
-                                    private val updatedAt: Long = -1,
-                                    private val retryCount: Int = DEFAULT_RETRY_COUNT,
-                                    protected open val retryContractIds: List<Identifier> = listOf()) : DefaultShouldRetryCallback() {
+open class DefaultBroadcastRetryCallback(
+    private val stateRepository: StateRepository,
+    private val updatedAt: Long = -1,
+    private val retryCount: Int = DEFAULT_RETRY_COUNT,
+    protected open val retryContractIds: List<Identifier> = listOf(),
+    protected open val retryIdentityIds: List<Identifier> = listOf()
+) : DefaultShouldRetryCallback() {
     companion object {
         private val logger = LoggerFactory.getLogger(DefaultBroadcastRetryCallback::class.java.name)
         const val DEFAULT_RETRY_COUNT = 5
@@ -107,11 +171,19 @@ open class DefaultBroadcastRetryCallback(private val stateRepository: StateRepos
     override fun shouldRetry(grpcMethod: GrpcMethod, e: StatusRuntimeException): Boolean {
         logger.info("Determining if we should retry ${grpcMethod.javaClass.simpleName} ${e.status.code}")
         if (grpcMethod is BroadcastStateTransitionMethod) {
-            if (e.status.code == Status.INVALID_ARGUMENT.code && grpcMethod.stateTransition !is DocumentsBatchTransition) {
+            if (e.status.code == Status.INVALID_ARGUMENT.code) {
                 // only retry if it is DocumentsBatchTransition
                 // throw exception for any other invalid argument errors
-                throw e
+                val errorInfo = GrpcExceptionInfo(e)
+                if (errorInfo.errors[0].containsKey("IdentityNotFoundError")) {
+                    if(shouldRetryIdentityNotFound(grpcMethod.stateTransition))
+                        return true
+                }
+                // there is another case that needs to be handled below for DocumentsBatchTransition
+                if (grpcMethod.stateTransition !is DocumentsBatchTransition)
+                    throw e
             }
+
             when (grpcMethod.stateTransition) {
                 is DataContractCreateTransition -> {
                     val contactCreateTransition = grpcMethod.stateTransition as DataContractCreateTransition
@@ -163,7 +235,7 @@ open class DefaultBroadcastRetryCallback(private val stateRepository: StateRepos
                     }
 
                     val queryBuilder = DocumentQuery.builder()
-                            .where(listOf("\$id", "in", idList))
+                        .where(listOf("\$id", "in", idList))
 
                     if (updatedAt != -1L) {
                         queryBuilder.where(listOf("updatedAt", "==", updatedAt))
@@ -187,6 +259,21 @@ open class DefaultBroadcastRetryCallback(private val stateRepository: StateRepos
             }
         }
         return true
+    }
+
+    private fun shouldRetryIdentityNotFound(stateTransition: StateTransition): Boolean {
+        return when (stateTransition) {
+            is DocumentsBatchTransition -> {
+                retryIdentityIds.contains(stateTransition.ownerId)
+            }
+            is DataContractCreateTransition -> {
+                retryIdentityIds.contains(stateTransition.dataContract.ownerId)
+            }
+            is IdentityCreateTransition -> {
+                retryIdentityIds.contains(stateTransition.identityId)
+            }
+            else -> false
+        }
     }
 
     override fun shouldThrowException(e: StatusRuntimeException): Boolean {

@@ -108,10 +108,10 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      * @param id String
      * @return ByteString?
      */
-    fun getIdentity(id: ByteArray): ByteString? {
+    fun getIdentity(id: ByteArray, retryCallback: GrpcMethodShouldRetryCallback = defaultShouldRetryCallback): ByteString? {
         logger.info("getIdentity(${id.toBase58()})")
         val method = GetIdentityMethod(id)
-        val response = grpcRequest(method) as PlatformOuterClass.GetIdentityResponse?
+        val response = grpcRequest(method, retryCallback = retryCallback) as PlatformOuterClass.GetIdentityResponse?
         return response?.identity
     }
 
@@ -186,10 +186,10 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      * @param contractId String
      * @return ByteString? The contract bytes or null if not found
      */
-    fun getDataContract(contractId: ByteArray): ByteString? {
+    fun getDataContract(contractId: ByteArray, retryCallback: GrpcMethodShouldRetryCallback = defaultShouldRetryCallback): ByteString? {
         logger.info("getDataContract(${contractId.toBase58()})")
         val method = GetContractMethod(contractId)
-        val response = grpcRequest(method) as PlatformOuterClass.GetDataContractResponse?
+        val response = grpcRequest(method, retryCallback = retryCallback) as PlatformOuterClass.GetDataContractResponse?
         return response?.dataContract
     }
 
@@ -241,8 +241,9 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         }
     }
 
-    private fun logException(e: StatusRuntimeException, masternode: DAPIGrpcMasternode) {
+    private fun logException(e: StatusRuntimeException, masternode: DAPIGrpcMasternode, method: GrpcMethod) {
         logger.warn("RPC failed with ${masternode.address.host}: ${e.status}: ${e.trailers}")
+        logger.warn("  for $method")
     }
 
     fun getBlockByHeight(height: Int): ByteArray? {
@@ -338,23 +339,25 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
             }
             grpcMethod.execute(grpcMasternode)
         } catch (e: StatusRuntimeException) {
-            logException(e, grpcMasternode)
+            logException(e, grpcMasternode, grpcMethod)
             return if (e.status.code == Status.NOT_FOUND.code) {
-                null
-            } else {
-                throwExceptionOnError(e, retryCallback)
-
-                address.markAsBanned()
-                if (retryAttemptsLeft == 0) {
-                    throw MaxRetriesReachedException(e)
-                }
-                if (!dapiAddressListProvider.hasLiveAddresses()) {
-                    throw NoAvailableAddressesForRetryException(e)
-                }
                 if (!retryCallback.shouldRetry(grpcMethod, e)) {
                     return null
                 }
-                return grpcRequest(grpcMethod, retryAttemptsLeft - 1, dapiAddress, statusCheck, retryCallback)
+
+                // only ban the node if the retry == true, meaning that the node
+                // returned an untrustworthy NOT_FOUND result
+                banMasternode(address, retryAttemptsLeft, e)
+
+                grpcRequest(grpcMethod, retryAttemptsLeft - 1, dapiAddress, statusCheck, retryCallback)
+            } else {
+                throwExceptionOnError(e, retryCallback)
+
+                banMasternode(address, retryAttemptsLeft, e)
+                if (!retryCallback.shouldRetry(grpcMethod, e)) {
+                    return null
+                }
+                grpcRequest(grpcMethod, retryAttemptsLeft - 1, dapiAddress, statusCheck, retryCallback)
             }
         } finally {
             grpcMasternode.shutdown()
@@ -362,6 +365,21 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
 
         address.markAsLive()
         return response
+    }
+
+    private fun banMasternode(
+        address: DAPIAddress,
+        retryAttemptsLeft: Int,
+        e: StatusRuntimeException
+    ) {
+        logger.info("banning masternode $address")
+        address.markAsBanned()
+        if (retryAttemptsLeft == 0) {
+            throw MaxRetriesReachedException(e)
+        }
+        if (!dapiAddressListProvider.hasLiveAddresses()) {
+            throw NoAvailableAddressesForRetryException(e)
+        }
     }
 
     private fun throwExceptionOnError(e: StatusRuntimeException, retryCallback: GrpcMethodShouldRetryCallback? = null) {
