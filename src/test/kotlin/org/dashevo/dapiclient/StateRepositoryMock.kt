@@ -1,6 +1,7 @@
 package org.dashevo.dapiclient
 
 import org.bitcoinj.core.Block
+import org.bitcoinj.core.Transaction
 import org.dashevo.dpp.StateRepository
 import org.dashevo.dpp.contract.DataContract
 import org.dashevo.dpp.document.Document
@@ -24,7 +25,7 @@ class StateRepositoryMock : StateRepository {
         TODO("Not yet implemented")
     }
 
-    override fun fetchTransaction(id: String): Int {
+    override fun fetchTransaction(id: String): Transaction {
         TODO("Not yet implemented")
     }
 
@@ -48,7 +49,7 @@ class StateRepositoryMock : StateRepository {
         TODO("Not yet implemented")
     }
 
-    override fun checkAssetLockTransactionOutPointExists(outPointBuffer: ByteArray) {
+    override fun checkAssetLockTransactionOutPointExists(outPointBuffer: ByteArray): Boolean {
         TODO("Not yet implemented")
     }
 
