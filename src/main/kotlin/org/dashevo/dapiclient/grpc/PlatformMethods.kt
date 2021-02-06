@@ -11,8 +11,9 @@ import org.dash.platform.dapi.v0.PlatformOuterClass
 import org.dashevo.dapiclient.model.DocumentQuery
 import org.dashevo.dapiclient.provider.DAPIGrpcMasternode
 import org.dashevo.dpp.statetransition.StateTransition
+import org.dashevo.dpp.toBase58
 
-class GetDocumentsMethod(contractId: ByteArray, type: String, documentQuery: DocumentQuery) : GrpcMethod {
+class GetDocumentsMethod(private val contractId: ByteArray, private val type: String, private val documentQuery: DocumentQuery) : GrpcMethod {
 
     val request: PlatformOuterClass.GetDocumentsRequest
 
@@ -35,60 +36,84 @@ class GetDocumentsMethod(contractId: ByteArray, type: String, documentQuery: Doc
     override fun execute(masternode: DAPIGrpcMasternode): Any {
         return masternode.platform.getDocuments(request)
     }
+
+    override fun toString(): String {
+        return "getDocument(${contractId.toBase58()}, $type, ${documentQuery.toJSON()})"
+    }
 }
 
-class GetContractMethod(dataContractId: ByteArray) : GrpcMethod {
+class GetContractMethod(val dataContractId: ByteArray) : GrpcMethod {
 
-    val request = PlatformOuterClass.GetDataContractRequest.newBuilder()
+    val request: PlatformOuterClass.GetDataContractRequest = PlatformOuterClass.GetDataContractRequest.newBuilder()
             .setId(ByteString.copyFrom(dataContractId))
             .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
         return masternode.platform.getDataContract(request)
     }
+
+    override fun toString(): String {
+        return "getContract(${dataContractId.toBase58()})"
+    }
 }
 
-class GetIdentityMethod(identityId: ByteArray) : GrpcMethod {
+class GetIdentityMethod(private val identityId: ByteArray) : GrpcMethod {
 
-    val request = PlatformOuterClass.GetIdentityRequest.newBuilder()
+    val request: PlatformOuterClass.GetIdentityRequest = PlatformOuterClass.GetIdentityRequest.newBuilder()
             .setId(ByteString.copyFrom(identityId))
             .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
         return masternode.platform.getIdentity(request)
     }
+
+    override fun toString(): String {
+        return "getIdentity(${identityId.toBase58()})"
+    }
 }
 
-class GetIdentitiesByPublicKeyHashes(pubKeyHashes: List<ByteArray>) : GrpcMethod {
+class GetIdentitiesByPublicKeyHashes(private val pubKeyHashes: List<ByteArray>) : GrpcMethod {
 
-    val request = PlatformOuterClass.GetIdentitiesByPublicKeyHashesRequest.newBuilder()
+    val request: PlatformOuterClass.GetIdentitiesByPublicKeyHashesRequest = PlatformOuterClass.GetIdentitiesByPublicKeyHashesRequest.newBuilder()
                 .addAllPublicKeyHashes(pubKeyHashes.map { ByteString.copyFrom(it)})
                 .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
         return masternode.platform.getIdentitiesByPublicKeyHashes(request) as PlatformOuterClass.GetIdentitiesByPublicKeyHashesResponse
     }
+
+    override fun toString(): String {
+        return "getIdentitiesByPublicKeyHashes($pubKeyHashes)"
+    }
 }
 
 
-class GetIdentityIdsByPublicKeyHashes(pubKeyHashes: List<ByteArray>) : GrpcMethod {
+class GetIdentityIdsByPublicKeyHashes(private val pubKeyHashes: List<ByteArray>) : GrpcMethod {
 
-    val request = PlatformOuterClass.GetIdentityIdsByPublicKeyHashesRequest.newBuilder()
+    val request: PlatformOuterClass.GetIdentityIdsByPublicKeyHashesRequest = PlatformOuterClass.GetIdentityIdsByPublicKeyHashesRequest.newBuilder()
             .addAllPublicKeyHashes(pubKeyHashes.map { ByteString.copyFrom(it)})
             .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
         return masternode.platform.getIdentityIdsByPublicKeyHashes(request)
     }
+
+    override fun toString(): String {
+        return "getIdentityIdsByPublicKeyHashes($pubKeyHashes)"
+    }
 }
 
 class BroadcastStateTransitionMethod(val stateTransition: StateTransition) : GrpcMethod {
 
-    val request = PlatformOuterClass.BroadcastStateTransitionRequest.newBuilder()
+    val request: PlatformOuterClass.BroadcastStateTransitionRequest = PlatformOuterClass.BroadcastStateTransitionRequest.newBuilder()
             .setStateTransition(ByteString.copyFrom(stateTransition.toBuffer()))
             .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
         return masternode.platformWithoutDeadline.broadcastStateTransition(request)
+    }
+
+    override fun toString(): String {
+        return "broadcastStateTransition(${stateTransition.toJSON()})"
     }
 }

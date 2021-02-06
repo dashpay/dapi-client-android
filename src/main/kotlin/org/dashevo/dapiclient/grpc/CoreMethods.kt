@@ -14,11 +14,23 @@ class GetBlockMethod(private val getBlockRequest: CoreOuterClass.GetBlockRequest
     override fun execute(masternode: DAPIGrpcMasternode): Any {
         return masternode.core.getBlock(getBlockRequest)
     }
+
+    override fun toString(): String {
+        return "getBlock(" + if (getBlockRequest.hash != null) {
+            getBlockRequest.hash
+        } else {
+            getBlockRequest.height
+        }
+    }
 }
 
 class GetStatusMethod : GrpcMethod {
     override fun execute(masternode: DAPIGrpcMasternode): Any {
         return masternode.core.getStatus(CoreOuterClass.GetStatusRequest.newBuilder().build())
+    }
+
+    override fun toString(): String {
+        return "getStatus"
     }
 }
 
@@ -35,7 +47,7 @@ class BroadcastTransactionMethod(txBytes: ByteString, allowHighFees: Boolean, by
     }
 }
 
-class GetTransactionMethod(txHex: String) : GrpcMethod {
+class GetTransactionMethod(private val txHex: String) : GrpcMethod {
     val request = CoreOuterClass.GetTransactionRequest.newBuilder()
             .setId(txHex)
             .build()
@@ -43,14 +55,22 @@ class GetTransactionMethod(txHex: String) : GrpcMethod {
     override fun execute(masternode: DAPIGrpcMasternode): Any {
         return masternode.core.getTransaction(request)
     }
+
+    override fun toString(): String {
+        return "getTransaction($txHex)"
+    }
 }
 
-class GetEstimatedTransactionFeeMethod(blocks: Int) : GrpcMethod {
+class GetEstimatedTransactionFeeMethod(private val blocks: Int) : GrpcMethod {
     val request = CoreOuterClass.GetEstimatedTransactionFeeRequest.newBuilder()
             .setBlocks(blocks)
             .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
         return masternode.core.getEstimatedTransactionFee(request)
+    }
+
+    override fun toString(): String {
+        return "getEstimatedTransactionFeeMethod($blocks)"
     }
 }
