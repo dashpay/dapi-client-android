@@ -7,6 +7,7 @@
 package org.dashevo.dapiclient.grpc
 
 import com.google.protobuf.ByteString
+import org.bitcoinj.core.Sha256Hash
 import org.dash.platform.dapi.v0.PlatformOuterClass
 import org.dashevo.dapiclient.model.DocumentQuery
 import org.dashevo.dapiclient.provider.DAPIGrpcMasternode
@@ -114,6 +115,6 @@ class BroadcastStateTransitionMethod(val stateTransition: StateTransition) : Grp
     }
 
     override fun toString(): String {
-        return "broadcastStateTransition(${stateTransition.toJSON()})"
+        return "broadcastStateTransition(${stateTransition.toJSON()}): sha256: ${Sha256Hash.of(stateTransition.toBuffer())}"
     }
 }
