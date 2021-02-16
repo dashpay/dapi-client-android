@@ -17,6 +17,7 @@ import org.dashevo.dpp.contract.DataContractCreateTransition
 import org.dashevo.dpp.document.DocumentsBatchTransition
 import org.dashevo.dpp.identifier.Identifier
 import org.dashevo.dpp.identity.IdentityCreateTransition
+import org.dashevo.dpp.identity.IdentityTopupTransition
 import org.dashevo.dpp.statetransition.StateTransition
 import org.slf4j.LoggerFactory
 
@@ -161,7 +162,8 @@ open class DefaultBroadcastRetryCallback(
     private val updatedAt: Long = -1,
     private val retryCount: Int = DEFAULT_RETRY_COUNT,
     protected open val retryContractIds: List<Identifier> = listOf(),
-    protected open val retryIdentityIds: List<Identifier> = listOf()
+    protected open val retryIdentityIds: List<Identifier> = listOf(),
+    protected open val retryDocumentIds: List<Identifier> = listOf()
 ) : DefaultShouldRetryCallback() {
     companion object {
         private val logger = LoggerFactory.getLogger(DefaultBroadcastRetryCallback::class.java.name)
@@ -172,12 +174,28 @@ open class DefaultBroadcastRetryCallback(
         logger.info("Determining if we should retry ${grpcMethod.javaClass.simpleName} ${e.status.code}")
         if (grpcMethod is BroadcastStateTransitionMethod) {
             if (e.status.code == Status.INVALID_ARGUMENT.code) {
+                logger.info("--> INVALID_ARGUMENT")
                 // only retry if it is DocumentsBatchTransition
                 // throw exception for any other invalid argument errors
                 val errorInfo = GrpcExceptionInfo(e)
-                if (errorInfo.errors[0].containsKey("IdentityNotFoundError")) {
-                    if(shouldRetryIdentityNotFound(grpcMethod.stateTransition))
-                        return true
+                if (errorInfo.errors.isNotEmpty() && errorInfo.errors[0].containsKey("name")) {
+                    logger.info("-->${errorInfo.errors[0]["name"]} was the invalid argument type")
+                    when (errorInfo.errors[0]["name"]) {
+                        "IdentityNotFoundError" -> {
+                            if (shouldRetryIdentityNotFound(grpcMethod.stateTransition)) {
+                                logger.info("---retry based on IdentityNotFoundError")
+                                return true
+                            } else {
+                                logger.info("---will not retry based on IdentityNotFoundError")
+                            }
+                        }
+                        "DataTriggerConditionError" -> {
+                            if (errorInfo.errors[0]["message"] == "preorderDocument was not found") {
+                               if (shouldRetryDocumentNotFound(grpcMethod.stateTransition))
+                                   return true
+                            }
+                        }
+                    }
                 }
                 // there is another case that needs to be handled below for DocumentsBatchTransition
                 if (grpcMethod.stateTransition !is DocumentsBatchTransition)
@@ -264,16 +282,29 @@ open class DefaultBroadcastRetryCallback(
     private fun shouldRetryIdentityNotFound(stateTransition: StateTransition): Boolean {
         return when (stateTransition) {
             is DocumentsBatchTransition -> {
+                logger.info ("---looking for ${stateTransition.ownerId} in $retryIdentityIds")
                 retryIdentityIds.contains(stateTransition.ownerId)
             }
             is DataContractCreateTransition -> {
+                logger.info ("---looking for ${stateTransition.dataContract.ownerId} in $retryIdentityIds")
                 retryIdentityIds.contains(stateTransition.dataContract.ownerId)
             }
-            is IdentityCreateTransition -> {
+            is IdentityTopupTransition -> {
+                logger.info ("---looking for ${stateTransition.identityId} in $retryIdentityIds")
                 retryIdentityIds.contains(stateTransition.identityId)
             }
             else -> false
         }
+    }
+
+    private fun shouldRetryDocumentNotFound(stateTransition: StateTransition): Boolean {
+        if (stateTransition is DocumentsBatchTransition) {
+            logger.info ("---looking for ${stateTransition.transitions[0].id} in $retryIdentityIds")
+            if (retryDocumentIds.contains(stateTransition.transitions[0].id)) {
+                return true
+            }
+        }
+        return false
     }
 
     override fun shouldThrowException(e: StatusRuntimeException): Boolean {
