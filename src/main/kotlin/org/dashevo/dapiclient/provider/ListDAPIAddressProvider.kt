@@ -61,4 +61,12 @@ class ListDAPIAddressProvider(var addresses: List<DAPIAddress>, val baseBanTime:
     override fun addBannedAddress(address: String) {
         alwaysBanAddresses.add(address)
     }
+
+    override fun getStatistics(): String {
+        val currentlyBanned = addresses.filter { it.isBanned }
+        return "  ---always banned addresses: $alwaysBanAddresses\n" +
+                "total masternodes          : ${addresses.size}\n" +
+                "total banned nodes         : ${currentlyBanned.size }\n" +
+                "                             $currentlyBanned"
+    }
 }

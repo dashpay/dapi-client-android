@@ -50,6 +50,13 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
     private var retries: Int = DEFAULT_RETRY_COUNT
     private val defaultShouldRetryCallback = DefaultShouldRetryCallback()
 
+    // used for reporting
+    private var successfulCalls:Long = 0
+    private var failedCalls: Long = 0
+    private var totalCalls: Long = 0
+    private var retriedCalls: Long = 0
+    private val stopWatch = Stopwatch.createStarted()
+
     // Constants
     companion object {
         private val logger = LoggerFactory.getLogger(DapiClient::class.java.name)
@@ -300,6 +307,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
                             statusCheck: Boolean = false,
                             retryCallback: GrpcMethodShouldRetryCallback = defaultShouldRetryCallback): Any? {
         logger.info("grpcRequest(${grpcMethod.javaClass.simpleName}, $retriesLeft, $dapiAddress, $statusCheck) for $grpcMethod")
+        totalCalls++
         val retryAttemptsLeft = if (retriesLeft == USE_DEFAULT_RETRY_COUNT) {
             retries // set in constructor
         } else {
@@ -328,17 +336,21 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
                 } catch (e: StatusRuntimeException) {
                     throwExceptionOnError(e)
 
-                    address.markAsBanned()
+                    banMasternode(grpcMasternode.address, retriesLeft, e)
                     //try another node
-                    return grpcRequest(grpcMethod, retriesLeft, dapiAddress, statusCheck, retryCallback)
+                    retriedCalls++
+                    return grpcRequest(grpcMethod, retriesLeft, null, statusCheck, retryCallback)
                 } catch (e: MaxRetriesReachedException) {
-                    address.markAsBanned()
+                    banMasternode(grpcMasternode.address, retriesLeft, e.cause as StatusRuntimeException)
                     //try another node
-                    return grpcRequest(grpcMethod, retriesLeft, dapiAddress, statusCheck, retryCallback)
+                    retriedCalls++
+                    return grpcRequest(grpcMethod, retriesLeft, null, statusCheck, retryCallback)
                 }
             }
             logger.info("grpcMethod: executing method after statuscheck($statusCheck) for $grpcMethod")
-            grpcMethod.execute(grpcMasternode)
+            val response = grpcMethod.execute(grpcMasternode)
+            successfulCalls++
+            response
         } catch (e: StatusRuntimeException) {
             logException(e, grpcMasternode, grpcMethod)
             return if (e.status.code == Status.NOT_FOUND.code) {
@@ -349,7 +361,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
                 // only ban the node if the retry == true, meaning that the node
                 // returned an untrustworthy NOT_FOUND result
                 banMasternode(address, retryAttemptsLeft, e)
-
+                retriedCalls++
                 grpcRequest(grpcMethod, retryAttemptsLeft - 1, dapiAddress, statusCheck, retryCallback)
             } else {
                 throwExceptionOnError(e, retryCallback)
@@ -358,6 +370,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
                 if (!retryCallback.shouldRetry(grpcMethod, e)) {
                     return null
                 }
+                retriedCalls++
                 grpcRequest(grpcMethod, retryAttemptsLeft - 1, dapiAddress, statusCheck, retryCallback)
             }
         } finally {
@@ -374,6 +387,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         e: StatusRuntimeException
     ) {
         logger.info("banning masternode $address")
+        failedCalls++
         address.markAsBanned()
         if (retryAttemptsLeft == 0) {
             throw MaxRetriesReachedException(e)
@@ -496,5 +510,18 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
                 simplifiedMasternodeListManager,
                 ListDAPIAddressProvider.fromList(defaultList, BASE_BAN_TIME)
         )
+    }
+
+    fun reportNetworkStatus() : String {
+        return "DapiClient Network Status\n" +
+                "---DAPI Call Statistics ($stopWatch)\n" +
+                "   successful: $successfulCalls\n" +
+                "   retried   : $retriedCalls\n" +
+                "   failure   : $failedCalls\n" +
+                "   total     : $totalCalls (calls per minute: ${totalCalls.toDouble()/stopWatch.elapsed(TimeUnit.MINUTES).toDouble()}\n" +
+                "   retried % : ${retriedCalls.toDouble()/successfulCalls.toDouble()*100}%\n" +
+                "   success % : ${successfulCalls.toDouble()/totalCalls.toDouble()*100}%\n" +
+                "---Masternode Information\n" + dapiAddressListProvider.getStatistics()
+
     }
 }
