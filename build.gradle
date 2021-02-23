@@ -24,7 +24,7 @@ allprojects {
 }
 
 group 'org.dashevo'
-version '0.17-SNAPSHOT'
+version '0.18-SNAPSHOT'
 
 apply plugin: 'java'
 apply plugin: 'kotlin'
@@ -61,7 +61,7 @@ protobuf {
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 
-    implementation 'org.dashevo:dpp:0.17-SNAPSHOT'
+    implementation 'org.dashevo:dpp:0.18-SNAPSHOT'
     implementation "org.dashj:dashj-core:$dashj_version"
     implementation 'com.squareup.retrofit2:retrofit:2.4.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.4.0'
