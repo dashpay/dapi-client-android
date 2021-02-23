@@ -201,7 +201,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      * and pagination
      * @return List<ByteArray>? a list of documents matching the provided parameters
      */
-    fun getDocuments(contractId: ByteArray, type: String, documentQuery: DocumentQuery, retryCallback: GrpcMethodShouldRetryCallback = DefaultGetDocumentsRetryCallback() ): List<ByteArray>? {
+    fun getDocuments(contractId: ByteArray, type: String, documentQuery: DocumentQuery, retryCallback: GrpcMethodShouldRetryCallback = DefaultGetDocumentsRetryCallback() ): List<ByteArray> {
         logger.info("getDocuments(${contractId.toBase58()}, $type, ${documentQuery.toJSON()})")
         val method = GetDocumentsMethod(contractId, type, documentQuery)
         val response = grpcRequest(method, retryCallback = retryCallback) as PlatformOuterClass.GetDocumentsResponse
