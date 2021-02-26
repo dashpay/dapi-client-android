@@ -9,6 +9,18 @@ service Platform {
   rpc getDocuments (GetDocumentsRequest) returns (GetDocumentsResponse);
   rpc getIdentitiesByPublicKeyHashes (GetIdentitiesByPublicKeyHashesRequest) returns (GetIdentitiesByPublicKeyHashesResponse);
   rpc getIdentityIdsByPublicKeyHashes (GetIdentityIdsByPublicKeyHashesRequest) returns (GetIdentityIdsByPublicKeyHashesResponse);
+  rpc waitForStateTransitionResult (WaitForStateTransitionResultRequest) returns (WaitForStateTransitionResultResponse);
+}
+
+message Proof {
+  bytes root_tree_proof = 1;
+  bytes store_tree_proof = 2;
+}
+
+message StateTransitionBroadcastError {
+  uint32 code = 1;
+  string message = 2;
+  bytes data = 3;
 }
 
 message BroadcastStateTransitionRequest {
@@ -21,18 +33,22 @@ message BroadcastStateTransitionResponse {
 
 message GetIdentityRequest {
   bytes id = 1;
+  bool prove = 2;
 }
 
 message GetIdentityResponse {
   bytes identity = 1;
+  Proof proof = 2;
 }
 
-message GetDataContractRequest {
+ message GetDataContractRequest {
   bytes id = 1;
+  bool prove = 2;
 }
 
 message GetDataContractResponse {
   bytes data_contract = 1;
+  Proof proof = 2;
 }
 
 message GetDocumentsRequest {
@@ -48,24 +64,43 @@ message GetDocumentsRequest {
     uint32 start_after = 6;
     uint32 start_at = 7;
   }
+
+  bool prove = 8;
 }
 
 message GetDocumentsResponse {
   repeated bytes documents = 1;
+  Proof proof = 2;
 }
 
 message GetIdentitiesByPublicKeyHashesRequest {
   repeated bytes public_key_hashes = 1;
+  bool prove = 2;
 }
 
 message GetIdentitiesByPublicKeyHashesResponse {
   repeated bytes identities = 1;
+  Proof proof = 2;
 }
 
 message GetIdentityIdsByPublicKeyHashesRequest {
   repeated bytes public_key_hashes = 1;
+  bool prove = 2;
 }
 
 message GetIdentityIdsByPublicKeyHashesResponse {
   repeated bytes identity_ids = 1;
+  Proof proof = 2;
+}
+
+message WaitForStateTransitionResultRequest {
+  bytes state_transition_hash = 1;
+  bool prove = 2;
+}
+
+message WaitForStateTransitionResultResponse {
+  oneof responses {
+    StateTransitionBroadcastError error = 1;
+    Proof proof = 2;
+  }
 }
