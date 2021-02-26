@@ -41,9 +41,11 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider) {
     private lateinit var retrofit: Retrofit
     private lateinit var dapiService: DapiService
     private val debugOkHttpClient: OkHttpClient
+    private val debugJrpc = true
     private var initializedJRPC = false
     private var timeOut: Long = DEFAULT_TIMEOUT
     private var retries: Int = DEFAULT_RETRY_COUNT
+    private var waitForNodes: Int = DEFAULT_WAIT_FOR_NODES
     private val defaultShouldRetryCallback = DefaultShouldRetryCallback()
 
     // used for reporting
@@ -88,11 +90,11 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider) {
                 .build()
     }
 
-    constructor(masternodeAddress: String, diffMasternodeEachCall: Boolean = true) :
-            this(listOf(masternodeAddress), diffMasternodeEachCall)
+    constructor(masternodeAddress: String) :
+            this(listOf(masternodeAddress))
 
-    constructor(addresses: List<String>, diffMasternodeEachCall: Boolean = true) :
-            this(ListDAPIAddressProvider.fromList(addresses, BASE_BAN_TIME), diffMasternodeEachCall)
+    constructor(addresses: List<String>) :
+            this(ListDAPIAddressProvider.fromList(addresses, BASE_BAN_TIME))
     /* Platform gRPC methods */
 
     /**
@@ -577,7 +579,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider) {
     // Internal Methods
 
     private fun getJRPCService(): DapiService {
-        if (diffMasternodeEachCall && initializedJRPC)
+        if (initializedJRPC)
             return dapiService
 
         val mnIP = dapiAddressListProvider.getLiveAddress().host

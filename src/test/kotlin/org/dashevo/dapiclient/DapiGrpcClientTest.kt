@@ -34,7 +34,7 @@ class DapiGrpcClientTest {
     fun getStatusOfInvalidNodeTest() {
         val watch = Stopwatch.createStarted()
         val list = ListDAPIAddressProvider(listOf("211.30.243.83").map { DAPIAddress(it) }, 0)
-        val client = DapiClient(list, 3000, 0)
+        val client = DapiClient(list, 3000, 0, 3)
         try {
             client.getStatus(DAPIAddress("211.30.243.82"), 0)
             fail<Nothing>("The node queried should not exist")
@@ -132,7 +132,7 @@ class DapiGrpcClientTest {
     @Test
     fun getNonExistantContract() {
 
-        val client = DapiClient(masternodeList.toList(), true)
+        val client = DapiClient(masternodeList.toList())
         val contractId = Base58.decode("88w8Xqn25HwJhjodrHW133aXhjuTsTv9ozQaYpSHACE3")
         try {
             val contractBytes = client.getDataContract(contractId)
@@ -177,7 +177,7 @@ class DapiGrpcClientTest {
     fun getIdentityTest() {
         val id = Base58.decode(identityIdString)
         val badId = Base58.decode(identityIdString.replace("4", "3"))
-        val client = DapiClient(masternodeList, false)
+        val client = DapiClient(masternodeList)
         val identityBytes = client.getIdentity(id)
         val badIdentityBytes = client.getIdentity(badId)
         assertEquals(null, badIdentityBytes)
@@ -203,7 +203,7 @@ class DapiGrpcClientTest {
     @Test
     fun getIdentityFromBadPubKeyBytes() {
         val key = ECKey()
-        val client = DapiClient(masternodeList, false)
+        val client = DapiClient(masternodeList)
 
         val identity = client.getIdentityByFirstPublicKey(key.pubKeyHash)
         assertEquals(null, identity)
