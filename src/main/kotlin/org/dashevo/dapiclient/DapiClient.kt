@@ -16,27 +16,23 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import org.bitcoinj.evolution.SimplifiedMasternodeListManager
 import org.dash.platform.dapi.v0.CoreOuterClass
-import java.util.concurrent.TimeUnit
 import org.dash.platform.dapi.v0.PlatformOuterClass
 import org.dashevo.dapiclient.grpc.*
-import org.dashevo.dapiclient.model.DocumentQuery
-import org.dashevo.dapiclient.model.GetStatusResponse
-import org.dashevo.dapiclient.model.GrpcExceptionInfo
-import org.dashevo.dapiclient.model.JsonRPCRequest
+import org.dashevo.dapiclient.model.*
 import org.dashevo.dapiclient.provider.*
 import org.dashevo.dapiclient.rest.DapiService
 import org.dashevo.dpp.statetransition.StateTransition
+import org.dashevo.dpp.statetransition.StateTransitionIdentitySigned
 import org.dashevo.dpp.toBase58
 import org.dashevo.dpp.toHexString
 import org.slf4j.LoggerFactory
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.*
+import java.util.concurrent.*
 
 
-class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
-                 val diffMasternodeEachCall: Boolean = true,
-                 val debug: Boolean = false) {
+class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider) {
 
     // gRPC properties
     var lastUsedAddress: DAPIAddress? = null
@@ -70,12 +66,14 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         const val DEFAULT_RETRY_COUNT = 10
         const val USE_DEFAULT_RETRY_COUNT = -1
         const val DEFAULT_TIMEOUT = 5000L  //normally a timeout is 5 seconds longer than this
+        const val DEFAULT_WAIT_FOR_NODES = 5
     }
 
-    constructor(dapiAddressListProvider: DAPIAddressListProvider, timeOut: Long, retries: Int)
-            : this(dapiAddressListProvider, true, true) {
-        this.timeOut = timeOut;
-        this.retries = retries;
+    constructor(dapiAddressListProvider: DAPIAddressListProvider, timeOut: Long, retries: Int, waitForNodes: Int)
+            : this(dapiAddressListProvider) {
+        this.timeOut = timeOut
+        this.retries = retries
+        this.waitForNodes = waitForNodes
     }
 
     init {
@@ -109,6 +107,102 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         val method = BroadcastStateTransitionMethod(stateTransition)
         grpcRequest(method, statusCheck = statusCheck, retryCallback = retryCallback)
     }
+
+    fun broadcastStateTransitionInternal(stateTransition: StateTransition,
+                                         statusCheck: Boolean = true,
+                                         retryCallback: GrpcMethodShouldRetryCallback = DefaultShouldRetryCallback())
+    : BroadcastStateTransitionMethod {
+        logger.info("broadcastStateTransition(${stateTransition.toJSON()})")
+        val method = BroadcastStateTransitionMethod(stateTransition)
+        grpcRequest(method, statusCheck = statusCheck, retryCallback = retryCallback)
+        return method
+    }
+
+    /**
+     * Wait for state transition result
+     * @param hash
+     * @param prove
+     */
+    fun waitForStateTransitionResult(hash: ByteArray, prove: Boolean): WaitForStateTransitionResult {
+        val method = WaitForStateTransitionResultMethod(hash, prove)
+        logger.info(method.toString())
+        val result = grpcRequest(method) as PlatformOuterClass.WaitForStateTransitionResultResponse
+
+        return if (result.hasError())
+            WaitForStateTransitionResult(StateTransitionBroadcastException(result.error))
+        else WaitForStateTransitionResult(Proof(result.proof))
+    }
+
+    val threadPoolService = Executors.newCachedThreadPool()
+
+    inner class WaitForStateSubmittionCallable(val signedStateTransition: StateTransitionIdentitySigned, val prove: Boolean) :
+        Callable<WaitForStateTransitionResult> {
+        override fun call(): WaitForStateTransitionResult {
+            return waitForStateTransitionResult(signedStateTransition.hashOnce(), prove)
+        }
+    }
+
+    fun broadcastStateTransitionAndWait(signedStateTransition: StateTransitionIdentitySigned,
+                                        retriesLeft: Int = USE_DEFAULT_RETRY_COUNT,
+                                        statusCheck: Boolean = true,
+                                        retryCallback: BroadcastShouldRetryCallback = DefaultBroadcastRetryCallback()) {
+
+        val retryAttemptsLeft = if (retriesLeft == USE_DEFAULT_RETRY_COUNT) {
+            retries // set in constructor
+        } else {
+            retriesLeft // if called recursively
+        }
+
+        val futuresList = arrayListOf<Future<WaitForStateTransitionResult>>()
+
+        val futureWithProof = threadPoolService.submit(WaitForStateSubmittionCallable(signedStateTransition, true))
+        futuresList.add(futureWithProof)
+
+        for (i in 0 until waitForNodes - 1)
+            futuresList.add(threadPoolService.submit(WaitForStateSubmittionCallable(signedStateTransition, false)))
+
+
+
+        var broadcast: BroadcastStateTransitionMethod? = null
+        try {
+            broadcastStateTransitionInternal(signedStateTransition, statusCheck)
+        } catch (e: StatusRuntimeException) {
+            //should we retry
+            futuresList.forEach { it.cancel(true) }
+            if(!retryCallback.shouldRetry(broadcast!!, e)) {
+                //what should we do
+                throw e
+            }
+            broadcastStateTransitionAndWait(signedStateTransition, retryAttemptsLeft - 1, statusCheck, retryCallback)
+        }
+
+        for (future in futuresList)
+            future.get(80, TimeUnit.SECONDS)
+
+        val waitForResult = futureWithProof.get()
+
+        val successRate = futuresList.count { it.get().isSuccess() }.toDouble() / futuresList.size
+
+        when {
+            successRate > 0.51 -> logger.info("broadcastStateTransition: success ($successRate): ${waitForResult.proof}")
+            waitForResult.isError() -> {
+                logger.info("broadcastStateTransition: failure: ${waitForResult.error}")
+                if(!retryCallback.shouldRetry(broadcast!!, waitForResult.error!!)) {
+                    throw waitForResult.error
+                }
+                broadcastStateTransitionAndWait(signedStateTransition, retryAttemptsLeft - 1, statusCheck, retryCallback)
+            }
+            successRate <= 0.50 -> {
+                Thread.sleep(3000)
+                // what do we do here?
+                if(!retryCallback.shouldRetry(broadcast!!, waitForResult.error!!)) {
+                    throw waitForResult.error
+                }
+                //call wait functions only, not sure if this will work
+            }
+        }
+    }
+
 
     /**
      * Fetch the identity by id
@@ -493,7 +587,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         retrofit = Retrofit.Builder()
                 .addConverterFactory(GsonConverterFactory.create())
                 .baseUrl("http://$mnIP:$DEFAULT_JRPC_PORT/")
-                .client(if (debug) debugOkHttpClient else OkHttpClient())
+                .client(if (debugJrpc) debugOkHttpClient else OkHttpClient())
                 .build()
         dapiService = retrofit.create(DapiService::class.java)
 
