@@ -32,7 +32,11 @@ import java.util.*
 import java.util.concurrent.*
 
 
-class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider) {
+class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
+                 private var timeOut: Long = DEFAULT_TIMEOUT,
+                 private var retries: Int = DEFAULT_RETRY_COUNT,
+                 private var banBaseTime: Int = DEFAULT_BASE_BAN_TIME,
+                 private var waitForNodes: Int = DEFAULT_WAIT_FOR_NODES) {
 
     // gRPC properties
     var lastUsedAddress: DAPIAddress? = null
@@ -43,9 +47,6 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider) {
     private val debugOkHttpClient: OkHttpClient
     private val debugJrpc = true
     private var initializedJRPC = false
-    private var timeOut: Long = DEFAULT_TIMEOUT
-    private var retries: Int = DEFAULT_RETRY_COUNT
-    private var waitForNodes: Int = DEFAULT_WAIT_FOR_NODES
     private val defaultShouldRetryCallback = DefaultShouldRetryCallback()
 
     // used for reporting
@@ -63,19 +64,12 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider) {
 
         const val BLOCK_HASH_LENGTH = 64 // length of a hex string of a hash
 
-        const val BASE_BAN_TIME = 60 * 1000 // 1 minute
+        const val DEFAULT_BASE_BAN_TIME = 60 * 1000 // 1 minute
 
         const val DEFAULT_RETRY_COUNT = 10
         const val USE_DEFAULT_RETRY_COUNT = -1
         const val DEFAULT_TIMEOUT = 5000L  //normally a timeout is 5 seconds longer than this
         const val DEFAULT_WAIT_FOR_NODES = 5
-    }
-
-    constructor(dapiAddressListProvider: DAPIAddressListProvider, timeOut: Long, retries: Int, waitForNodes: Int)
-            : this(dapiAddressListProvider) {
-        this.timeOut = timeOut
-        this.retries = retries
-        this.waitForNodes = waitForNodes
     }
 
     init {
@@ -88,13 +82,16 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider) {
                 .readTimeout(10, TimeUnit.SECONDS)
                 .writeTimeout(10, TimeUnit.SECONDS)
                 .build()
+
+        if (banBaseTime != DEFAULT_BASE_BAN_TIME)
+            this.dapiAddressListProvider.setBanBaseTime(banBaseTime)
     }
 
-    constructor(masternodeAddress: String) :
-            this(listOf(masternodeAddress))
+    constructor(masternodeAddress: String, timeOut: Long = DEFAULT_TIMEOUT, retries: Int = DEFAULT_RETRY_COUNT, banBaseTime: Int = DEFAULT_BASE_BAN_TIME, waitForNodes: Int = DEFAULT_WAIT_FOR_NODES) :
+            this(listOf(masternodeAddress), timeOut, retries, banBaseTime, waitForNodes)
 
-    constructor(addresses: List<String>) :
-            this(ListDAPIAddressProvider.fromList(addresses, BASE_BAN_TIME))
+    constructor(addresses: List<String>, timeOut: Long = DEFAULT_TIMEOUT, retries: Int = DEFAULT_RETRY_COUNT, banBaseTime: Int = DEFAULT_BASE_BAN_TIME, waitForNodes: Int = DEFAULT_WAIT_FOR_NODES) :
+            this(ListDAPIAddressProvider.fromList(addresses, banBaseTime))
     /* Platform gRPC methods */
 
     /**
@@ -140,7 +137,11 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider) {
     inner class WaitForStateSubmittionCallable(val signedStateTransition: StateTransitionIdentitySigned, val prove: Boolean) :
         Callable<WaitForStateTransitionResult> {
         override fun call(): WaitForStateTransitionResult {
-            return waitForStateTransitionResult(signedStateTransition.hashOnce(), prove)
+            return try {
+                waitForStateTransitionResult(signedStateTransition.hashOnce(), prove)
+            } catch (e: StatusRuntimeException) {
+                WaitForStateTransitionResult(StateTransitionBroadcastException(e.status.code.value(), e.message?:"", ByteArray(0)))
+            }
         }
     }
 
@@ -604,7 +605,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider) {
     fun setSimplifiedMasternodeListManager(simplifiedMasternodeListManager: SimplifiedMasternodeListManager, defaultList: List<String>) {
         dapiAddressListProvider = SimplifiedMasternodeListDAPIAddressProvider(
                 simplifiedMasternodeListManager,
-                ListDAPIAddressProvider.fromList(defaultList, BASE_BAN_TIME)
+                ListDAPIAddressProvider.fromList(defaultList, DEFAULT_BASE_BAN_TIME)
         )
     }
 
