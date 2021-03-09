@@ -444,7 +444,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
                     return grpcRequest(grpcMethod, retriesLeft, null, statusCheck, retryCallback)
                 }
             }
-            logger.info("grpcMethod: executing method after statuscheck($statusCheck) for $grpcMethod")
+            logger.debug("grpcMethod: executing method after statuscheck($statusCheck) for $grpcMethod")
             val response = grpcMethod.execute(grpcMasternode)
             successfulCalls++
             response
