@@ -43,12 +43,12 @@ class DAPIGrpcMasternode(address: DAPIAddress, val timeout: Long) : DAPIMasterno
                 .usePlaintext()
                 .build()
 
-        logger.info("Connecting to GRPC host: ${address.host}:${address.grpcPort} (time: $watch)")
+        logger.debug("Connecting to GRPC host: ${address.host}:${address.grpcPort} (time: $watch)")
     }
 
     fun shutdown() {
         if (!channel.isShutdown) {
-            logger.info("Shutting down: " + channel.shutdown())
+            logger.debug("Shutting down: " + channel.shutdown())
             channel.shutdown().awaitTermination(5, TimeUnit.SECONDS)
         }
     }
