@@ -65,6 +65,10 @@ class SimplifiedMasternodeListDAPIAddressProvider(
         alwaysBanAddresses.add(address)
     }
 
+    override fun setBanBaseTime(banBaseTime: Int) {
+        listProvider.setBanBaseTime(banBaseTime)
+    }
+
     override fun getStatistics(): String {
         val currentlyBanned = listProvider.addresses.filter { it.isBanned }
         return "  ---always banned addresses: $alwaysBanAddresses\n" +

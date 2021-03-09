@@ -10,7 +10,7 @@ import java.util.*
 import kotlin.math.exp
 import kotlin.math.floor
 
-class ListDAPIAddressProvider(var addresses: List<DAPIAddress>, val baseBanTime: Int): DAPIAddressListProvider {
+class ListDAPIAddressProvider(var addresses: List<DAPIAddress>, var baseBanTime: Int): DAPIAddressListProvider {
     private val random = Random()
     companion object {
         fun fromList(addresses: List<String>, baseBanTime: Int): ListDAPIAddressProvider {
@@ -60,6 +60,10 @@ class ListDAPIAddressProvider(var addresses: List<DAPIAddress>, val baseBanTime:
 
     override fun addBannedAddress(address: String) {
         alwaysBanAddresses.add(address)
+    }
+
+    override fun setBanBaseTime(banBaseTime: Int) {
+        this.baseBanTime = banBaseTime
     }
 
     override fun getStatistics(): String {
