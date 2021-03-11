@@ -101,17 +101,17 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
      * @param statusCheck Whether to call getStatus on a node before broadcastStateTransition to avoid usign a bad node
      * @param retryCallback Determines if the broadcast shoudl be tried again after a failure
      */
-    fun broadcastStateTransition(stateTransition: StateTransition, statusCheck: Boolean = true, retryCallback: GrpcMethodShouldRetryCallback = DefaultShouldRetryCallback()) {
+    fun broadcastStateTransition(stateTransition: StateTransition, statusCheck: Boolean = false, retryCallback: GrpcMethodShouldRetryCallback = DefaultShouldRetryCallback()) {
         logger.info("broadcastStateTransition(${stateTransition.toJSON()})")
         val method = BroadcastStateTransitionMethod(stateTransition)
         grpcRequest(method, statusCheck = statusCheck, retryCallback = retryCallback)
     }
 
     fun broadcastStateTransitionInternal(stateTransition: StateTransition,
-                                         statusCheck: Boolean = true,
+                                         statusCheck: Boolean = false,
                                          retryCallback: GrpcMethodShouldRetryCallback = DefaultShouldRetryCallback())
     : BroadcastStateTransitionMethod {
-        logger.info("broadcastStateTransition(${stateTransition.toJSON()})")
+        logger.info("broadcastStateTransitionInternal(${stateTransition.toJSON()})")
         val method = BroadcastStateTransitionMethod(stateTransition)
         grpcRequest(method, statusCheck = statusCheck, retryCallback = retryCallback)
         return method
@@ -147,7 +147,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
 
     fun broadcastStateTransitionAndWait(signedStateTransition: StateTransitionIdentitySigned,
                                         retriesLeft: Int = USE_DEFAULT_RETRY_COUNT,
-                                        statusCheck: Boolean = true,
+                                        statusCheck: Boolean = false,
                                         retryCallback: BroadcastShouldRetryCallback = DefaultBroadcastRetryCallback()) {
 
         val retryAttemptsLeft = if (retriesLeft == USE_DEFAULT_RETRY_COUNT) {
