@@ -168,12 +168,15 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
 
         var broadcast: BroadcastStateTransitionMethod? = null
         try {
-            broadcastStateTransitionInternal(signedStateTransition, statusCheck)
+            broadcast = broadcastStateTransitionInternal(signedStateTransition, statusCheck)
         } catch (e: StatusRuntimeException) {
             //should we retry
+            logger.info("broadcastStateTransition: failure: $e")
+            // cancel all waiting futures
             futuresList.forEach { it.cancel(true) }
             if(!retryCallback.shouldRetry(broadcast!!, e)) {
                 //what should we do
+                logger.info("Will not retry for $e")
                 throw e
             }
             broadcastStateTransitionAndWait(signedStateTransition, retryAttemptsLeft - 1, statusCheck, retryCallback)
@@ -196,6 +199,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
                 broadcastStateTransitionAndWait(signedStateTransition, retryAttemptsLeft - 1, statusCheck, retryCallback)
             }
             successRate <= 0.50 -> {
+                logger.info("broadcastStateTransition: failure($successRate): ${waitForResult.error}")
                 Thread.sleep(3000)
                 // what do we do here?
                 if(!retryCallback.shouldRetry(broadcast!!, waitForResult.error!!)) {
