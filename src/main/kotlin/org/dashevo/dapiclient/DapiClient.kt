@@ -407,7 +407,6 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
                             dapiAddress: DAPIAddress? = null,
                             statusCheck: Boolean = false,
                             retryCallback: GrpcMethodShouldRetryCallback = defaultShouldRetryCallback): Any? {
-        logger.info("grpcRequest(${grpcMethod.javaClass.simpleName}, $retriesLeft, $dapiAddress, $statusCheck) for $grpcMethod")
         totalCalls++
         val retryAttemptsLeft = if (retriesLeft == USE_DEFAULT_RETRY_COUNT) {
             retries // set in constructor
@@ -417,6 +416,8 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         val address = dapiAddress ?: dapiAddressListProvider.getLiveAddress()
         val grpcMasternode = DAPIGrpcMasternode(address, timeOut)
         lastUsedAddress = address
+
+        logger.info("grpcRequest(${grpcMethod.javaClass.simpleName}, $retriesLeft, $dapiAddress, $statusCheck) with ${address.host} for $grpcMethod")
 
         val response: Any = try {
             if (statusCheck) {
