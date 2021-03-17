@@ -134,7 +134,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
 
     val threadPoolService = Executors.newCachedThreadPool()
 
-    inner class WaitForStateSubmittionCallable(val signedStateTransition: StateTransitionIdentitySigned, val prove: Boolean) :
+    inner class WaitForStateSubmissionCallable(val signedStateTransition: StateTransitionIdentitySigned, val prove: Boolean) :
         Callable<WaitForStateTransitionResult> {
         override fun call(): WaitForStateTransitionResult {
             return try {
@@ -158,11 +158,11 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
 
         val futuresList = arrayListOf<Future<WaitForStateTransitionResult>>()
 
-        val futureWithProof = threadPoolService.submit(WaitForStateSubmittionCallable(signedStateTransition, true))
+        val futureWithProof = threadPoolService.submit(WaitForStateSubmissionCallable(signedStateTransition, true))
         futuresList.add(futureWithProof)
 
         for (i in 0 until waitForNodes - 1)
-            futuresList.add(threadPoolService.submit(WaitForStateSubmittionCallable(signedStateTransition, false)))
+            futuresList.add(threadPoolService.submit(WaitForStateSubmissionCallable(signedStateTransition, false)))
 
 
 
