@@ -140,6 +140,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
             return try {
                 waitForStateTransitionResult(signedStateTransition.hashOnce(), prove)
             } catch (e: StatusRuntimeException) {
+                logger.error("waitForStateTransitionResult exception: $e")
                 WaitForStateTransitionResult(StateTransitionBroadcastException(e.status.code.value(), e.message?:"", ByteArray(0)))
             }
         }
