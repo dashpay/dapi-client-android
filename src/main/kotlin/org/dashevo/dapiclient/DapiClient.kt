@@ -509,7 +509,9 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
                     && e.status.code != Status.UNAVAILABLE.code
                     && e.status.code != Status.INTERNAL.code
                     && e.status.code != Status.CANCELLED.code
-                    && e.status.code != Status.UNKNOWN.code) {
+                    && e.status.code != Status.UNKNOWN.code
+                    && e.status.code != Status.UNIMPLEMENTED.code // perhaps we contacted an old node
+            ) {
                 throw e
             }
         }

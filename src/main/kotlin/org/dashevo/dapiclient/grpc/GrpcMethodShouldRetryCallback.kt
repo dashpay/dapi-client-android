@@ -50,6 +50,7 @@ open class DefaultShouldRetryCallback : GrpcMethodShouldRetryCallback {
                 && e.status.code != Status.INTERNAL.code
                 && e.status.code != Status.CANCELLED.code
                 && e.status.code != Status.UNKNOWN.code
+                && e.status.code != Status.UNIMPLEMENTED.code // perhaps we tried an old node
     }
 }
 
