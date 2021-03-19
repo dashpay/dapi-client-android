@@ -62,7 +62,7 @@ open class BroadcastRetryCallback(
     protected open val retryDocumentIds: List<Identifier> = listOf()
 ) : BroadcastShouldRetryCallback {
     companion object {
-        private val logger = LoggerFactory.getLogger(DefaultBroadcastRetryCallback::class.java.name)
+        private val logger = LoggerFactory.getLogger(BroadcastRetryCallback::class.java.name)
         const val DEFAULT_RETRY_COUNT = 5
     }
 
@@ -184,7 +184,7 @@ open class BroadcastRetryCallback(
                 // only retry if it is DocumentsBatchTransition
                 // throw exception for any other invalid argument errors
                 if (firstError.containsKey("name")) {
-                    logger.info("-->${firstError["name"]} was the invalid argument type")
+                    logger.info("-->${firstError["name"]} was the invalid argument type from waitForSTResult")
                     when (firstError["name"]) {
                         "IdentityNotFoundError" -> {
                             if (shouldRetryIdentityNotFound(grpcMethod.stateTransition)) {
@@ -303,7 +303,7 @@ open class BroadcastRetryCallback(
 
     private fun shouldRetryDocumentNotFound(stateTransition: StateTransition): Boolean {
         if (stateTransition is DocumentsBatchTransition) {
-            logger.info ("---looking for ${stateTransition.transitions[0].id} in $retryIdentityIds")
+            logger.info ("---looking for ${stateTransition.transitions[0].id} in $retryDocumentIds")
             if (retryDocumentIds.contains(stateTransition.transitions[0].id)) {
                 return true
             }
