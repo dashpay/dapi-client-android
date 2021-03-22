@@ -140,7 +140,11 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
             return try {
                 waitForStateTransitionResult(signedStateTransition.hashOnce(), prove)
             } catch (e: StatusRuntimeException) {
-                logger.error("waitForStateTransitionResult exception: $e")
+                if (e.status.code == Status.CANCELLED.code) {
+                    logger.error("waitForStateTransitionResult: canceled due to broadcastStateTransition exception")
+                } else {
+                    logger.error("waitForStateTransitionResult exception: $e")
+                }
                 WaitForStateTransitionResult(StateTransitionBroadcastException(e.status.code.value(), e.message?:"", ByteArray(0)))
             }
         }
@@ -353,7 +357,11 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
     }
 
     private fun logException(e: StatusRuntimeException, masternode: DAPIGrpcMasternode, method: GrpcMethod) {
-        logger.warn("RPC failed with ${masternode.address.host}: ${e.status}: ${e.trailers}")
+        if (e.status.code == Status.CANCELLED.code) {
+            logger.warn("RPC failed with ${masternode.address.host}: CANCELLED: ${e.trailers}")
+        } else {
+            logger.warn("RPC failed with ${masternode.address.host}: ${e.status}: ${e.trailers}")
+        }
         logger.warn("  for $method")
     }
 
