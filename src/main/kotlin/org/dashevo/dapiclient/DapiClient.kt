@@ -172,10 +172,12 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
             broadcast = broadcastStateTransitionInternal(signedStateTransition, statusCheck)
         } catch (e: StatusRuntimeException) {
             //should we retry
-            logger.info("broadcastStateTransition: failure: $e")
+            logger.info("broadcastStateTransitionInternal: failure: $e")
             // cancel all waiting futures
+            logger.info("broadcastStateTransitionAndWait: cancel all waiting threads")
             futuresList.forEach { it.cancel(true) }
-            if(!retryCallback.shouldRetry(broadcast!!, e)) {
+            logger.info("broadcastStateTransitionAndWait: determine if we should retry")
+            if(!retryCallback.shouldRetry(BroadcastStateTransitionMethod(signedStateTransition), e)) {
                 //what should we do
                 logger.info("Will not retry for $e")
                 throw e
@@ -191,16 +193,16 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         val successRate = futuresList.count { it.get().isSuccess() }.toDouble() / futuresList.size
 
         when {
-            successRate > 0.51 -> logger.info("broadcastStateTransition: success ($successRate): ${waitForResult.proof}")
+            successRate > 0.51 -> logger.info("broadcastStateTransitionAndWait: success ($successRate): ${waitForResult.proof}")
             waitForResult.isError() -> {
-                logger.info("broadcastStateTransition: failure: ${waitForResult.error}")
+                logger.info("broadcastStateTransitionAndWait: failure: ${waitForResult.error}")
                 if(!retryCallback.shouldRetry(broadcast!!, waitForResult.error!!)) {
                     throw waitForResult.error
                 }
                 broadcastStateTransitionAndWait(signedStateTransition, retryAttemptsLeft - 1, statusCheck, retryCallback)
             }
             successRate <= 0.50 -> {
-                logger.info("broadcastStateTransition: failure($successRate): ${waitForResult.error}")
+                logger.info("broadcastStateTransitionAndWait: failure($successRate): ${waitForResult.error}")
                 Thread.sleep(3000)
                 // what do we do here?
                 if(!retryCallback.shouldRetry(broadcast!!, waitForResult.error!!)) {
