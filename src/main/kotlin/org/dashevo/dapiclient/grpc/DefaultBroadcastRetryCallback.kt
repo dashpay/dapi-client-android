@@ -9,16 +9,20 @@ package org.dashevo.dapiclient.grpc
 
 import io.grpc.Status
 import io.grpc.StatusRuntimeException
+import org.bitcoinj.core.Sha256Hash
 import org.dashevo.dapiclient.model.DocumentQuery
 import org.dashevo.dapiclient.model.GrpcExceptionInfo
 import org.dashevo.dapiclient.model.StateTransitionBroadcastException
 import org.dashevo.dpp.StateRepository
 import org.dashevo.dpp.contract.DataContractCreateTransition
+import org.dashevo.dpp.document.DocumentCreateTransition
 import org.dashevo.dpp.document.DocumentsBatchTransition
 import org.dashevo.dpp.identifier.Identifier
 import org.dashevo.dpp.identity.IdentityCreateTransition
 import org.dashevo.dpp.identity.IdentityTopupTransition
 import org.dashevo.dpp.statetransition.StateTransition
+import org.dashevo.dpp.toBase64
+import org.dashevo.dpp.util.HashUtils
 import org.slf4j.LoggerFactory
 
 interface BroadcastShouldRetryCallback {
@@ -59,7 +63,8 @@ open class BroadcastRetryCallback(
     private val retryCount: Int = DEFAULT_RETRY_COUNT,
     protected open val retryContractIds: List<Identifier> = listOf(),
     protected open val retryIdentityIds: List<Identifier> = listOf(),
-    protected open val retryDocumentIds: List<Identifier> = listOf()
+    protected open val retryDocumentIds: List<Identifier> = listOf(),
+    protected open val retryPreorderSalts: Map<Sha256Hash, Sha256Hash> = hashMapOf()
 ) : BroadcastShouldRetryCallback {
     companion object {
         private val logger = LoggerFactory.getLogger(BroadcastRetryCallback::class.java.name)
@@ -87,7 +92,7 @@ open class BroadcastRetryCallback(
                         }
                         "DataTriggerConditionError" -> {
                             if (errorInfo.errors[0]["message"] == "preorderDocument was not found") {
-                                if (shouldRetryDocumentNotFound(grpcMethod.stateTransition))
+                                if (shouldRetryPreorderNotFound(grpcMethod.stateTransition as DocumentsBatchTransition))
                                     return true
                             }
                         }
@@ -186,6 +191,8 @@ open class BroadcastRetryCallback(
                 if (firstError.containsKey("name")) {
                     logger.info("-->${firstError["name"]} was the invalid argument type from waitForSTResult")
                     when (firstError["name"]) {
+                        // TODO: not sure how to handle these errors
+                        // if multiple nodes return these errors, we have a bigger problem
                         "IdentityNotFoundError" -> {
                             if (shouldRetryIdentityNotFound(grpcMethod.stateTransition)) {
                                 logger.info("---retry based on IdentityNotFoundError")
@@ -196,7 +203,7 @@ open class BroadcastRetryCallback(
                         }
                         "DataTriggerConditionError" -> {
                             if (firstError["message"] == "preorderDocument was not found") {
-                               if (shouldRetryDocumentNotFound(grpcMethod.stateTransition))
+                               if (shouldRetryPreorderNotFound(grpcMethod.stateTransition as DocumentsBatchTransition))
                                    return true
                             }
                         }
@@ -309,6 +316,29 @@ open class BroadcastRetryCallback(
             }
         }
         return false
+    }
+
+    private fun shouldRetryPreorderNotFound(stateTransition: DocumentsBatchTransition): Boolean {
+        if (stateTransition.transitions[0] is DocumentCreateTransition) {
+            val createTransition = stateTransition.transitions[0] as DocumentCreateTransition
+            val preorderSalt = HashUtils.byteArrayFromBase64orByteArray(createTransition.data["preorderSalt"]!!)
+            logger.info("---looking for ${preorderSalt.toBase64()}")
+            if (retryPreorderSalts.containsKey(preorderSalt)) {
+                for (i in 0 until retryCount) {
+                    //how to delay
+                    delay()
+                    val documentsData = stateRepository.fetchDocuments(createTransition.dataContractId,
+                        "preorder", DocumentQuery.builder().where("saltedDomainHash", "==", retryPreorderSalts[preorderSalt]!!.bytes))
+
+                    if (documentsData.isNotEmpty()) {
+                        logger.info("document(s) found. No need to retry: ${preorderSalt.toBase64()}")
+                        return false
+                    }
+                }
+                logger.info("document(s) not found, need to retry: ${preorderSalt.toBase64()}")
+            }
+        }
+        return true
     }
 
     //override fun shouldThrowException(e: StatusRuntimeException): Boolean {

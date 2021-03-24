@@ -197,7 +197,10 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         val successRate = futuresList.count { it.get().isSuccess() }.toDouble() / futuresList.size
 
         when {
-            successRate > 0.51 -> logger.info("broadcastStateTransitionAndWait: success ($successRate): ${waitForResult.proof}")
+            successRate > 0.51 -> {
+                logger.info("broadcastStateTransitionAndWait: success ($successRate): ${waitForResult.proof}")
+                //TODO: do something with the proof here
+            }
             waitForResult.isError() -> {
                 logger.info("broadcastStateTransitionAndWait: failure: ${waitForResult.error}")
                 if(!retryCallback.shouldRetry(broadcast!!, waitForResult.error!!)) {
