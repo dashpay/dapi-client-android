@@ -145,4 +145,8 @@ class DocumentQuery private constructor(var where: List<Any>? = null,
             json["startAfter"] = startAfter
         return json
     }
+
+    fun clone() : DocumentQuery {
+        return DocumentQuery(where, orderBy, limit, startAt, startAfter)
+    }
 }
