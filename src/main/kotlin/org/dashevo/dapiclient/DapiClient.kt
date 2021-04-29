@@ -14,6 +14,7 @@ import io.grpc.Status
 import io.grpc.StatusRuntimeException
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import org.bitcoinj.core.Sha256Hash
 import org.bitcoinj.evolution.SimplifiedMasternodeListManager
 import org.dash.platform.dapi.v0.CoreOuterClass
 import org.dash.platform.dapi.v0.PlatformOuterClass
@@ -336,17 +337,14 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         watch.stop()
 
         return response?.let {
-            val result = GetStatusResponse(it.coreVersion,
-                    it.protocolVersion,
-                    it.blocks,
-                    it.timeOffset,
-                    it.connections,
-                    it.proxy,
-                    it.difficulty,
-                    it.testnet,
-                    it.relayFee,
-                    it.errors,
-                    it.network,
+            val result = GetStatusResponse(
+                    Version(it.version.protocol, it.version.software, it.version.agent),
+                    Time(it.time.now, it.time.offset, it.time.median),
+                    org.dashevo.dapiclient.model.Status.getByCode(it.status.number),
+                    it.syncProgress,
+                    Chain(it.chain.name, it.chain.headersCount, it.chain.blocksCount, Sha256Hash.wrap(it.chain.bestBlockHash.toByteArray()), it.chain.difficulty, it.chain.chainWork.toByteArray(), it.chain.isSynced, it.chain.syncProgress),
+                    Masternode(Masternode.Status.getByCode(it.masternode.status.number), Sha256Hash.wrap(it.masternode.proTxHash.toByteArray()), it.masternode.posePenalty, it.masternode.isSynced, it.masternode.syncProgress),
+                    Network(it.network.peersCount, NetworkFee(it.network.fee.relay, it.network.fee.incremental)),
                     Date().time,
                     address,
                     watch.elapsed(TimeUnit.MILLISECONDS))
@@ -441,11 +439,13 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
                     if (status == null) {
                         // throw exception and try another node
                         throw StatusRuntimeException(Status.UNAVAILABLE)
-                    } else if (status.errors.isNotEmpty() &&
-                            !status.errors.contains("pre-release") &&
-                            !status.errors.contains("Warning")) {
+                    } else if (status.masternode.status == Masternode.Status.ERROR ||
+                            status.masternode.status == Masternode.Status.POSE_BANNED ||
+                            status.masternode.status == Masternode.Status.REMOVED ||
+                            status.masternode.status == Masternode.Status.WAITING_FOR_PROTX ||
+                            status.masternode.status == Masternode.Status.UNKNOWN) {
                         // see github.com/dashpay/dash/src/warnings.cpp
-                        logger.warn("${grpcMasternode.address} has this error state ${status.errors}")
+                        logger.warn("${grpcMasternode.address} has this error state ${status.masternode.status.name}")
                         // throw exception and try another node
                         throw StatusRuntimeException(Status.UNAVAILABLE)
                     }
