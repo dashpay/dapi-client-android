@@ -5,10 +5,8 @@ buildscript {
     ext.kotlin_version = '1.4.10'
     ext.dashj_version = '0.18-SNAPSHOT'
     repositories {
-        jcenter()
         mavenLocal()
         mavenCentral()
-        maven { url 'https://oss.jfrog.org/artifactory/oss-snapshot-local' }
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
@@ -18,7 +16,6 @@ buildscript {
 
 allprojects {
     repositories {
-        jcenter()
         maven { url 'https://jitpack.io' }
     }
 }
