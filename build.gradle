@@ -20,7 +20,7 @@ allprojects {
     }
 }
 
-group 'org.dashevo'
+group 'org.dashj.platform'
 version '0.19-SNAPSHOT'
 
 apply plugin: 'java'
