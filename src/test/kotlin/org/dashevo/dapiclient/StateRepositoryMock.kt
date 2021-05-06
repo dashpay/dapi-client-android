@@ -2,6 +2,7 @@ package org.dashevo.dapiclient
 
 import org.bitcoinj.core.Block
 import org.bitcoinj.core.Transaction
+import org.bitcoinj.quorums.InstantSendLock
 import org.dashevo.dpp.StateRepository
 import org.dashevo.dpp.contract.DataContract
 import org.dashevo.dpp.document.Document
@@ -29,6 +30,14 @@ class StateRepositoryMock : StateRepository {
         TODO("Not yet implemented")
     }
 
+    override fun isAssetLockTransactionOutPointAlreadyUsed(outPointBuffer: ByteArray): Boolean {
+        TODO("Not yet implemented")
+    }
+
+    override fun markAssetLockTransactionOutPointAsUsed(outPointBuffer: ByteArray) {
+        TODO("Not yet implemented")
+    }
+
     override fun removeDocument(contractId: Identifier, type: String, id: Identifier) {
         TODO("Not yet implemented")
     }
@@ -49,11 +58,7 @@ class StateRepositoryMock : StateRepository {
         TODO("Not yet implemented")
     }
 
-    override fun checkAssetLockTransactionOutPointExists(outPointBuffer: ByteArray): Boolean {
-        TODO("Not yet implemented")
-    }
-
-    override fun storeAssetLockTransactionOutPoint(outPointBuffer: ByteArray) {
+    override fun verifyInstantLock(instantLock: InstantSendLock): Boolean {
         TODO("Not yet implemented")
     }
 }
