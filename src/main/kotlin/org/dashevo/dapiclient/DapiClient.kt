@@ -92,7 +92,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
             this(listOf(masternodeAddress), timeOut, retries, banBaseTime, waitForNodes)
 
     constructor(addresses: List<String>, timeOut: Long = DEFAULT_TIMEOUT, retries: Int = DEFAULT_RETRY_COUNT, banBaseTime: Int = DEFAULT_BASE_BAN_TIME, waitForNodes: Int = DEFAULT_WAIT_FOR_NODES) :
-            this(ListDAPIAddressProvider.fromList(addresses, banBaseTime))
+            this(ListDAPIAddressProvider.fromList(addresses, banBaseTime), timeOut, retries, banBaseTime, waitForNodes)
     /* Platform gRPC methods */
 
     /**
