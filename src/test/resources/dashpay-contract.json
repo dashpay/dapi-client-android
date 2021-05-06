@@ -1,7 +1,7 @@
 {
   "protocolVersion": 0,
   "$schema": "https://schema.dash.org/dpp-0-4-0/meta/data-contract",
-  "ownerId": "9hfJ34gQx6fATjaaew29KtiL1yykxuydUSxdxicqknEJ",
+  "ownerId": "hmaLnZxckjTCTTAA8MUCZwb2nsnRjJuBwh12nvBQjgv",
   "documents": {
     "contactInfo": {
       "indices": [
@@ -81,8 +81,7 @@
         "encryptedPublicKey",
         "senderKeyIndex",
         "recipientKeyIndex",
-        "accountReference",
-        "coreHeightCreatedAt"
+        "accountReference"
       ],
       "properties": {
         "recipientKeyIndex": {
@@ -175,5 +174,5 @@
       }
     }
   },
-  "$id": "matk8g1YRpzZskecRfpG5GCAgRmWCGJfjUemrsLkFDg"
+  "$id": "5xajtUq6NCZJdp3z1FbYCdSJ4QaU6krEBAdEPrxQriEY"
 }

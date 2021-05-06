@@ -21,11 +21,11 @@ import java.io.File
 
 class DapiGrpcClientTest {
 
-    val PARAMS = TestNet3Params.get()
+    val PARAMS = PalinkaDevNetParams.get()
     val CONTEXT = Context.getOrCreate(PARAMS)
     val masternodeList = PARAMS.defaultMasternodeList.toList()
-    val dpnsContractId = Base58.decode("36ez8VqoDbR8NkdXwFaf9Tp8ukBdQxN8eYs8JNMnUyKz") //DPNS contract
-    val dashPayContractId = Base58.decode("matk8g1YRpzZskecRfpG5GCAgRmWCGJfjUemrsLkFDg")
+    val dpnsContractId = Base58.decode("CgLcubqzRCvYkHyWKK2bQjqA3P1P8AHVPyJf61G9MRgK") //DPNS contract
+    val dashPayContractId = Base58.decode("5xajtUq6NCZJdp3z1FbYCdSJ4QaU6krEBAdEPrxQriEY")
     val identityIdString = "JDKr8qB2D2qwH1GE8Nbm2f6fqd9HLDeBG8gdsMWZu46W"
     val stateRepository = StateRepositoryMock()
 
