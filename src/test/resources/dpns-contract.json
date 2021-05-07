@@ -1,7 +1,7 @@
 {
   "protocolVersion": 0,
   "$schema": "https://schema.dash.org/dpp-0-4-0/meta/data-contract",
-  "ownerId": "BUydiiD47PaAKSC8eo7tpCbKa6b38VmTA23a5Tapf7AU",
+  "ownerId": "4yaJaaeUU9xG6sonkCHZkcZkhcXGqwf5TcNLw5Nh5LJ4",
   "documents": {
     "preorder": {
       "indices": [{
@@ -115,5 +115,5 @@
       }
     }
   },
-  "$id": "CgLcubqzRCvYkHyWKK2bQjqA3P1P8AHVPyJf61G9MRgK"
+  "$id": "76wgB8KBxLGhtEzn4Hp5zgheyzzpHYvfcWGLs69B2ahq"
 }
