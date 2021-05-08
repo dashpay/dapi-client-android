@@ -68,9 +68,16 @@ class ListDAPIAddressProvider(var addresses: List<DAPIAddress>, var baseBanTime:
 
     override fun getStatistics(): String {
         val currentlyBanned = addresses.filter { it.isBanned }
+        val sb = StringBuffer()
+        currentlyBanned.forEach { sb.append(it.exception) }
         return "  ---always banned addresses: $alwaysBanAddresses\n" +
                 "total masternodes          : ${addresses.size}\n" +
                 "total banned nodes         : ${currentlyBanned.size }\n" +
-                "                             $currentlyBanned"
+                "                             $currentlyBanned\n" +
+                "$sb"
+    }
+
+    override fun getErrorStatistics(): String {
+        return addresses.filter { it.isBanned }.map { it.exception }.toString()
     }
 }

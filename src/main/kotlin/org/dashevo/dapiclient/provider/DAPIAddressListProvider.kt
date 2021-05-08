@@ -13,4 +13,5 @@ interface DAPIAddressListProvider {
     fun setBanBaseTime(banBaseTime: Int)
 
     fun getStatistics(): String
+    fun getErrorStatistics(): String
 }

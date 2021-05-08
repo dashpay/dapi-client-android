@@ -505,6 +505,7 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         logger.info("banning masternode $address")
         failedCalls++
         address.markAsBanned()
+        address.addException(e.status.code)
         if (retryAttemptsLeft == 0) {
             throw MaxRetriesReachedException(e)
         }
@@ -640,6 +641,9 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
                 "   retried % : ${retriedCalls.toDouble()/successfulCalls.toDouble()*100}%\n" +
                 "   success % : ${successfulCalls.toDouble()/totalCalls.toDouble()*100}%\n" +
                 "---Masternode Information\n" + dapiAddressListProvider.getStatistics()
+    }
 
+    fun reportErrorStatus() : String {
+        return dapiAddressListProvider.getErrorStatistics()
     }
 }

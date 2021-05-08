@@ -44,6 +44,7 @@ class DapiGrpcClientTest {
                 val cause = e.cause as StatusRuntimeException
                 if (cause.status.code != Status.UNAVAILABLE.code && cause.status.code != Status.DEADLINE_EXCEEDED.code)
                     fail<Nothing>("Invalid node test failed with a different error")
+                println(client.reportNetworkStatus())
             }
         }
     }

@@ -76,4 +76,8 @@ class SimplifiedMasternodeListDAPIAddressProvider(
                 "total banned nodes         : ${currentlyBanned.size }\n" +
                 "                             $currentlyBanned"
     }
+
+    override fun getErrorStatistics(): String {
+        return listProvider.getErrorStatistics()
+    }
 }
