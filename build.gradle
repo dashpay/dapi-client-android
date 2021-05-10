@@ -105,6 +105,7 @@ artifacts {
 }
 
 publishing {
+    tasks.withType(Sign)*.enabled = false
     publications {
         maven(MavenPublication) {
             artifact sourcesJar
