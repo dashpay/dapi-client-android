@@ -148,6 +148,16 @@ open class BroadcastRetryCallback(
                                 logger.info("Retry ${grpcMethod.javaClass.simpleName} ${e.status.code} since error was InvalidContractIdError")
                                 return true
                             }
+                        } else if (error.containsKey("name") && error["name"] == "DataContractNotPresentError") {
+                            if (retryContractIds.contains(Identifier.from(dataContractId))) {
+                                logger.info("Retry ${grpcMethod.javaClass.simpleName} ${e.status.code} since error was DataContractNotPresentError")
+                                return true
+                            }
+                        } else if (error.containsKey("name") && error["name"] == "DuplicateDocumentError") {
+                            if (retryContractIds.contains(Identifier.from(dataContractId))) {
+                                logger.info("Retry ${grpcMethod.javaClass.simpleName} ${e.status.code} since error was DuplicateDocumentError")
+                                return false
+                            }
                         }
                         // throw exception for any other invalid argument errors
                         throw e
@@ -257,6 +267,16 @@ open class BroadcastRetryCallback(
                             if (retryContractIds.contains(Identifier.from(dataContractId))) {
                                 logger.info("Retry ${grpcMethod.javaClass.simpleName} ${errorInfo.errorMessage} since error was InvalidContractIdError")
                                 return true
+                            }
+                        } else if (error.containsKey("name") && error["name"] == "DataContractNotPresentError") {
+                            if (retryContractIds.contains(Identifier.from(dataContractId))) {
+                                logger.info("Retry ${grpcMethod.javaClass.simpleName} ${errorInfo.errorMessage} since error was DataContractNotPresentError")
+                                return true
+                            }
+                        } else if (error.containsKey("name") && error["name"] == "DuplicateDocumentError") {
+                            if (retryContractIds.contains(Identifier.from(dataContractId))) {
+                                logger.info("Not retrying ${grpcMethod.javaClass.simpleName} ${errorInfo.errorMessage} since error was DuplicateDocumentError")
+                                return false
                             }
                         }
                         // throw exception for any other invalid argument errors
