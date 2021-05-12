@@ -190,8 +190,36 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
             broadcastStateTransitionAndWait(signedStateTransition, retryAttemptsLeft - 1, statusCheck, retryCallback)
         }
 
-        for (future in futuresList)
-            future.get(80, TimeUnit.SECONDS)
+        var hasProof: Boolean = false
+        val finished = hashSetOf<Future<WaitForStateTransitionResult>>()
+        val waitForTimeout = 80000
+        var lastWaitTime = System.currentTimeMillis()
+        val startWaitTime = System.currentTimeMillis()
+
+        while (finished.size < waitForNodes && !(hasProof && (finished.size >= waitForNodes/2)) &&
+            ((startWaitTime + waitForTimeout) >= lastWaitTime)) {
+            for (future in futuresList) {
+                if (future.isDone && !finished.contains(future)) {
+                    finished.add(future)
+                    logger.info("broadcastStateTransitionAndWait: ${finished.size} of $waitForNodes complete")
+                    hasProof = future.get().proof != null
+                }
+            }
+            lastWaitTime = System.currentTimeMillis()
+            Thread.sleep(1000)
+        }
+
+        if ((startWaitTime + waitForTimeout) < System.currentTimeMillis()) {
+            logger.info("broadcastStateTransitionAndWait: timeout with ${finished.size} of $waitForNodes complete")
+        } else {
+            logger.info("broadcastStateTransitionAndWait: finished waiting in ${(lastWaitTime - startWaitTime)/1000}s")
+        }
+        //cancel any futures that are not finished
+        futuresList.forEach {
+            if (!it.isDone) {
+                it.cancel(true)
+            }
+        }
 
         val waitForResult = futureWithProof.get()
 
