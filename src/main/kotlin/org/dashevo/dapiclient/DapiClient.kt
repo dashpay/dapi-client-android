@@ -223,7 +223,13 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
 
         val waitForResult = futureWithProof.get()
 
-        val successRate = futuresList.count { it.get().isSuccess() }.toDouble() / futuresList.size
+        val successRate = futuresList.count {
+            try {
+                it.get().isSuccess()
+            } catch (e: CancellationException) {
+                false
+            }
+        }.toDouble() / futuresList.size
 
         when {
             successRate > 0.51 -> {
