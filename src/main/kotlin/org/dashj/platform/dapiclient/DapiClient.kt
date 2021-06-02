@@ -43,6 +43,7 @@ import org.dashj.platform.dapiclient.grpc.GrpcMethod
 import org.dashj.platform.dapiclient.grpc.GrpcMethodShouldRetryCallback
 import org.dashj.platform.dapiclient.grpc.WaitForStateTransitionResultMethod
 import org.dashj.platform.dapiclient.model.Chain
+import org.dashj.platform.dapiclient.model.DefaultVerifyProof
 import org.dashj.platform.dapiclient.model.DocumentQuery
 import org.dashj.platform.dapiclient.model.GetStatusResponse
 import org.dashj.platform.dapiclient.model.GrpcExceptionInfo
@@ -53,6 +54,7 @@ import org.dashj.platform.dapiclient.model.NetworkFee
 import org.dashj.platform.dapiclient.model.Proof
 import org.dashj.platform.dapiclient.model.StateTransitionBroadcastException
 import org.dashj.platform.dapiclient.model.Time
+import org.dashj.platform.dapiclient.model.VerifyProof
 import org.dashj.platform.dapiclient.model.Version
 import org.dashj.platform.dapiclient.model.WaitForStateTransitionResult
 import org.dashj.platform.dapiclient.provider.DAPIAddress
@@ -198,7 +200,8 @@ class DapiClient(
         signedStateTransition: StateTransitionIdentitySigned,
         retriesLeft: Int = USE_DEFAULT_RETRY_COUNT,
         statusCheck: Boolean = false,
-        retryCallback: BroadcastShouldRetryCallback = DefaultBroadcastRetryCallback()
+        retryCallback: BroadcastShouldRetryCallback = DefaultBroadcastRetryCallback(),
+        verifyProof: VerifyProof = DefaultVerifyProof(signedStateTransition)
     ) {
         val retryAttemptsLeft = if (retriesLeft == USE_DEFAULT_RETRY_COUNT) {
             retries // set in constructor
@@ -277,6 +280,9 @@ class DapiClient(
         when {
             successRate > 0.51 -> {
                 logger.info("broadcastStateTransitionAndWait: success ($successRate): ${waitForResult.proof}")
+                logger.info("proof: ${waitForResult.proof!!.storeTreeProof.toHexString()}")
+                logger.info("state transition: ${signedStateTransition.toBuffer().toHexString()}")
+                logger.info("proof verification: ${verifyProof.verify(waitForResult.proof)}")
                 // TODO: do something with the proof here
             }
             waitForResult.isError() -> {
