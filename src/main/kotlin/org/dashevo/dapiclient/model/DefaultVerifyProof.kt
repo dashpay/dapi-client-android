@@ -122,6 +122,21 @@ open class DefaultVerifyProof(protected val stateTransition: StateTransitionIden
 
         val rawIdentityFromProof = Cbor.decode(value)
         rawIdentityFromProof.remove("balance")
-        return rawIdentityFromProof == rawIdentity
+
+        val publicKeysFromProof = rawIdentityFromProof["publicKeys"] as List<Map<String, Any?>>
+        val publicKeys = rawIdentity["publicKeys"] as List<Map<String, Any?>>
+
+        if (publicKeys.size != publicKeysFromProof.size) {
+            return false
+        }
+
+        for (i in publicKeys.indices) {
+            if (!compareMaps(publicKeysFromProof[i], publicKeys[i])) {
+                return false
+            }
+        }
+        rawIdentity.remove("publicKeys")
+        rawIdentityFromProof.remove("publicKeys")
+        return compareMaps(rawIdentityFromProof, rawIdentity)
     }
 }
