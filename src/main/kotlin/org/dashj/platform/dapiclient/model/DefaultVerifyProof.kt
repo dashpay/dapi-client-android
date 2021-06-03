@@ -65,7 +65,7 @@ open class DefaultVerifyProof(protected val stateTransition: StateTransitionIden
         }
     }
 
-    private fun verifyDocumentsBatchTransition(
+    protected fun verifyDocumentsBatchTransition(
         stateTransition: DocumentsBatchTransition,
         values: Map<ByteArrayKey, ByteArray>
     ): Boolean {
