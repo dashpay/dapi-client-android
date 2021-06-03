@@ -1,38 +1,31 @@
 package org.dashevo.dapiclient.model
 
 import org.dashevo.dpp.contract.DataContractCreateTransition
-import org.dashevo.dpp.document.DocumentCreateTransition
-import org.dashevo.dpp.document.DocumentDeleteTransition
-import org.dashevo.dpp.document.DocumentReplaceTransition
 import org.dashevo.dpp.document.DocumentsBatchTransition
-import org.dashevo.dpp.identifier.Identifier
-import org.dashevo.dpp.identity.Identity
 import org.dashevo.dpp.identity.IdentityCreateTransition
 import org.dashevo.dpp.statetransition.StateTransitionIdentitySigned
-import org.dashevo.dpp.util.Cbor
 import org.dashj.merk.ByteArrayKey
 import org.dashj.merk.MerkVerifyProof
 
-class MerkLibVerifyProof(stateTransition: StateTransitionIdentitySigned) : DefaultVerifyProof(stateTransition) {
+class MerkLibVerifyProof(stateTransition: StateTransitionIdentitySigned, val expectedHash: ByteArray) : DefaultVerifyProof(stateTransition) {
     override fun verify(proof: Proof): Boolean {
         val values = MerkVerifyProof.decode(proof.storeTreeProof)
-        val hash = ByteArray(20) // default value
         if (values.isNotEmpty()) {
             when (stateTransition) {
                 is DocumentsBatchTransition -> {
+                    val verifyMap = hashMapOf<ByteArrayKey, ByteArray>()
                     for (transition in stateTransition.transitions) {
-                        val result = MerkVerifyProof.verifyProof(proof.storeTreeProof, transition.id.toBuffer(), hash)
+                        val result = MerkVerifyProof.verifyProof(proof.storeTreeProof, transition.id.toBuffer(), expectedHash)
                         if (result.isNotEmpty()) {
-                            val match = Cbor.decode(result) == transition.toObject()
-                            if (!match) {
-                                return false
-                            }
+                            verifyMap[ByteArrayKey(transition.id.toBuffer())] = result
+                        } else {
+                            return false
                         }
                     }
-                    return true
+                    return verifyDocumentsBatchTransition(stateTransition, verifyMap)
                 }
                 is DataContractCreateTransition -> {
-                    val result = MerkVerifyProof.verifyProof(proof.storeTreeProof, stateTransition.dataContract.id.toBuffer(), hash)
+                    val result = MerkVerifyProof.verifyProof(proof.storeTreeProof, stateTransition.dataContract.id.toBuffer(), expectedHash)
                     return if (result.isNotEmpty()) {
                         verifyDataContactCreateTransition(result, stateTransition)
                     } else {
@@ -40,7 +33,7 @@ class MerkLibVerifyProof(stateTransition: StateTransitionIdentitySigned) : Defau
                     }
                 }
                 is IdentityCreateTransition -> {
-                    val result = MerkVerifyProof.verifyProof(proof.storeTreeProof, stateTransition.identityId.toBuffer(), hash)
+                    val result = MerkVerifyProof.verifyProof(proof.storeTreeProof, stateTransition.identityId.toBuffer(), expectedHash)
                     return if (result.isNotEmpty()) {
                         verifyIdentityCreateTransition(stateTransition, result)
                     } else {
