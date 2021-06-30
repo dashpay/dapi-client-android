@@ -196,13 +196,13 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         var lastWaitTime = System.currentTimeMillis()
         val startWaitTime = System.currentTimeMillis()
 
-        while (finished.size < waitForNodes && !(hasProof && (finished.size >= waitForNodes/2)) &&
+        while (finished.size < waitForNodes && !(hasProof && (finished.size >= (waitForNodes/2 + 1))) &&
             ((startWaitTime + waitForTimeout) >= lastWaitTime)) {
             for (future in futuresList) {
                 if (future.isDone && !finished.contains(future)) {
                     finished.add(future)
-                    logger.info("broadcastStateTransitionAndWait: ${finished.size} of $waitForNodes complete")
-                    hasProof = future.get().proof != null
+                    hasProof = hasProof || future.get().proof != null
+                    logger.info("broadcastStateTransitionAndWait: ${finished.size} of $waitForNodes complete (hasProof = $hasProof)")
                 }
             }
             lastWaitTime = System.currentTimeMillis()
@@ -536,15 +536,17 @@ class DapiClient(var dapiAddressListProvider: DAPIAddressListProvider,
         retryAttemptsLeft: Int,
         e: StatusRuntimeException
     ) {
-        logger.info("banning masternode $address")
-        failedCalls++
-        address.markAsBanned()
-        address.addException(e.status.code)
-        if (retryAttemptsLeft == 0) {
-            throw MaxRetriesReachedException(e)
-        }
-        if (!dapiAddressListProvider.hasLiveAddresses()) {
-            throw NoAvailableAddressesForRetryException(e)
+        if (e.status.code != Status.CANCELLED.code) {
+            logger.info("banning masternode $address")
+            failedCalls++
+            address.markAsBanned()
+            address.addException(e.status.code)
+            if (retryAttemptsLeft == 0) {
+                throw MaxRetriesReachedException(e)
+            }
+            if (!dapiAddressListProvider.hasLiveAddresses()) {
+                throw NoAvailableAddressesForRetryException(e)
+            }
         }
     }
 
