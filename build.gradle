@@ -3,6 +3,8 @@
 buildscript {
     ext.kotlin_version = '1.4.10'
     ext.dashj_version = '0.18-SNAPSHOT'
+    ext.dpp_version = '0.20-SNAPSHOT'
+    ext.dapi_client_version = '0.20-SNAPSHOT'
     repositories {
         mavenLocal()
         mavenCentral()
@@ -30,7 +32,7 @@ allprojects {
 }
 
 group 'org.dashj.platform'
-version '0.19-SNAPSHOT'
+version dapi_client_version
 
 sourceCompatibility = 1.8
 
@@ -63,7 +65,7 @@ protobuf {
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 
-    implementation 'org.dashj.platform:dpp:0.19-SNAPSHOT'
+    implementation "org.dashj.platform:dpp:$dpp_version"
     implementation "org.dashj:dashj-core:$dashj_version"
     implementation 'com.squareup.retrofit2:retrofit:2.4.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.4.0'
@@ -160,7 +162,7 @@ uploadArchives {
                 packaging 'jar'
                 groupId 'org.dashj.platform'
                 artifactId 'dapi-client'
-                version '0.19-SNAPSHOT'
+                version dapi_client_version
                 description 'Dash DAPI Client Library'
                 url 'https://github.com/dashevo/dapi-client-android'
 

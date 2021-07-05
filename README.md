@@ -14,14 +14,14 @@ cd dapi-client-android
 ./gradlew assemble
 ```
 - After building it will be available on the local Maven repository.
-- To use it with gradle, add `mavenLocal()` to the `repositories` list in your `build.gradle` file and add `org.dashj.platform:dapi-client:0.19-SNAPSHOT` as dependency. 
+- To use it with gradle, add `mavenLocal()` to the `repositories` list in your `build.gradle` file and add `org.dashj.platform:dapi-client:0.20-SNAPSHOT` as dependency. 
 
 # Usage
 Add mavenCentral() to the `repositories` list in your `build.gradle`
 ```groovy
 
 dependencies {
-    implementation 'org.dashj.platform:dpp:0.19-SNAPSHOT'
+    implementation 'org.dashj.platform:dpp:0.20-SNAPSHOT'
 }
 ```
 
