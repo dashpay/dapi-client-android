@@ -13,13 +13,12 @@ git clone https://github.com/github/dashevo/dapi-client-android.git
 cd dapi-client-android
 ./gradlew assemble
 ```
-- After building it will be available on the local Maven repository.
+- After building, it will be available on the local Maven repository.
 - To use it with gradle, add `mavenLocal()` to the `repositories` list in your `build.gradle` file and add `org.dashj.platform:dapi-client:0.20-SNAPSHOT` as dependency. 
 
 # Usage
 Add mavenCentral() to the `repositories` list in your `build.gradle`
 ```groovy
-
 dependencies {
     implementation 'org.dashj.platform:dpp:0.20-SNAPSHOT'
 }
@@ -27,6 +26,16 @@ dependencies {
 
 # Tests
 Run tests with `gradle build test`
+
+# KtLint
+Check using ktlint:
+```shell
+./gradlew ktlintCheck
+```
+Format using ktlint:
+```shell
+./gradlew ktlintFormat
+```
 
 # Updating DPP
 The .proto files are located here: https://github.com/dashevo/dapi-grpc.git (`/protos` directory)
