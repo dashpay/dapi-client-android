@@ -19,7 +19,7 @@ interface DapiService {
      * @return Call<JsonRPCResponse<String>>
      */
     @POST("/")
-    fun getBestBlockHash(@Body body: JsonRPCRequest<Map<String, String>>) : Call<JsonRPCResponse<String>>
+    fun getBestBlockHash(@Body body: JsonRPCRequest<Map<String, String>>): Call<JsonRPCResponse<String>>
 
     /**
      * Get the block hash for the specified height
@@ -27,7 +27,7 @@ interface DapiService {
      *      "height" = height for blockhash
      * @return Call<JsonRPCResponse<String>>
      */
-    @POST ("/")
+    @POST("/")
     fun getBlockHash(@Body body: JsonRPCRequest<Map<String, Int>>): Call<JsonRPCResponse<String>>
 
     /**
@@ -37,7 +37,6 @@ interface DapiService {
      *     "blockHash" = hash
      * @return Call<JsonRPCResponse<Map<String, Any>>>
      */
-    @POST ("/")
-    fun getMnListDiff(@Body body: JsonRPCRequest<Map<String, String>>) : Call<JsonRPCResponse<Map<String, Any>>>
-
+    @POST("/")
+    fun getMnListDiff(@Body body: JsonRPCRequest<Map<String, String>>): Call<JsonRPCResponse<Map<String, Any>>>
 }

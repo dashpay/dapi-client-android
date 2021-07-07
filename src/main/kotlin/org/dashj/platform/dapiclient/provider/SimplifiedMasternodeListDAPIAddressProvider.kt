@@ -11,9 +11,9 @@ import org.bitcoinj.evolution.SimplifiedMasternodeList
 import org.bitcoinj.evolution.SimplifiedMasternodeListManager
 
 class SimplifiedMasternodeListDAPIAddressProvider(
-        private val smlProvider: SimplifiedMasternodeListManager,
-        private val listProvider: ListDAPIAddressProvider
-): DAPIAddressListProvider {
+    private val smlProvider: SimplifiedMasternodeListManager,
+    private val listProvider: ListDAPIAddressProvider
+) : DAPIAddressListProvider {
 
     val backupListProvider: ListDAPIAddressProvider
     private val alwaysBanAddresses = arrayListOf<String>()
@@ -35,26 +35,31 @@ class SimplifiedMasternodeListDAPIAddressProvider(
 
         val updatedAddresses = arrayListOf<DAPIAddress>()
 
-        if(sml.validMNsCount > 0) {
-            sml.forEachMN(true, SimplifiedMasternodeList.ForeachMNCallback {
-                var address = addressesByProRegTxHash[it.proRegTxHash]
+        if (sml.validMNsCount > 0) {
+            sml.forEachMN(
+                true,
+                SimplifiedMasternodeList.ForeachMNCallback {
+                    var address = addressesByProRegTxHash[it.proRegTxHash]
 
-                if (address == null) {
-                    address = DAPIAddress(it.service.socketAddress.hostString, it.proRegTxHash)
-                } else {
-                    address.host = it.service.socketAddress.hostString
+                    if (address == null) {
+                        address = DAPIAddress(it.service.socketAddress.hostString, it.proRegTxHash)
+                    } else {
+                        address.host = it.service.socketAddress.hostString
+                    }
+                    if (!alwaysBanAddresses.contains(address.host)) {
+                        updatedAddresses.add(address)
+                    }
                 }
-                if (!alwaysBanAddresses.contains(address.host))
-                    updatedAddresses.add(address)
-            })
+            )
 
             listProvider.addresses = updatedAddresses
         }
 
-        return if (listProvider.hasLiveAddresses())
+        return if (listProvider.hasLiveAddresses()) {
             listProvider.getLiveAddress()
-        else
+        } else {
             backupListProvider.getLiveAddress() // this may not be necessary, but is here in case the DML has no entries
+        }
     }
 
     override fun hasLiveAddresses(): Boolean {
@@ -72,9 +77,9 @@ class SimplifiedMasternodeListDAPIAddressProvider(
     override fun getStatistics(): String {
         val currentlyBanned = listProvider.addresses.filter { it.isBanned }
         return "  ---always banned addresses: $alwaysBanAddresses\n" +
-                "total masternodes          : ${listProvider.addresses.size}\n" +
-                "total banned nodes         : ${currentlyBanned.size }\n" +
-                "                             $currentlyBanned"
+            "total masternodes          : ${listProvider.addresses.size}\n" +
+            "total banned nodes         : ${currentlyBanned.size }\n" +
+            "                             $currentlyBanned"
     }
 
     override fun getErrorStatistics(): String {

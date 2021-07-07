@@ -4,8 +4,15 @@ import com.google.common.base.Stopwatch
 import com.hashengineering.crypto.X11
 import io.grpc.Status
 import io.grpc.StatusRuntimeException
-import org.bitcoinj.core.*
-import org.bitcoinj.params.*
+import java.io.File
+import org.bitcoinj.core.Base58
+import org.bitcoinj.core.Block
+import org.bitcoinj.core.Context
+import org.bitcoinj.core.ECKey
+import org.bitcoinj.core.Sha256Hash
+import org.bitcoinj.core.Utils
+import org.bitcoinj.params.DevNetParams
+import org.bitcoinj.params.TestNet3Params
 import org.dashj.platform.dapiclient.model.DocumentQuery
 import org.dashj.platform.dapiclient.provider.DAPIAddress
 import org.dashj.platform.dapiclient.provider.ListDAPIAddressProvider
@@ -15,26 +22,27 @@ import org.dashj.platform.dpp.identity.IdentityFactory
 import org.dashj.platform.dpp.toHexString
 import org.dashj.platform.dpp.util.Cbor
 import org.json.JSONObject
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertArrayEquals
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
-import java.io.File
 
 class DapiGrpcClientTest {
 
     val PARAMS = TestNet3Params.get()
     val CONTEXT = Context.getOrCreate(PARAMS)
     val masternodeList = PARAMS.defaultMasternodeList.toList()
-    val dpnsContractId = Base58.decode("76wgB8KBxLGhtEzn4Hp5zgheyzzpHYvfcWGLs69B2ahq") //DPNS contract
+    val dpnsContractId = Base58.decode("76wgB8KBxLGhtEzn4Hp5zgheyzzpHYvfcWGLs69B2ahq") // DPNS contract
     val dashPayContractId = Base58.decode("6wfobip5Mfn6NNGK9JTQ5eHtZozpkNx4aZUsnCxkfgj5")
     val identityIdString = "4yaJaaeUU9xG6sonkCHZkcZkhcXGqwf5TcNLw5Nh5LJ4"
     val stateRepository = StateRepositoryMock()
-
 
     @Test
     fun getStatusOfInvalidNodeTest() {
         val watch = Stopwatch.createStarted()
         val list = ListDAPIAddressProvider(listOf("211.30.243.83").map { DAPIAddress(it) }, 0)
-        val client = org.dashj.platform.dapiclient.DapiClient(list, 3000, 0, 3)
+        val client = DapiClient(list, 3000, 0, 3)
         try {
             client.getStatus(DAPIAddress("211.30.243.82"), 0)
             fail<Nothing>("The node queried should not exist")
@@ -42,8 +50,9 @@ class DapiGrpcClientTest {
             if (e is NoAvailableAddressesForRetryException || e is MaxRetriesReachedException) {
                 println("timeout after $watch")
                 val cause = e.cause as StatusRuntimeException
-                if (cause.status.code != Status.UNAVAILABLE.code && cause.status.code != Status.DEADLINE_EXCEEDED.code)
+                if (cause.status.code != Status.UNAVAILABLE.code && cause.status.code != Status.DEADLINE_EXCEEDED.code) {
                     fail<Nothing>("Invalid node test failed with a different error")
+                }
                 println(client.reportNetworkStatus())
             }
         }
@@ -51,21 +60,20 @@ class DapiGrpcClientTest {
 
     @Test
     fun getStatusTest() {
-        val client = org.dashj.platform.dapiclient.DapiClient(masternodeList)
+        val client = DapiClient(masternodeList)
         try {
             val status = client.getStatus()
             println(status)
         } finally {
-
         }
     }
 
     @Test
     fun getBlockTest() {
         val nodes = listOf("127.0.0.1", masternodeList[-0])
-        val client = org.dashj.platform.dapiclient.DapiClient(nodes)
+        val client = DapiClient(nodes)
         try {
-            //devnet-mobile, devnet genesis block
+            // devnet-mobile, devnet genesis block
             val block1 = when (PARAMS) {
                 is DevNetParams -> (PARAMS as DevNetParams).devNetGenesisBlock
                 is TestNet3Params -> Block(PARAMS, Utils.HEX.decode("020000002cbcf83b62913d56f605c0e581a48872839428c92e5eb76cd7ad94bcaf0b00007f11dcce14075520e8f74cc4ddf092b4e26ebd23b8d8665a1ae5bfc41b58fdb4c3a95e53ffff0f1ef37a00000101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff0a510101062f503253482fffffffff0100743ba40b0000002321020131f38ae3eb0714531dbfc3f45491b4131d1211e3777177636388bb5a74c3e4ac00000000"))
@@ -85,17 +93,13 @@ class DapiGrpcClientTest {
             // request the block from the hash and compare to the block obtained from the height
             val blockFromHash = client.getBlockByHash(block1Hash)
             assertEquals(blockFromHeight.toHexString(), blockFromHash!!.toHexString())
-
         } finally {
-
         }
     }
 
-
     @Test
     fun getDPNSContractTest() {
-
-        val client = org.dashj.platform.dapiclient.DapiClient(masternodeList)
+        val client = DapiClient(masternodeList)
         try {
             val contractBytes = client.getDataContract(dpnsContractId)
 
@@ -107,14 +111,12 @@ class DapiGrpcClientTest {
 
             assertEquals(dpnsContract.toJSON(), contract.toJSON())
         } finally {
-
         }
     }
 
     @Test
     fun getDashPayContractTest() {
-
-        val client = org.dashj.platform.dapiclient.DapiClient(masternodeList)
+        val client = DapiClient(masternodeList)
         try {
             val contractBytes = client.getDataContract(dashPayContractId)
 
@@ -126,33 +128,29 @@ class DapiGrpcClientTest {
 
             assertEquals(dpnsContract.toJSON(), contract.toJSON())
         } finally {
-
         }
     }
 
     @Test
     fun getNonExistantContract() {
-
-        val client = org.dashj.platform.dapiclient.DapiClient(masternodeList.toList())
+        val client = DapiClient(masternodeList.toList())
         val contractId = Base58.decode("88w8Xqn25HwJhjodrHW133aXhjuTsTv9ozQaYpSHACE3")
         try {
             val contractBytes = client.getDataContract(contractId)
             assertTrue(contractBytes == null)
         } finally {
-
         }
     }
 
     @Test
     fun getDocumentsTest() {
-
-        val client = org.dashj.platform.dapiclient.DapiClient(masternodeList.toList())
+        val client = DapiClient(masternodeList.toList())
         try {
-            //devnet-evonet
+            // devnet-evonet
             val query = DocumentQuery.Builder()
-                    .where(listOf("normalizedParentDomainName", "==", "dash").toMutableList())
-                    //.where(listOf("normalizedLabel", "startsWith", "test").toMutableList())
-                    .build()
+                .where(listOf("normalizedParentDomainName", "==", "dash").toMutableList())
+                // .where(listOf("normalizedLabel", "startsWith", "test").toMutableList())
+                .build()
             val documents = client.getDocuments(dpnsContractId, "domain", query)
             println(documents!![0].toHexString())
 
@@ -170,7 +168,6 @@ class DapiGrpcClientTest {
 
             println(document.toJSON())
         } finally {
-
         }
     }
 
@@ -178,13 +175,12 @@ class DapiGrpcClientTest {
     fun getIdentityTest() {
         val id = Base58.decode(identityIdString)
         val badId = Base58.decode(identityIdString.replace("4", "3"))
-        val client = org.dashj.platform.dapiclient.DapiClient(masternodeList)
+        val client = DapiClient(masternodeList)
         val identityBytes = client.getIdentity(id)
         val badIdentityBytes = client.getIdentity(badId)
         assertEquals(null, badIdentityBytes)
         val identity = IdentityFactory(stateRepository).createFromBuffer(identityBytes!!.toByteArray())
         println(JSONObject(identity.toJSON()).toString(2))
-
 
         val pubKeyHash = ECKey.fromPublicOnly(identity.getPublicKeyById(0)!!.data).pubKeyHash
         val identityByPublicKeyBytes = client.getIdentityByFirstPublicKey(pubKeyHash)
@@ -204,7 +200,7 @@ class DapiGrpcClientTest {
     @Test
     fun getIdentityFromBadPubKeyBytes() {
         val key = ECKey()
-        val client = org.dashj.platform.dapiclient.DapiClient(masternodeList)
+        val client = DapiClient(masternodeList)
 
         val identity = client.getIdentityByFirstPublicKey(key.pubKeyHash)
         assertEquals(null, identity)

@@ -6,11 +6,12 @@
  */
 package org.dashj.platform.dapiclient.provider
 
-import java.util.*
+import java.util.Date
+import java.util.Random
 import kotlin.math.exp
 import kotlin.math.floor
 
-class ListDAPIAddressProvider(var addresses: List<DAPIAddress>, var baseBanTime: Int): DAPIAddressListProvider {
+class ListDAPIAddressProvider(var addresses: List<DAPIAddress>, var baseBanTime: Int) : DAPIAddressListProvider {
     private val random = Random()
     companion object {
         fun fromList(addresses: List<String>, baseBanTime: Int): ListDAPIAddressProvider {
@@ -33,7 +34,7 @@ class ListDAPIAddressProvider(var addresses: List<DAPIAddress>, var baseBanTime:
         return addresses
     }
 
-    fun getLiveAddresses() : List<DAPIAddress> {
+    fun getLiveAddresses(): List<DAPIAddress> {
         val now = Date().time
 
         return addresses.filter {
@@ -53,8 +54,9 @@ class ListDAPIAddressProvider(var addresses: List<DAPIAddress>, var baseBanTime:
     }
 
     private fun sample(addresses: List<DAPIAddress>): DAPIAddress {
-        if (addresses.isEmpty())
+        if (addresses.isEmpty()) {
             throw IllegalStateException("There are no live addresses from which to get a node")
+        }
         return addresses[random.nextInt(addresses.size)]
     }
 
@@ -71,10 +73,10 @@ class ListDAPIAddressProvider(var addresses: List<DAPIAddress>, var baseBanTime:
         val sb = StringBuffer()
         currentlyBanned.forEach { sb.append(it.exception) }
         return "  ---always banned addresses: $alwaysBanAddresses\n" +
-                "total masternodes          : ${addresses.size}\n" +
-                "total banned nodes         : ${currentlyBanned.size }\n" +
-                "                             $currentlyBanned\n" +
-                "$sb"
+            "total masternodes          : ${addresses.size}\n" +
+            "total banned nodes         : ${currentlyBanned.size }\n" +
+            "                             $currentlyBanned\n" +
+            "$sb"
     }
 
     override fun getErrorStatistics(): String {

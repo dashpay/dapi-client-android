@@ -1,8 +1,8 @@
 package org.dashj.platform.dapiclient
 
+import org.dashj.platform.dapiclient.model.GrpcExceptionInfo
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.dashj.platform.dapiclient.model.GrpcExceptionInfo
 import org.junit.Test
 
 class ErrorTest {
@@ -24,7 +24,7 @@ class ErrorTest {
 
     @Test
     fun internalErrorTest() {
-        val error = "Metadata(server=nginx/1.19.6,date=Thu, 21 Jan 2021 18:22:46 GMT,content-type=application/grpc,content-length=0,stack=\"Error: connect ECONNREFUSED 172.22.0.5:26657\n    at TCPConnectWrap.afterConnect [as oncomplete] (net.js:1144:16)\"";
+        val error = "Metadata(server=nginx/1.19.6,date=Thu, 21 Jan 2021 18:22:46 GMT,content-type=application/grpc,content-length=0,stack=\"Error: connect ECONNREFUSED 172.22.0.5:26657\n    at TCPConnectWrap.afterConnect [as oncomplete] (net.js:1144:16)\""
         val eo = GrpcExceptionInfo(error)
         assertTrue(eo.errors.isEmpty())
     }

@@ -20,16 +20,19 @@ class GetDocumentsMethod(private val contractId: ByteArray, private val type: St
 
     init {
         val builder = PlatformOuterClass.GetDocumentsRequest.newBuilder()
-                .setDataContractId(ByteString.copyFrom(contractId))
-                .setDocumentType(type)
-                .setWhere(ByteString.copyFrom(documentQuery.encodeWhere()))
-                .setOrderBy(ByteString.copyFrom(documentQuery.encodeOrderBy()))
-        if (documentQuery.hasLimit())
+            .setDataContractId(ByteString.copyFrom(contractId))
+            .setDocumentType(type)
+            .setWhere(ByteString.copyFrom(documentQuery.encodeWhere()))
+            .setOrderBy(ByteString.copyFrom(documentQuery.encodeOrderBy()))
+        if (documentQuery.hasLimit()) {
             builder.limit = documentQuery.limit
-        if (documentQuery.hasStartAfter())
+        }
+        if (documentQuery.hasStartAfter()) {
             builder.startAfter = documentQuery.startAfter
-        if (documentQuery.hasStartAt())
+        }
+        if (documentQuery.hasStartAt()) {
             builder.startAt = documentQuery.startAt
+        }
 
         request = builder.build()
     }
@@ -46,8 +49,8 @@ class GetDocumentsMethod(private val contractId: ByteArray, private val type: St
 class GetContractMethod(val dataContractId: ByteArray) : GrpcMethod {
 
     val request: PlatformOuterClass.GetDataContractRequest = PlatformOuterClass.GetDataContractRequest.newBuilder()
-            .setId(ByteString.copyFrom(dataContractId))
-            .build()
+        .setId(ByteString.copyFrom(dataContractId))
+        .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
         return masternode.platform.getDataContract(request)
@@ -61,8 +64,8 @@ class GetContractMethod(val dataContractId: ByteArray) : GrpcMethod {
 class GetIdentityMethod(private val identityId: ByteArray) : GrpcMethod {
 
     val request: PlatformOuterClass.GetIdentityRequest = PlatformOuterClass.GetIdentityRequest.newBuilder()
-            .setId(ByteString.copyFrom(identityId))
-            .build()
+        .setId(ByteString.copyFrom(identityId))
+        .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
         return masternode.platform.getIdentity(request)
@@ -76,8 +79,8 @@ class GetIdentityMethod(private val identityId: ByteArray) : GrpcMethod {
 class GetIdentitiesByPublicKeyHashes(private val pubKeyHashes: List<ByteArray>) : GrpcMethod {
 
     val request: PlatformOuterClass.GetIdentitiesByPublicKeyHashesRequest = PlatformOuterClass.GetIdentitiesByPublicKeyHashesRequest.newBuilder()
-                .addAllPublicKeyHashes(pubKeyHashes.map { ByteString.copyFrom(it)})
-                .build()
+        .addAllPublicKeyHashes(pubKeyHashes.map { ByteString.copyFrom(it) })
+        .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
         return masternode.platform.getIdentitiesByPublicKeyHashes(request) as PlatformOuterClass.GetIdentitiesByPublicKeyHashesResponse
@@ -88,12 +91,11 @@ class GetIdentitiesByPublicKeyHashes(private val pubKeyHashes: List<ByteArray>) 
     }
 }
 
-
 class GetIdentityIdsByPublicKeyHashes(private val pubKeyHashes: List<ByteArray>) : GrpcMethod {
 
     val request: PlatformOuterClass.GetIdentityIdsByPublicKeyHashesRequest = PlatformOuterClass.GetIdentityIdsByPublicKeyHashesRequest.newBuilder()
-            .addAllPublicKeyHashes(pubKeyHashes.map { ByteString.copyFrom(it)})
-            .build()
+        .addAllPublicKeyHashes(pubKeyHashes.map { ByteString.copyFrom(it) })
+        .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
         return masternode.platform.getIdentityIdsByPublicKeyHashes(request)
@@ -107,8 +109,8 @@ class GetIdentityIdsByPublicKeyHashes(private val pubKeyHashes: List<ByteArray>)
 class BroadcastStateTransitionMethod(val stateTransition: StateTransition) : GrpcMethod {
 
     val request: PlatformOuterClass.BroadcastStateTransitionRequest = PlatformOuterClass.BroadcastStateTransitionRequest.newBuilder()
-            .setStateTransition(ByteString.copyFrom(stateTransition.toBuffer()))
-            .build()
+        .setStateTransition(ByteString.copyFrom(stateTransition.toBuffer()))
+        .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
         return masternode.platformWithoutDeadline.broadcastStateTransition(request)

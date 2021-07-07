@@ -11,4 +11,3 @@ import org.dashj.platform.dapiclient.provider.DAPIGrpcMasternode
 interface GrpcMethod {
     fun execute(masternode: DAPIGrpcMasternode): Any
 }
-

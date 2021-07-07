@@ -9,5 +9,5 @@ package org.dashj.platform.dapiclient.model
 
 data class Proof(val rootTreeProof: ByteArray, val storeTreeProof: ByteArray) {
     constructor(proof: org.dash.platform.dapi.v0.PlatformOuterClass.Proof) :
-            this(proof.rootTreeProof.toByteArray(), proof.storeTreeProof.toByteArray())
+    this(proof.rootTreeProof.toByteArray(), proof.storeTreeProof.toByteArray())
 }

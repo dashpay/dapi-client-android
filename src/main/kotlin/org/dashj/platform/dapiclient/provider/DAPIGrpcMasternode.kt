@@ -9,10 +9,10 @@ package org.dashj.platform.dapiclient.provider
 import com.google.common.base.Stopwatch
 import io.grpc.ManagedChannel
 import io.grpc.ManagedChannelBuilder
+import java.util.concurrent.TimeUnit
 import org.dash.platform.dapi.v0.CoreGrpc
 import org.dash.platform.dapi.v0.PlatformGrpc
 import org.slf4j.LoggerFactory
-import java.util.concurrent.TimeUnit
 
 class DAPIGrpcMasternode(address: DAPIAddress, val timeout: Long) : DAPIMasternode(address) {
     // gRPC properties
@@ -38,10 +38,10 @@ class DAPIGrpcMasternode(address: DAPIAddress, val timeout: Long) : DAPIMasterno
     init {
         val watch = Stopwatch.createStarted()
         channel = ManagedChannelBuilder.forAddress(address.host, address.grpcPort)
-                // Channels are secure by default (via SSL/TLS). For the example we disable TLS to avoid
-                // needing certificates.
-                .usePlaintext()
-                .build()
+            // Channels are secure by default (via SSL/TLS). For the example we disable TLS to avoid
+            // needing certificates.
+            .usePlaintext()
+            .build()
 
         logger.debug("Connecting to GRPC host: ${address.host}:${address.grpcPort} (time: $watch)")
     }

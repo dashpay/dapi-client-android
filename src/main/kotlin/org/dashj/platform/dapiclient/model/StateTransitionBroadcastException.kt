@@ -9,11 +9,11 @@ package org.dashj.platform.dapiclient.model
 
 import org.dashj.platform.dpp.util.Cbor
 
-class StateTransitionBroadcastException(val code: Int, val errorMessage: String, val data: ByteArray)
-    : Exception("$code: $errorMessage") {
+class StateTransitionBroadcastException(val code: Int, val errorMessage: String, val data: ByteArray) :
+    Exception("$code: $errorMessage") {
 
     constructor(error: org.dash.platform.dapi.v0.PlatformOuterClass.StateTransitionBroadcastError) :
-            this(error.code, error.message, error.data.toByteArray())
+    this(error.code, error.message, error.data.toByteArray())
 
     var dataMap: Map<String, Any?>
 

@@ -32,7 +32,7 @@ interface GrpcMethodShouldRetryCallback {
 open class DefaultShouldRetryCallback : GrpcMethodShouldRetryCallback {
     override fun shouldRetry(grpcMethod: GrpcMethod, e: StatusRuntimeException): Boolean {
         return when (e.status.code) {
-            Status.INVALID_ARGUMENT.code  -> {
+            Status.INVALID_ARGUMENT.code -> {
                 // do not retry any invalid argument errors
                 false
             }
@@ -45,12 +45,12 @@ open class DefaultShouldRetryCallback : GrpcMethodShouldRetryCallback {
     }
 
     override fun shouldThrowException(e: StatusRuntimeException): Boolean {
-        return e.status.code != Status.DEADLINE_EXCEEDED.code
-                && e.status.code != Status.UNAVAILABLE.code
-                && e.status.code != Status.INTERNAL.code
-                && e.status.code != Status.CANCELLED.code
-                && e.status.code != Status.UNKNOWN.code
-                && e.status.code != Status.UNIMPLEMENTED.code // perhaps we tried an old node
+        return e.status.code != Status.DEADLINE_EXCEEDED.code &&
+            e.status.code != Status.UNAVAILABLE.code &&
+            e.status.code != Status.INTERNAL.code &&
+            e.status.code != Status.CANCELLED.code &&
+            e.status.code != Status.UNKNOWN.code &&
+            e.status.code != Status.UNIMPLEMENTED.code // perhaps we tried an old node
     }
 }
 
@@ -107,7 +107,6 @@ open class DefaultGetIdentityWithIdentitiesRetryCallback(protected open val retr
     }
 }
 
-
 open class DefaultGetContractRetryCallback : DefaultShouldRetryCallback()
 
 open class DefaultGetDataContractWithContractIdRetryCallback(protected open val retryContractIds: List<Identifier> = listOf()) :
@@ -134,4 +133,3 @@ open class DefaultGetDataContractWithContractIdRetryCallback(protected open val 
         return super.shouldThrowException(e) && e.status.code != Status.INVALID_ARGUMENT.code
     }
 }
-

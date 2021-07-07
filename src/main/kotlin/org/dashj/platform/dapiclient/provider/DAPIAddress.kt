@@ -7,12 +7,16 @@
 package org.dashj.platform.dapiclient.provider
 
 import io.grpc.Status
+import java.util.Date
 import org.bitcoinj.core.Sha256Hash
 import org.dashj.platform.dapiclient.model.GetStatusResponse
-import java.util.*
 
-class DAPIAddress(var host: String, val httpPort: Int,
-                  val grpcPort: Int, val proRegTxHash: Sha256Hash) {
+class DAPIAddress(
+    var host: String,
+    val httpPort: Int,
+    val grpcPort: Int,
+    val proRegTxHash: Sha256Hash
+) {
 
     companion object {
         const val DEFAULT_HTTP_PORT = 3000
@@ -53,7 +57,7 @@ class DAPIAddress(var host: String, val httpPort: Int,
     }
 
     fun addException(code: Status.Code) {
-        if(exception.containsKey(code)) {
+        if (exception.containsKey(code)) {
             exception[code] = exception[code]!!.plus(1)
         } else {
             exception[code] = 1

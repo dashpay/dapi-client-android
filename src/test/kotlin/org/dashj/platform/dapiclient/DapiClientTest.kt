@@ -13,12 +13,12 @@ class DapiClientTest {
 
     @Test
     fun jRPCTests() {
-        val client = org.dashj.platform.dapiclient.DapiClient(TestNet3Params.MASTERNODES.toList())
+        val client = DapiClient(TestNet3Params.MASTERNODES.toList())
         println("blocking=> hash: " + client.getBestBlockHash())
     }
 
-    fun getMnListDiff() : Map<String, Any> {
-        val client = org.dashj.platform.dapiclient.DapiClient(TestNet3Params.MASTERNODES.toList())
+    fun getMnListDiff(): Map<String, Any> {
+        val client = DapiClient(TestNet3Params.MASTERNODES.toList())
         val success = 0
         do {
             try {
@@ -35,7 +35,7 @@ class DapiClientTest {
 
     @Test
     fun getMnListDiffTest() {
-        val client = org.dashj.platform.dapiclient.DapiClient(TestNet3Params.MASTERNODES.toList())
+        val client = DapiClient(TestNet3Params.MASTERNODES.toList())
         println("blocking=> hash: " + client.getBestBlockHash())
         println(getMnListDiff()["mnList"])
     }

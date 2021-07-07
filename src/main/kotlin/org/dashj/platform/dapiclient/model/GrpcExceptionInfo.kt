@@ -1,12 +1,11 @@
 package org.dashj.platform.dapiclient.model
 
-import io.grpc.StatusRuntimeException
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
+import io.grpc.StatusRuntimeException
 
-
-class GrpcExceptionInfo (trailers: String) {
+class GrpcExceptionInfo(trailers: String) {
     val errors = arrayListOf<Map<String, Any>>()
 
     constructor(statusRuntimeException: StatusRuntimeException) : this(statusRuntimeException.trailers.toString())
@@ -16,7 +15,7 @@ class GrpcExceptionInfo (trailers: String) {
         val end = trailers.findLastAnyOf(listOf(")"))
         val endpos = end?.first ?: trailers.length
         if (cursor != null) {
-            val errorString = trailers.substring(cursor.first+ 7, endpos)
+            val errorString = trailers.substring(cursor.first + 7, endpos)
             val json = "{errors: $errorString }"
             val moshi = Moshi.Builder().build()
             val map = Types.newParameterizedType(MutableMap::class.java, String::class.java, Any::class.java)

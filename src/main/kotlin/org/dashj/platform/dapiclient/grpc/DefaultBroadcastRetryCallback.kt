@@ -28,7 +28,6 @@ import org.slf4j.LoggerFactory
 interface BroadcastShouldRetryCallback {
     fun shouldRetry(grpcMethod: GrpcMethod, errorInfo: StateTransitionBroadcastException): Boolean
     fun shouldRetry(grpcMethod: GrpcMethod, e: StatusRuntimeException): Boolean
-
 }
 
 class DefaultBroadcastRetryCallback : BroadcastShouldRetryCallback {
@@ -92,22 +91,24 @@ open class BroadcastRetryCallback(
                         }
                         "DataTriggerConditionError" -> {
                             if (errorInfo.errors[0]["message"] == "preorderDocument was not found") {
-                                if (shouldRetryPreorderNotFound(grpcMethod.stateTransition as DocumentsBatchTransition))
+                                if (shouldRetryPreorderNotFound(grpcMethod.stateTransition as DocumentsBatchTransition)) {
                                     return true
+                                }
                             }
                         }
                     }
                 }
                 // there is another case that needs to be handled below for DocumentsBatchTransition
-                if (grpcMethod.stateTransition !is DocumentsBatchTransition)
+                if (grpcMethod.stateTransition !is DocumentsBatchTransition) {
                     throw e
+                }
             }
 
             when (grpcMethod.stateTransition) {
                 is DataContractCreateTransition -> {
                     val contactCreateTransition = grpcMethod.stateTransition as DataContractCreateTransition
                     for (i in 0 until retryCount) {
-                        //how to delay
+                        // how to delay
                         delay()
                         val identityData = stateRepository.fetchDataContract(contactCreateTransition.dataContract.id)
 
@@ -121,7 +122,7 @@ open class BroadcastRetryCallback(
                 is IdentityCreateTransition -> {
                     val identityCreateTransition = grpcMethod.stateTransition as IdentityCreateTransition
                     for (i in 0 until retryCount) {
-                        //how to delay
+                        // how to delay
                         delay()
                         val identityData = stateRepository.fetchIdentity(identityCreateTransition.identityId)
 
@@ -172,9 +173,8 @@ open class BroadcastRetryCallback(
 
                     val query = queryBuilder.build()
 
-
                     for (i in 0 until retryCount) {
-                        //how to delay
+                        // how to delay
                         delay()
                         val documentsData = stateRepository.fetchDocuments(dataContractId, type, query)
 
@@ -195,7 +195,7 @@ open class BroadcastRetryCallback(
         if (grpcMethod is BroadcastStateTransitionMethod) {
             if (errorInfo.errors.isNotEmpty()) {
                 val firstError = errorInfo.errors.get(0) as Map<String, Any?>
-                //logger.info("--> INVALID_ARGUMENT")
+                // logger.info("--> INVALID_ARGUMENT")
                 // only retry if it is DocumentsBatchTransition
                 // throw exception for any other invalid argument errors
                 if (firstError.containsKey("name")) {
@@ -213,21 +213,23 @@ open class BroadcastRetryCallback(
                         }
                         "DataTriggerConditionError" -> {
                             if (firstError["message"] == "preorderDocument was not found") {
-                               if (shouldRetryPreorderNotFound(grpcMethod.stateTransition as DocumentsBatchTransition))
-                                   return true
+                                if (shouldRetryPreorderNotFound(grpcMethod.stateTransition as DocumentsBatchTransition)) {
+                                    return true
+                                }
                             }
                         }
                     }
                 }
                 // there is another case that needs to be handled below for DocumentsBatchTransition
-                if (grpcMethod.stateTransition !is DocumentsBatchTransition)
+                if (grpcMethod.stateTransition !is DocumentsBatchTransition) {
                     throw errorInfo
+                }
             }
 
             when (grpcMethod.stateTransition) {
                 is DataContractCreateTransition -> {
                     for (i in 0 until retryCount) {
-                        //how to delay
+                        // how to delay
                         delay()
                         val identityData = stateRepository.fetchDataContract(grpcMethod.stateTransition.dataContract.id)
 
@@ -241,7 +243,7 @@ open class BroadcastRetryCallback(
                 is IdentityCreateTransition -> {
                     val identityCreateTransition = grpcMethod.stateTransition as IdentityCreateTransition
                     for (i in 0 until retryCount) {
-                        //how to delay
+                        // how to delay
                         delay()
                         val identityData = stateRepository.fetchIdentity(identityCreateTransition.identityId)
 
@@ -292,9 +294,8 @@ open class BroadcastRetryCallback(
 
                     val query = queryBuilder.build()
 
-
                     for (i in 0 until retryCount) {
-                        //how to delay
+                        // how to delay
                         delay()
                         val documentsData = stateRepository.fetchDocuments(dataContractId, type, query)
 
@@ -313,15 +314,15 @@ open class BroadcastRetryCallback(
     private fun shouldRetryIdentityNotFound(stateTransition: StateTransition): Boolean {
         return when (stateTransition) {
             is DocumentsBatchTransition -> {
-                logger.info ("---looking for ${stateTransition.ownerId} in $retryIdentityIds")
+                logger.info("---looking for ${stateTransition.ownerId} in $retryIdentityIds")
                 retryIdentityIds.contains(stateTransition.ownerId)
             }
             is DataContractCreateTransition -> {
-                logger.info ("---looking for ${stateTransition.dataContract.ownerId} in $retryIdentityIds")
+                logger.info("---looking for ${stateTransition.dataContract.ownerId} in $retryIdentityIds")
                 retryIdentityIds.contains(stateTransition.dataContract.ownerId)
             }
             is IdentityTopupTransition -> {
-                logger.info ("---looking for ${stateTransition.identityId} in $retryIdentityIds")
+                logger.info("---looking for ${stateTransition.identityId} in $retryIdentityIds")
                 retryIdentityIds.contains(stateTransition.identityId)
             }
             else -> false
@@ -330,7 +331,7 @@ open class BroadcastRetryCallback(
 
     private fun shouldRetryDocumentNotFound(stateTransition: StateTransition): Boolean {
         if (stateTransition is DocumentsBatchTransition) {
-            logger.info ("---looking for ${stateTransition.transitions[0].id} in $retryDocumentIds")
+            logger.info("---looking for ${stateTransition.transitions[0].id} in $retryDocumentIds")
             if (retryDocumentIds.contains(stateTransition.transitions[0].id)) {
                 return true
             }
@@ -345,10 +346,12 @@ open class BroadcastRetryCallback(
             logger.info("---looking for ${preorderSalt.toBase64()}")
             if (retryPreorderSalts.containsKey(preorderSalt)) {
                 for (i in 0 until retryCount) {
-                    //how to delay
+                    // how to delay
                     delay()
-                    val documentsData = stateRepository.fetchDocuments(createTransition.dataContractId,
-                        "preorder", DocumentQuery.builder().where("saltedDomainHash", "==", retryPreorderSalts[preorderSalt]!!.bytes))
+                    val documentsData = stateRepository.fetchDocuments(
+                        createTransition.dataContractId,
+                        "preorder", DocumentQuery.builder().where("saltedDomainHash", "==", retryPreorderSalts[preorderSalt]!!.bytes)
+                    )
 
                     if (documentsData.isNotEmpty()) {
                         logger.info("document(s) found. No need to retry: ${preorderSalt.toBase64()}")
@@ -361,9 +364,9 @@ open class BroadcastRetryCallback(
         return true
     }
 
-    //override fun shouldThrowException(e: StatusRuntimeException): Boolean {
+    // override fun shouldThrowException(e: StatusRuntimeException): Boolean {
     //    return super.shouldThrowException(e) && e.status.code != Status.INVALID_ARGUMENT.code
-    //}
+    // }
 
     private fun delay(milliseconds: Long = 3000) {
         Thread.sleep(milliseconds)

@@ -20,11 +20,13 @@ import org.json.JSONArray
  * @property startAt Int
  * @property startAfter Int
  */
-class DocumentQuery private constructor(var where: List<Any>? = null,
-                                        var orderBy: List<List<String>>? = null,
-                                        var limit: Int = -1,
-                                        var startAt: Int = -1,
-                                        var startAfter: Int = -1) : BaseObject() {
+class DocumentQuery private constructor(
+    var where: List<Any>? = null,
+    var orderBy: List<List<String>>? = null,
+    var limit: Int = -1,
+    var startAt: Int = -1,
+    var startAfter: Int = -1
+) : BaseObject() {
 
     companion object {
         val emptyByteArray = ByteArray(0)
@@ -35,11 +37,13 @@ class DocumentQuery private constructor(var where: List<Any>? = null,
         fun builder(): Builder { return Builder() }
     }
 
-    data class Builder(var where: MutableList<List<Any>>? = null,
-                       var orderBy: MutableList<List<String>>? = null,
-                       var limit: Int = -1,
-                       var startAt: Int = -1,
-                       var startAfter: Int = -1) {
+    data class Builder(
+        var where: MutableList<List<Any>>? = null,
+        var orderBy: MutableList<List<String>>? = null,
+        var limit: Int = -1,
+        var startAt: Int = -1,
+        var startAfter: Int = -1
+    ) {
 
         fun where(where: List<Any>) = apply {
             Preconditions.checkArgument(where.size == 3, "A where clause must have three items")
@@ -107,46 +111,60 @@ class DocumentQuery private constructor(var where: List<Any>? = null,
     fun encodeWhere(): ByteArray {
         return if (where != null) {
             Cbor.encode(where!!)
-        } else emptyByteArray
+        } else {
+            emptyByteArray
+        }
     }
 
     fun encodeOrderBy(): ByteArray {
         return if (orderBy != null) {
             Cbor.encode(orderBy!!)
-        } else emptyByteArray
+        } else {
+            emptyByteArray
+        }
     }
 
     override fun toObject(): Map<String, Any?> {
         val json = HashMap<String, Any?>(5)
-        if (where != null)
+        if (where != null) {
             json["where"] = where
-        if (orderBy != null)
+        }
+        if (orderBy != null) {
             json["orderBy"] = orderBy
-        if (limit != -1)
+        }
+        if (limit != -1) {
             json["limit"] = limit
-        if (startAt != -1)
+        }
+        if (startAt != -1) {
             json["startAt"] = startAt
-        if (startAfter != -1)
+        }
+        if (startAfter != -1) {
             json["startAfter"] = startAfter
+        }
         return json
     }
 
     override fun toJSON(): Map<String, Any?> {
         val json = HashMap<String, Any?>(5)
-        if (where != null)
+        if (where != null) {
             json["where"] = where
-        if (orderBy != null)
+        }
+        if (orderBy != null) {
             json["orderBy"] = orderBy
-        if (limit != -1)
+        }
+        if (limit != -1) {
             json["limit"] = limit
-        if (startAt != -1)
+        }
+        if (startAt != -1) {
             json["startAt"] = startAt
-        if (startAfter != -1)
+        }
+        if (startAfter != -1) {
             json["startAfter"] = startAfter
+        }
         return json
     }
 
-    fun clone() : DocumentQuery {
+    fun clone(): DocumentQuery {
         return DocumentQuery(where, orderBy, limit, startAt, startAfter)
     }
 }

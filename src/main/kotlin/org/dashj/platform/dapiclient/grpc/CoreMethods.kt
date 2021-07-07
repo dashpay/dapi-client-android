@@ -37,10 +37,10 @@ class GetStatusMethod : GrpcMethod {
 class BroadcastTransactionMethod(txBytes: ByteString, allowHighFees: Boolean, bypassLimits: Boolean) : GrpcMethod {
 
     val request = CoreOuterClass.BroadcastTransactionRequest.newBuilder()
-            .setTransaction(txBytes)
-            .setAllowHighFees(allowHighFees)
-            .setBypassLimits(bypassLimits)
-            .build()
+        .setTransaction(txBytes)
+        .setAllowHighFees(allowHighFees)
+        .setBypassLimits(bypassLimits)
+        .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
         return masternode.core.broadcastTransaction(request)
@@ -49,8 +49,8 @@ class BroadcastTransactionMethod(txBytes: ByteString, allowHighFees: Boolean, by
 
 class GetTransactionMethod(private val txHex: String) : GrpcMethod {
     val request = CoreOuterClass.GetTransactionRequest.newBuilder()
-            .setId(txHex)
-            .build()
+        .setId(txHex)
+        .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
         return masternode.core.getTransaction(request)
@@ -63,8 +63,8 @@ class GetTransactionMethod(private val txHex: String) : GrpcMethod {
 
 class GetEstimatedTransactionFeeMethod(private val blocks: Int) : GrpcMethod {
     val request = CoreOuterClass.GetEstimatedTransactionFeeRequest.newBuilder()
-            .setBlocks(blocks)
-            .build()
+        .setBlocks(blocks)
+        .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
         return masternode.core.getEstimatedTransactionFee(request)
