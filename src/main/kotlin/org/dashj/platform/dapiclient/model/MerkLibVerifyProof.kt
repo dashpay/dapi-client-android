@@ -1,11 +1,11 @@
-package org.dashevo.dapiclient.model
+package org.dashj.platform.dapiclient.model
 
-import org.dashevo.dpp.contract.DataContractCreateTransition
-import org.dashevo.dpp.document.DocumentsBatchTransition
-import org.dashevo.dpp.identity.IdentityCreateTransition
-import org.dashevo.dpp.statetransition.StateTransitionIdentitySigned
 import org.dashj.merk.ByteArrayKey
 import org.dashj.merk.MerkVerifyProof
+import org.dashj.platform.dpp.contract.DataContractCreateTransition
+import org.dashj.platform.dpp.document.DocumentsBatchTransition
+import org.dashj.platform.dpp.identity.IdentityCreateTransition
+import org.dashj.platform.dpp.statetransition.StateTransitionIdentitySigned
 
 class MerkLibVerifyProof(stateTransition: StateTransitionIdentitySigned, val expectedHash: ByteArray) : DefaultVerifyProof(stateTransition) {
     override fun verify(proof: Proof): Boolean {

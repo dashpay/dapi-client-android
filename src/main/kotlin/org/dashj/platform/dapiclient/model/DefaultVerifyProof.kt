@@ -86,7 +86,7 @@ open class DefaultVerifyProof(protected val stateTransition: StateTransitionIden
                         rawDocumentFromProof.remove("\$createdAt")
                     }
                     is DocumentDeleteTransition -> {
-
+                        // TODO: add delete support
                     }
                 }
                 return compareMaps(rawDocumentFromProof, rawDocument)

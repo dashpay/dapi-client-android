@@ -1,12 +1,12 @@
-package org.dashevo.dapiclient.model
+package org.dashj.platform.dapiclient.model
 
-import org.dashevo.dapiclient.StateRepositoryMock
-import org.dashevo.dpp.identity.IdentityCreateTransition
-import org.dashevo.dpp.statetransition.StateTransitionFactory
-import org.dashevo.dpp.statetransition.StateTransitionIdentitySigned
-import org.dashevo.dpp.util.HashUtils
 import org.dashj.bls.BLS
 import org.dashj.merk.MerkVerifyProof
+import org.dashj.platform.dapiclient.StateRepositoryMock
+import org.dashj.platform.dpp.identity.IdentityCreateTransition
+import org.dashj.platform.dpp.statetransition.StateTransitionFactory
+import org.dashj.platform.dpp.statetransition.StateTransitionIdentitySigned
+import org.dashj.platform.dpp.util.HashUtils
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
@@ -221,6 +221,35 @@ object VerifyProofTest {
 
     @Test
     fun verifyProofDocumentCreateTest() {
+        MerkVerifyProof.init()
+        val proof = HashUtils.fromHex(
+            "01c2d5f1c9a54bf3359792e8c528b95c653a4e7e5e02e1026a79d60d0c54a4e23841aade1a5c7733192d100184f312c901ec4ebc195edcd37413e99a2cf976c402dc7a66b44fdef0864989d1cd5ed6eeef21d9c91a10032031f95316ab461b89de83da6b517a23b8c42e17b5536dce399b7027c4561df950e300a763246964582031f95316ab461b89de83da6b517a23b8c42e17b5536dce399b7027c4561df950652474797065687072656f7264657268246f776e657249645820110c4edc8f64e033d2682c177812ca389725bf0db9cebad89a9f6c00595b684b69247265766973696f6e016f2464617461436f6e747261637449645820ad846420045a41522f868f9c0d5e7e5eafd960e8f34a04588b73583d06a280c8702470726f746f636f6c56657273696f6e007073616c746564446f6d61696e486173685820aeef16496625994dc47d5b40b464b0984ea56fdac2641c0a6f0823f49731d62111020f88127f2d6afa2a53aecd600b77d64019b408f31001440356c6d6d6bf0c8a02bccaeba586768a207ce81102d8d37cf83a15a8bc4c57b50f81d7a688f44eb6f61001e8e817fd05642a2276c5026aaa22b6d2d829008811029794ecb5493c1b8621e98a555cc4c4352c7e3b1c10013f5377ac0b6160083fd13cef726192cd07bf81f61102a9fb26afa6359abf919a0ebc2441e85cd7835c7810018796a727eb4c3f3239238afae9a8afd87a8cf3d5111102dfab604145ed66cdf0a549339c387139b779dd20100170e4a11d05ca5e05ec6ca0f889df5dd954c6dd461102b28109e1e022060c50018c5de76d49c275a404d3100189842acc9acedbe1bccf85c1ec46d26d5d348ae211"
+        )
+        val stateTransition =
+            HashUtils.fromHex("a6647479706501676f776e657249645820110c4edc8f64e033d2682c177812ca389725bf0db9cebad89a9f6c00595b684b697369676e617475726558412090e39108c1ae99e8e054c4e93f86a4af925cb861016eedaae45177ca09fecd1b72c68a2f5ba29697c8ed464ac552db97cb6c37d08091f53d01eeeafaa92126726b7472616e736974696f6e7381a663246964582031f95316ab461b89de83da6b517a23b8c42e17b5536dce399b7027c4561df950652474797065687072656f726465726724616374696f6e006824656e74726f70795820853bd951419936a6103630f5dbcb22218124b4e2ceb05607b1ee999aadd15d996f2464617461436f6e747261637449645820ad846420045a41522f868f9c0d5e7e5eafd960e8f34a04588b73583d06a280c87073616c746564446f6d61696e486173685820aeef16496625994dc47d5b40b464b0984ea56fdac2641c0a6f0823f49731d6216f70726f746f636f6c56657273696f6e00747369676e61747572655075626c69634b6579496400")
+
+        val verifyProof =
+            DefaultVerifyProof(StateTransitionFactory(StateRepositoryMock()).createFromBuffer(stateTransition) as StateTransitionIdentitySigned).verify(
+                Proof(ByteArray(36), proof)
+            )
+        assertTrue(verifyProof)
+
+        println("lib = ${System.getProperty("java.library.path")}")
+        val expected_hash = byteArrayOf(217.toByte(), 229.toByte(), 132.toByte(), 217.toByte(), 157.toByte(), 36, 62, 217.toByte(), 111, 90, 191.toByte(), 16, 97, 78, 171.toByte(), 104, 146.toByte(), 207.toByte(), 70, 191.toByte())
+        println("expected_hash = $expected_hash")
+        val verifyProofMerk = MerkLibVerifyProof(factory.createFromBuffer(stateTransition) as StateTransitionIdentitySigned, expected_hash).verify(
+            Proof(ByteArray(36), proof)
+        )
+        assertTrue(verifyProofMerk)
+
+        val verifyProofMerk2 = MerkLibVerifyProof(factory.createFromBuffer(stateTransition) as StateTransitionIdentitySigned, ByteArray(20)).verify(
+            Proof(ByteArray(36), proof)
+        )
+        assertFalse(verifyProofMerk2)
+    }
+
+    @Test
+    fun verifyProofDocumentCreateTest20() {
         MerkVerifyProof.init()
         val proof = HashUtils.fromHex(
             "01c2d5f1c9a54bf3359792e8c528b95c653a4e7e5e02e1026a79d60d0c54a4e23841aade1a5c7733192d100184f312c901ec4ebc195edcd37413e99a2cf976c402dc7a66b44fdef0864989d1cd5ed6eeef21d9c91a10032031f95316ab461b89de83da6b517a23b8c42e17b5536dce399b7027c4561df950e300a763246964582031f95316ab461b89de83da6b517a23b8c42e17b5536dce399b7027c4561df950652474797065687072656f7264657268246f776e657249645820110c4edc8f64e033d2682c177812ca389725bf0db9cebad89a9f6c00595b684b69247265766973696f6e016f2464617461436f6e747261637449645820ad846420045a41522f868f9c0d5e7e5eafd960e8f34a04588b73583d06a280c8702470726f746f636f6c56657273696f6e007073616c746564446f6d61696e486173685820aeef16496625994dc47d5b40b464b0984ea56fdac2641c0a6f0823f49731d62111020f88127f2d6afa2a53aecd600b77d64019b408f31001440356c6d6d6bf0c8a02bccaeba586768a207ce81102d8d37cf83a15a8bc4c57b50f81d7a688f44eb6f61001e8e817fd05642a2276c5026aaa22b6d2d829008811029794ecb5493c1b8621e98a555cc4c4352c7e3b1c10013f5377ac0b6160083fd13cef726192cd07bf81f61102a9fb26afa6359abf919a0ebc2441e85cd7835c7810018796a727eb4c3f3239238afae9a8afd87a8cf3d5111102dfab604145ed66cdf0a549339c387139b779dd20100170e4a11d05ca5e05ec6ca0f889df5dd954c6dd461102b28109e1e022060c50018c5de76d49c275a404d3100189842acc9acedbe1bccf85c1ec46d26d5d348ae211"
