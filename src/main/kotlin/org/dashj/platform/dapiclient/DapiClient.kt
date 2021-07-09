@@ -52,6 +52,7 @@ import org.dashj.platform.dapiclient.model.Masternode
 import org.dashj.platform.dapiclient.model.Network
 import org.dashj.platform.dapiclient.model.NetworkFee
 import org.dashj.platform.dapiclient.model.Proof
+import org.dashj.platform.dapiclient.model.ResponseMetaData
 import org.dashj.platform.dapiclient.model.StateTransitionBroadcastException
 import org.dashj.platform.dapiclient.model.Time
 import org.dashj.platform.dapiclient.model.VerifyProof
@@ -172,9 +173,9 @@ class DapiClient(
         val result = grpcRequest(method) as PlatformOuterClass.WaitForStateTransitionResultResponse
 
         return if (result.hasError()) {
-            WaitForStateTransitionResult(StateTransitionBroadcastException(result.error))
+            WaitForStateTransitionResult(StateTransitionBroadcastException(result.error), ResponseMetaData(result.metadata))
         } else {
-            WaitForStateTransitionResult(Proof(result.proof))
+            WaitForStateTransitionResult(Proof(result.proof), ResponseMetaData(result.metadata))
         }
     }
 
@@ -191,7 +192,7 @@ class DapiClient(
                 } else {
                     logger.error("waitForStateTransitionResult exception: $e")
                 }
-                WaitForStateTransitionResult(StateTransitionBroadcastException(e.status.code.value(), e.message ?: "", ByteArray(0)))
+                WaitForStateTransitionResult(StateTransitionBroadcastException(e.status.code.value(), e.message ?: "", ByteArray(0)), ResponseMetaData(0, 0))
             }
         }
     }
@@ -280,9 +281,13 @@ class DapiClient(
         when {
             successRate > 0.51 -> {
                 logger.info("broadcastStateTransitionAndWait: success ($successRate): ${waitForResult.proof}")
-                logger.info("proof: ${waitForResult.proof!!.storeTreeProof.toHexString()}")
-                logger.info("state transition: ${signedStateTransition.toBuffer().toHexString()}")
-                logger.info("proof verification: ${verifyProof.verify(waitForResult.proof)}")
+                logger.info("root_tree_proof    : ${waitForResult.proof!!.rootTreeProof.toHexString()}")
+                logger.info("store_tree_proof   : ${waitForResult.proof.storeTreeProof.toHexString()}")
+                logger.info("signature_llmq_hash: ${waitForResult.proof.signatureLlmqHash.toHexString()}")
+                logger.info("signature          : ${waitForResult.proof.signature.toHexString()}")
+                logger.info("state transition   : ${signedStateTransition.toBuffer().toHexString()}")
+                logger.info("ST Hash            : ${Sha256Hash.of(signedStateTransition.toBuffer())}")
+                logger.info("proof verification : ${verifyProof.verify(waitForResult.proof)}")
                 // TODO: do something with the proof here
             }
             waitForResult.isError() -> {
