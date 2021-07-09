@@ -189,7 +189,7 @@ object VerifyProofTest {
 
         val verifyProof =
             DefaultVerifyProof(factory.createFromBuffer(stateTransition) as StateTransitionIdentitySigned).verify(
-                Proof(ByteArray(36), proof)
+                Proof(ByteArray(36), proof, byteArrayOf(0), byteArrayOf(0))
             )
         assertTrue(verifyProof)
     }
@@ -207,14 +207,14 @@ object VerifyProofTest {
 
         val verifyProof =
             DefaultVerifyProof(transition as IdentityCreateTransition).verify(
-                Proof(ByteArray(36), proof)
+                Proof(ByteArray(36), proof, byteArrayOf(0), byteArrayOf(0))
             )
 
         assertTrue(verifyProof)
 
         val expectedHash = HashUtils.fromHex("49b0810134e560d1e16b56998a9145dd3ad50e6c")
         val verifyProofMerk = MerkLibVerifyProof(transition as StateTransitionIdentitySigned, expectedHash).verify(
-            Proof(ByteArray(36), proof)
+            Proof(ByteArray(36), proof, byteArrayOf(0), byteArrayOf(0))
         )
         assertTrue(verifyProofMerk)
     }
@@ -230,7 +230,7 @@ object VerifyProofTest {
 
         val verifyProof =
             DefaultVerifyProof(StateTransitionFactory(StateRepositoryMock()).createFromBuffer(stateTransition) as StateTransitionIdentitySigned).verify(
-                Proof(ByteArray(36), proof)
+                Proof(ByteArray(36), proof, byteArrayOf(0), byteArrayOf(0))
             )
         assertTrue(verifyProof)
 
@@ -238,12 +238,12 @@ object VerifyProofTest {
         val expected_hash = byteArrayOf(217.toByte(), 229.toByte(), 132.toByte(), 217.toByte(), 157.toByte(), 36, 62, 217.toByte(), 111, 90, 191.toByte(), 16, 97, 78, 171.toByte(), 104, 146.toByte(), 207.toByte(), 70, 191.toByte())
         println("expected_hash = $expected_hash")
         val verifyProofMerk = MerkLibVerifyProof(factory.createFromBuffer(stateTransition) as StateTransitionIdentitySigned, expected_hash).verify(
-            Proof(ByteArray(36), proof)
+            Proof(ByteArray(36), proof, byteArrayOf(0), byteArrayOf(0))
         )
         assertTrue(verifyProofMerk)
 
         val verifyProofMerk2 = MerkLibVerifyProof(factory.createFromBuffer(stateTransition) as StateTransitionIdentitySigned, ByteArray(20)).verify(
-            Proof(ByteArray(36), proof)
+            Proof(ByteArray(36), proof, byteArrayOf(0), byteArrayOf(0))
         )
         assertFalse(verifyProofMerk2)
     }
@@ -259,7 +259,7 @@ object VerifyProofTest {
 
         val verifyProof =
             DefaultVerifyProof(StateTransitionFactory(StateRepositoryMock()).createFromBuffer(stateTransition) as StateTransitionIdentitySigned).verify(
-                Proof(ByteArray(36), proof)
+                Proof(ByteArray(36), proof, byteArrayOf(0), byteArrayOf(0))
             )
         assertTrue(verifyProof)
 
@@ -267,12 +267,12 @@ object VerifyProofTest {
         val expected_hash = byteArrayOf(217.toByte(), 229.toByte(), 132.toByte(), 217.toByte(), 157.toByte(), 36, 62, 217.toByte(), 111, 90, 191.toByte(), 16, 97, 78, 171.toByte(), 104, 146.toByte(), 207.toByte(), 70, 191.toByte())
         println("expected_hash = $expected_hash")
         val verifyProofMerk = MerkLibVerifyProof(factory.createFromBuffer(stateTransition) as StateTransitionIdentitySigned, expected_hash).verify(
-            Proof(ByteArray(36), proof)
+            Proof(ByteArray(36), proof, byteArrayOf(0), byteArrayOf(0))
         )
         assertTrue(verifyProofMerk)
 
         val verifyProofMerk2 = MerkLibVerifyProof(factory.createFromBuffer(stateTransition) as StateTransitionIdentitySigned, ByteArray(20)).verify(
-            Proof(ByteArray(36), proof)
+            Proof(ByteArray(36), proof, byteArrayOf(0), byteArrayOf(0))
         )
         assertFalse(verifyProofMerk2)
     }
