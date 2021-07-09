@@ -7,7 +7,7 @@
 
 package org.dashj.platform.dapiclient.model
 
-data class Proof(val rootTreeProof: ByteArray, val storeTreeProof: ByteArray) {
+data class Proof(val rootTreeProof: ByteArray, val storeTreeProof: ByteArray, val signatureLlmqHash: ByteArray, val signature: ByteArray) {
     constructor(proof: org.dash.platform.dapi.v0.PlatformOuterClass.Proof) :
-    this(proof.rootTreeProof.toByteArray(), proof.storeTreeProof.toByteArray())
+        this(proof.rootTreeProof.toByteArray(), proof.storeTreeProof.toByteArray(), proof.signatureLlmqHash.toByteArray(), proof.signature.toByteArray())
 }
