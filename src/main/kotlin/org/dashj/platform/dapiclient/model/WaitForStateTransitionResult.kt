@@ -7,9 +7,9 @@
 
 package org.dashj.platform.dapiclient.model
 
-data class WaitForStateTransitionResult(val error: StateTransitionBroadcastException?, val proof: Proof?) {
-    constructor(error: StateTransitionBroadcastException) : this(error, null)
-    constructor(proof: Proof) : this(null, proof)
+data class WaitForStateTransitionResult(val error: StateTransitionBroadcastException?, val proof: Proof?, val responseMetaData: ResponseMetaData) {
+    constructor(error: StateTransitionBroadcastException, responseMetaData: ResponseMetaData) : this(error, null, responseMetaData)
+    constructor(proof: Proof, responseMetaData: ResponseMetaData) : this(null, proof, responseMetaData)
 
     fun isSuccess(): Boolean {
         return error == null && proof != null
