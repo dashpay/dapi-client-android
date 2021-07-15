@@ -12,6 +12,7 @@ import org.bitcoinj.core.ECKey
 import org.bitcoinj.core.Sha256Hash
 import org.bitcoinj.core.Utils
 import org.bitcoinj.params.DevNetParams
+import org.bitcoinj.params.SchnappsDevNetParams
 import org.bitcoinj.params.TestNet3Params
 import org.dashj.platform.dapiclient.model.DocumentQuery
 import org.dashj.platform.dapiclient.provider.DAPIAddress
@@ -30,12 +31,12 @@ import org.junit.jupiter.api.Test
 
 class DapiGrpcClientTest {
 
-    val PARAMS = TestNet3Params.get()
+    val PARAMS = SchnappsDevNetParams.get()
     val CONTEXT = Context.getOrCreate(PARAMS)
     val masternodeList = PARAMS.defaultMasternodeList.toList()
-    val dpnsContractId = Base58.decode("76wgB8KBxLGhtEzn4Hp5zgheyzzpHYvfcWGLs69B2ahq") // DPNS contract
-    val dashPayContractId = Base58.decode("6wfobip5Mfn6NNGK9JTQ5eHtZozpkNx4aZUsnCxkfgj5")
-    val identityIdString = "4yaJaaeUU9xG6sonkCHZkcZkhcXGqwf5TcNLw5Nh5LJ4"
+    val dpnsContractId = Base58.decode("4BrYpaW5s26UWoBk9zEAYWxJANX7LFinmToprWo3VwgS") // DPNS contract
+    val dashPayContractId = Base58.decode("9FmdUoXZJijvARgA3Vcg73ThYp5P4AaLis1WpXp9VGg1")
+    val identityIdString = "FrdbRMnZ5pPiFWuzPR62goRVj6sxpqvLKMT87ZmuZPyr"
     val stateRepository = StateRepositoryMock()
 
     @Test
@@ -174,7 +175,7 @@ class DapiGrpcClientTest {
     @Test
     fun getIdentityTest() {
         val id = Base58.decode(identityIdString)
-        val badId = Base58.decode(identityIdString.replace("4", "3"))
+        val badId = Base58.decode(identityIdString.replace(identityIdString[0], '3'))
         val client = DapiClient(masternodeList)
         val identityBytes = client.getIdentity(id)
         val badIdentityBytes = client.getIdentity(badId)
@@ -213,5 +214,15 @@ class DapiGrpcClientTest {
 
         val identityIdList = client.getIdentityIdsByPublicKeyHashes(listOf(key.pubKeyHash))
         assertEquals(null, identityIdList)
+    }
+
+    @Test
+    fun getTransationTest() {
+        val txid = "7609edb70ffe29ccad3054858abab0379965878bcafe18cf76dd80a6ccccf63d"
+        val client = DapiClient(masternodeList)
+
+        val result = client.getTransaction(txid)
+
+        println(result)
     }
 }
