@@ -261,9 +261,10 @@ class DapiClient(
             lastWaitTime = System.currentTimeMillis()
             Thread.sleep(1000)
         }
-
+        var timedout = false
         if ((startWaitTime + waitForTimeout) < System.currentTimeMillis()) {
             logger.info("broadcastStateTransitionAndWait: timeout with ${finished.size} of $waitForNodes complete")
+            timedout = finished.size == 0
         } else {
             logger.info("broadcastStateTransitionAndWait: finished waiting in ${(lastWaitTime - startWaitTime) / 1000}s")
         }
@@ -274,17 +275,29 @@ class DapiClient(
             }
         }
 
-        val waitForResult = futureWithProof.get()
+        val waitForResult = if (hasProof && !futureWithProof.isCancelled) {
+            futureWithProof.get()
+        } else {
+            null
+        }
 
-        val successRate = futuresList.count {
-            try {
-                it.get().isSuccess()
-            } catch (e: CancellationException) {
-                false
-            }
-        }.toDouble() / futuresList.size
+        val successRate = if (timedout) {
+            finished.size.toDouble() / futuresList.size
+        } else {
+            futuresList.count {
+                try {
+                    it.get().isSuccess()
+                } catch (e: CancellationException) {
+                    false
+                }
+            }.toDouble() / futuresList.size
+        }
 
         when {
+            waitForResult == null -> {
+                logger.info("broadcastStateTransitionAndWait: failure: Timeout")
+                throw StateTransitionBroadcastException(2, "Timeout", signedStateTransition.toBuffer())
+            }
             successRate > 0.51 -> {
                 logger.info("broadcastStateTransitionAndWait: success ($successRate): ${waitForResult.proof}")
                 logger.info("root_tree_proof    : ${waitForResult.proof!!.rootTreeProof.toHexString()}")
