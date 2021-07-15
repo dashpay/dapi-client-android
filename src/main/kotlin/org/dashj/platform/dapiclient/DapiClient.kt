@@ -49,6 +49,7 @@ import org.dashj.platform.dapiclient.model.Chain
 import org.dashj.platform.dapiclient.model.DefaultVerifyProof
 import org.dashj.platform.dapiclient.model.DocumentQuery
 import org.dashj.platform.dapiclient.model.GetStatusResponse
+import org.dashj.platform.dapiclient.model.GetTransactionResponse
 import org.dashj.platform.dapiclient.model.GrpcExceptionInfo
 import org.dashj.platform.dapiclient.model.JsonRPCRequest
 import org.dashj.platform.dapiclient.model.Masternode
@@ -672,11 +673,38 @@ class DapiClient(
      * @param txHex String
      * @return ByteString?
      */
-    fun getTransaction(txHex: String): ByteString? {
+    fun getTransactionBytes(txHex: String): ByteString? {
         logger.info("getTransaction($txHex)")
         val method = GetTransactionMethod(txHex)
         val response = grpcRequest(method) as CoreOuterClass.GetTransactionResponse?
         return response?.transaction
+    }
+
+    /**
+     *
+     * @param txHex String
+     * @return ByteString?
+     */
+    fun getTransaction(txHex: String): GetTransactionResponse? {
+        logger.info("getTransaction($txHex)")
+        val method = GetTransactionMethod(txHex)
+        val response = grpcRequest(method) as CoreOuterClass.GetTransactionResponse?
+        return if (response != null) {
+            GetTransactionResponse(
+                response.transaction.toByteArray(),
+                if (response.blockHash.size() != 0) {
+                    Sha256Hash.wrap(response.blockHash.toByteArray())
+                } else {
+                    Sha256Hash.ZERO_HASH
+                },
+                response.height,
+                response.confirmations,
+                response.isInstantLocked,
+                response.isChainLocked
+            )
+        } else {
+            null
+        }
     }
     // jRPC methods
     /**
