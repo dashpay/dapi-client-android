@@ -1,7 +1,7 @@
 {
   "protocolVersion": 0,
   "$schema": "https://schema.dash.org/dpp-0-4-0/meta/data-contract",
-  "ownerId": "4yaJaaeUU9xG6sonkCHZkcZkhcXGqwf5TcNLw5Nh5LJ4",
+  "ownerId": "FrdbRMnZ5pPiFWuzPR62goRVj6sxpqvLKMT87ZmuZPyr",
   "documents": {
     "preorder": {
       "indices": [{
@@ -10,6 +10,7 @@
       }],
       "$comment": "Preorder documents are immutable: modification and deletion are restricted",
       "additionalProperties": false,
+      "type": "object",
       "required": ["saltedDomainHash"],
       "properties": {"saltedDomainHash": {
         "minItems": 32,
@@ -36,6 +37,7 @@
       ],
       "$comment": "In order to register a domain you need to create a preorder. The preorder step is needed to prevent man-in-the-middle attacks. normalizedLabel + '.' + normalizedParentDomain must not be longer than 253 chars length as defined by RFC 1035. Domain documents are immutable: modification and deletion are restricted",
       "additionalProperties": false,
+      "type": "object",
       "required": [
         "label",
         "normalizedLabel",
@@ -53,7 +55,7 @@
           "byteArray": true
         },
         "normalizedParentDomainName": {
-          "pattern": "^$|^((?!-)[a-z0-9-\\.]{0,189}[a-z0-9])$",
+          "pattern": "^$|^[[a-z0-9][a-z0-9-\\.]{0,188}[a-z0-9]$",
           "description": "A full parent domain name in lowercase for case-insensitive uniqueness validation. e.g. 'dash'",
           "$comment": "Must either be equal to an existing domain or empty to create a top level domain. Only the data contract owner can create top level domains.",
           "type": "string",
@@ -61,14 +63,14 @@
           "minLength": 0
         },
         "label": {
-          "pattern": "^((?!-)[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])$",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]$",
           "description": "Domain label. e.g. 'Bob'.",
           "type": "string",
           "maxLength": 63,
           "minLength": 3
         },
         "normalizedLabel": {
-          "pattern": "^((?!-)[a-z0-9-]{0,62}[a-z0-9])$",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$",
           "description": "Domain label in lowercase for case-insensitive uniqueness validation. e.g. 'bob'",
           "$comment": "Must be equal to the label in lowercase. This property will be deprecated due to case insensitive indices",
           "type": "string",
@@ -115,5 +117,5 @@
       }
     }
   },
-  "$id": "76wgB8KBxLGhtEzn4Hp5zgheyzzpHYvfcWGLs69B2ahq"
+  "$id": "4BrYpaW5s26UWoBk9zEAYWxJANX7LFinmToprWo3VwgS"
 }
