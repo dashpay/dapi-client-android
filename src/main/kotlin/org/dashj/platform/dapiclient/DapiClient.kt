@@ -20,6 +20,7 @@ import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import org.bitcoinj.core.BloomFilter
 import org.bitcoinj.core.Sha256Hash
 import org.bitcoinj.evolution.SimplifiedMasternodeListManager
 import org.dash.platform.dapi.v0.CoreOuterClass
@@ -41,6 +42,8 @@ import org.dashj.platform.dapiclient.grpc.GetStatusMethod
 import org.dashj.platform.dapiclient.grpc.GetTransactionMethod
 import org.dashj.platform.dapiclient.grpc.GrpcMethod
 import org.dashj.platform.dapiclient.grpc.GrpcMethodShouldRetryCallback
+import org.dashj.platform.dapiclient.grpc.SubscribeToTransactionsWithProofs
+import org.dashj.platform.dapiclient.grpc.SubscribeToTransactionsWithProofsMethod
 import org.dashj.platform.dapiclient.grpc.WaitForStateTransitionResultMethod
 import org.dashj.platform.dapiclient.model.Chain
 import org.dashj.platform.dapiclient.model.DefaultVerifyProof
@@ -490,6 +493,38 @@ class DapiClient(
         val method = GetEstimatedTransactionFeeMethod(blocks)
         val response = grpcRequest(method) as CoreOuterClass.GetEstimatedTransactionFeeResponse?
         return response?.fee!!
+    }
+
+    fun subscribeToTransactionsWithProofs(
+        bloomFilter: BloomFilter,
+        fromBlockHash: Sha256Hash,
+        count: Int,
+        sendTransactionHashes: Boolean,
+        subscribeToTransactionsWithProofs: SubscribeToTransactionsWithProofs
+    ) {
+        subscribeToTransactionsWithProofs(bloomFilter, fromBlockHash, -1, count, sendTransactionHashes, subscribeToTransactionsWithProofs)
+    }
+
+    fun subscribeToTransactionsWithProofs(
+        bloomFilter: BloomFilter,
+        fromBlockHeight: Int,
+        count: Int,
+        sendTransactionHashes: Boolean,
+        subscribeToTransactionsWithProofs: SubscribeToTransactionsWithProofs
+    ) {
+        subscribeToTransactionsWithProofs(bloomFilter, Sha256Hash.ZERO_HASH, fromBlockHeight, count, sendTransactionHashes, subscribeToTransactionsWithProofs)
+    }
+
+    private fun subscribeToTransactionsWithProofs(
+        bloomFilter: BloomFilter,
+        fromBlockHash: Sha256Hash,
+        fromBlockHeight: Int,
+        count: Int,
+        sendTransactionHashes: Boolean,
+        subscribeToTransactionsWithProofs: SubscribeToTransactionsWithProofs
+    ) {
+        val subscribe = SubscribeToTransactionsWithProofsMethod(bloomFilter, fromBlockHash, fromBlockHeight, count, sendTransactionHashes, subscribeToTransactionsWithProofs)
+        grpcRequest(subscribe)
     }
 
     /**
