@@ -29,6 +29,9 @@ class DAPIGrpcMasternode(address: DAPIAddress, val timeout: Long) : DAPIMasterno
     val coreWithoutDeadline: CoreGrpc.CoreBlockingStub by lazy {
         CoreGrpc.newBlockingStub(channel)
     }
+    val coreNonBlocking: CoreGrpc.CoreStub by lazy {
+        CoreGrpc.newStub(channel)
+    }
 
     // Constants
     companion object {
