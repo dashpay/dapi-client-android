@@ -13,8 +13,9 @@ import org.dashj.platform.dapiclient.model.DocumentQuery
 import org.dashj.platform.dapiclient.provider.DAPIGrpcMasternode
 import org.dashj.platform.dpp.statetransition.StateTransition
 import org.dashj.platform.dpp.toBase58
+import org.dashj.platform.dpp.toHexString
 
-class GetDocumentsMethod(private val contractId: ByteArray, private val type: String, private val documentQuery: DocumentQuery) : GrpcMethod {
+class GetDocumentsMethod(private val contractId: ByteArray, private val type: String, private val documentQuery: DocumentQuery, private val prove: Boolean) : GrpcMethod {
 
     val request: PlatformOuterClass.GetDocumentsRequest
 
@@ -24,6 +25,7 @@ class GetDocumentsMethod(private val contractId: ByteArray, private val type: St
             .setDocumentType(type)
             .setWhere(ByteString.copyFrom(documentQuery.encodeWhere()))
             .setOrderBy(ByteString.copyFrom(documentQuery.encodeOrderBy()))
+            .setProve(prove)
         if (documentQuery.hasLimit()) {
             builder.limit = documentQuery.limit
         }
@@ -42,14 +44,15 @@ class GetDocumentsMethod(private val contractId: ByteArray, private val type: St
     }
 
     override fun toString(): String {
-        return "getDocument(${contractId.toBase58()}, $type, ${documentQuery.toJSON()})"
+        return "getDocument(${contractId.toBase58()}, $type, ${documentQuery.toJSON()}, $prove)"
     }
 }
 
-class GetContractMethod(val dataContractId: ByteArray) : GrpcMethod {
+class GetContractMethod(val dataContractId: ByteArray, private val prove: Boolean) : GrpcMethod {
 
     val request: PlatformOuterClass.GetDataContractRequest = PlatformOuterClass.GetDataContractRequest.newBuilder()
         .setId(ByteString.copyFrom(dataContractId))
+        .setProve(prove)
         .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
@@ -57,14 +60,15 @@ class GetContractMethod(val dataContractId: ByteArray) : GrpcMethod {
     }
 
     override fun toString(): String {
-        return "getContract(${dataContractId.toBase58()})"
+        return "getContract(${dataContractId.toBase58()}, $prove)"
     }
 }
 
-class GetIdentityMethod(private val identityId: ByteArray) : GrpcMethod {
+class GetIdentityMethod(private val identityId: ByteArray, private val prove: Boolean) : GrpcMethod {
 
     val request: PlatformOuterClass.GetIdentityRequest = PlatformOuterClass.GetIdentityRequest.newBuilder()
         .setId(ByteString.copyFrom(identityId))
+        .setProve(prove)
         .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
@@ -72,14 +76,15 @@ class GetIdentityMethod(private val identityId: ByteArray) : GrpcMethod {
     }
 
     override fun toString(): String {
-        return "getIdentity(${identityId.toBase58()})"
+        return "getIdentity(${identityId.toBase58()}, $prove)"
     }
 }
 
-class GetIdentitiesByPublicKeyHashes(private val pubKeyHashes: List<ByteArray>) : GrpcMethod {
+class GetIdentitiesByPublicKeyHashes(private val pubKeyHashes: List<ByteArray>, private val prove: Boolean) : GrpcMethod {
 
     val request: PlatformOuterClass.GetIdentitiesByPublicKeyHashesRequest = PlatformOuterClass.GetIdentitiesByPublicKeyHashesRequest.newBuilder()
         .addAllPublicKeyHashes(pubKeyHashes.map { ByteString.copyFrom(it) })
+        .setProve(prove)
         .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
@@ -87,14 +92,15 @@ class GetIdentitiesByPublicKeyHashes(private val pubKeyHashes: List<ByteArray>) 
     }
 
     override fun toString(): String {
-        return "getIdentitiesByPublicKeyHashes($pubKeyHashes)"
+        return "getIdentitiesByPublicKeyHashes($pubKeyHashes, $prove)"
     }
 }
 
-class GetIdentityIdsByPublicKeyHashes(private val pubKeyHashes: List<ByteArray>) : GrpcMethod {
+class GetIdentityIdsByPublicKeyHashes(private val pubKeyHashes: List<ByteArray>, private val prove: Boolean) : GrpcMethod {
 
     val request: PlatformOuterClass.GetIdentityIdsByPublicKeyHashesRequest = PlatformOuterClass.GetIdentityIdsByPublicKeyHashesRequest.newBuilder()
         .addAllPublicKeyHashes(pubKeyHashes.map { ByteString.copyFrom(it) })
+        .setProve(prove)
         .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
@@ -102,7 +108,7 @@ class GetIdentityIdsByPublicKeyHashes(private val pubKeyHashes: List<ByteArray>)
     }
 
     override fun toString(): String {
-        return "getIdentityIdsByPublicKeyHashes($pubKeyHashes)"
+        return "getIdentityIdsByPublicKeyHashes(${pubKeyHashes.map { it.toHexString() }}, $prove)"
     }
 }
 
