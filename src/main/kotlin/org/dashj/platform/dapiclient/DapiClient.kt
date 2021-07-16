@@ -27,6 +27,7 @@ import org.dash.platform.dapi.v0.CoreOuterClass
 import org.dash.platform.dapi.v0.PlatformOuterClass
 import org.dashj.merk.ByteArrayKey
 import org.dashj.merk.MerkVerifyProof
+import org.dashj.platform.dapiclient.errors.NotFoundException
 import org.dashj.platform.dapiclient.grpc.BroadcastShouldRetryCallback
 import org.dashj.platform.dapiclient.grpc.BroadcastStateTransitionMethod
 import org.dashj.platform.dapiclient.grpc.BroadcastTransactionMethod
@@ -50,6 +51,11 @@ import org.dashj.platform.dapiclient.grpc.WaitForStateTransitionResultMethod
 import org.dashj.platform.dapiclient.model.Chain
 import org.dashj.platform.dapiclient.model.DefaultVerifyProof
 import org.dashj.platform.dapiclient.model.DocumentQuery
+import org.dashj.platform.dapiclient.model.GetDataContractResponse
+import org.dashj.platform.dapiclient.model.GetDocumentsResponse
+import org.dashj.platform.dapiclient.model.GetIdentitiesByPublicKeyHashesResponse
+import org.dashj.platform.dapiclient.model.GetIdentityIdsByPublicKeyHashesResponse
+import org.dashj.platform.dapiclient.model.GetIdentityResponse
 import org.dashj.platform.dapiclient.model.GetStatusResponse
 import org.dashj.platform.dapiclient.model.GetTransactionResponse
 import org.dashj.platform.dapiclient.model.GrpcExceptionInfo
@@ -58,7 +64,7 @@ import org.dashj.platform.dapiclient.model.Masternode
 import org.dashj.platform.dapiclient.model.Network
 import org.dashj.platform.dapiclient.model.NetworkFee
 import org.dashj.platform.dapiclient.model.Proof
-import org.dashj.platform.dapiclient.model.ResponseMetaData
+import org.dashj.platform.dapiclient.model.ResponseMetadata
 import org.dashj.platform.dapiclient.model.StateTransitionBroadcastException
 import org.dashj.platform.dapiclient.model.Time
 import org.dashj.platform.dapiclient.model.VerifyProof
@@ -70,6 +76,7 @@ import org.dashj.platform.dapiclient.provider.DAPIGrpcMasternode
 import org.dashj.platform.dapiclient.provider.ListDAPIAddressProvider
 import org.dashj.platform.dapiclient.provider.SimplifiedMasternodeListDAPIAddressProvider
 import org.dashj.platform.dapiclient.rest.DapiService
+import org.dashj.platform.dpp.identifier.Identifier
 import org.dashj.platform.dpp.statetransition.StateTransition
 import org.dashj.platform.dpp.statetransition.StateTransitionIdentitySigned
 import org.dashj.platform.dpp.toBase58
@@ -179,9 +186,9 @@ class DapiClient(
         val result = grpcRequest(method) as PlatformOuterClass.WaitForStateTransitionResultResponse
 
         return if (result.hasError()) {
-            WaitForStateTransitionResult(StateTransitionBroadcastException(result.error), ResponseMetaData(result.metadata))
+            WaitForStateTransitionResult(StateTransitionBroadcastException(result.error), ResponseMetadata(result.metadata))
         } else {
-            WaitForStateTransitionResult(Proof(result.proof), ResponseMetaData(result.metadata))
+            WaitForStateTransitionResult(Proof(result.proof), ResponseMetadata(result.metadata))
         }
     }
 
@@ -198,7 +205,7 @@ class DapiClient(
                 } else {
                     logger.error("waitForStateTransitionResult exception: $e")
                 }
-                WaitForStateTransitionResult(StateTransitionBroadcastException(e.status.code.value(), e.message ?: "", ByteArray(0)), ResponseMetaData(0, 0))
+                WaitForStateTransitionResult(StateTransitionBroadcastException(e.status.code.value(), e.message ?: "", ByteArray(0)), ResponseMetadata(0, 0))
             }
         }
     }
@@ -333,24 +340,24 @@ class DapiClient(
      * @param id String
      * @return ByteString?
      */
-    fun getIdentity(id: ByteArray, prove: Boolean = false, retryCallback: GrpcMethodShouldRetryCallback = defaultShouldRetryCallback): ByteString? {
-        logger.info("getIdentity(${id.toBase58()})")
+    fun getIdentity(id: ByteArray, prove: Boolean = false, retryCallback: GrpcMethodShouldRetryCallback = defaultShouldRetryCallback): GetIdentityResponse {
+        logger.info("getIdentity(${id.toBase58()}, $prove)")
         val method = GetIdentityMethod(id, prove)
         val response = grpcRequest(method, retryCallback = retryCallback) as PlatformOuterClass.GetIdentityResponse?
         return when {
             response == null -> {
-                null
+                throw NotFoundException("Identity ${Identifier.from(id)} does not exist")
             }
             prove && response.hasProof() -> {
                 val result = MerkVerifyProof.decode(Proof(response.proof).storeTreeProof)
                 if (result.isNotEmpty()) {
-                    ByteString.copyFrom(result[ByteArrayKey(id)])
+                    GetIdentityResponse(result[ByteArrayKey(id)]!!, Proof(response.proof), ResponseMetadata(response.metadata))
                 } else {
-                    null
+                    throw NotFoundException("Identity ${Identifier.from(id)} does not exist in the proof")
                 }
             }
             else -> {
-                return response.identity
+                return GetIdentityResponse(response)
             }
         }
     }
@@ -360,7 +367,6 @@ class DapiClient(
      * @param pubKeyHash ByteArray
      * @return ByteString?
      */
-    @OptIn(ExperimentalUnsignedTypes::class)
     fun getIdentityByFirstPublicKey(pubKeyHash: ByteArray, prove: Boolean = false): ByteString? {
         logger.info("getIdentityByFirstPublicKey(${pubKeyHash.toHexString()})")
         val method = GetIdentitiesByPublicKeyHashes(listOf(pubKeyHash), prove)
@@ -394,29 +400,23 @@ class DapiClient(
      * @param pubKeyHashes List<ByteArray>
      * @return List<ByteString>?
      */
-    fun getIdentitiesByPublicKeyHashes(pubKeyHashes: List<ByteArray>, prove: Boolean = false): List<ByteString>? {
-        logger.info("getIdentitiesByPublicKeyHashes(${pubKeyHashes.map { it.toHexString() }}")
+    fun getIdentitiesByPublicKeyHashes(pubKeyHashes: List<ByteArray>, prove: Boolean = false): GetIdentitiesByPublicKeyHashesResponse {
+        logger.info("getIdentitiesByPublicKeyHashes(${pubKeyHashes.map { it.toHexString() }}, $prove")
         val method = GetIdentitiesByPublicKeyHashes(pubKeyHashes, prove)
-        val response = grpcRequest(method) as PlatformOuterClass.GetIdentitiesByPublicKeyHashesResponse?
+        val response = grpcRequest(method) as PlatformOuterClass.GetIdentitiesByPublicKeyHashesResponse
 
         return when {
-            response == null -> {
-                null
-            }
             prove && response.hasProof() -> {
-                val result = MerkVerifyProof.decode(Proof(response.proof).storeTreeProof)
+                val proof = Proof(response.proof)
+                val result = MerkVerifyProof.decode(proof.storeTreeProof)
                 if (result.isNotEmpty()) {
-                    result.values.map { ByteString.copyFrom(it) }
+                    GetIdentitiesByPublicKeyHashesResponse(result.values.toList(), proof, ResponseMetadata(response.metadata))
                 } else {
-                    null
+                    GetIdentitiesByPublicKeyHashesResponse(listOf(), proof, ResponseMetadata(response.metadata))
                 }
             }
             else -> {
-                return if (response.identitiesCount > 0 && !response.identitiesList[0].isEmpty) {
-                    response.identitiesList
-                } else {
-                    null
-                }
+                GetIdentitiesByPublicKeyHashesResponse(response)
             }
         }
     }
@@ -427,7 +427,7 @@ class DapiClient(
      * @return String
      */
     fun getIdentityIdByFirstPublicKey(pubKeyHash: ByteArray, prove: Boolean = false): ByteString? {
-        logger.info("getIdentityIdByFirstPublicKey(${pubKeyHash.toHexString()})")
+        logger.info("getIdentityIdByFirstPublicKey(${pubKeyHash.toHexString()}, $prove)")
         val method = GetIdentityIdsByPublicKeyHashes(listOf(pubKeyHash), prove)
         val response = grpcRequest(method) as PlatformOuterClass.GetIdentityIdsByPublicKeyHashesResponse?
         return when {
@@ -458,29 +458,23 @@ class DapiClient(
      * @param pubKeyHashes List<ByteArray>
      * @return List<ByteString>?
      */
-    fun getIdentityIdsByPublicKeyHashes(pubKeyHashes: List<ByteArray>, prove: Boolean = false): List<ByteString>? {
-        logger.info("getIdentityIdsByPublicKeyHashes(${pubKeyHashes.map { it.toHexString() }}")
+    fun getIdentityIdsByPublicKeyHashes(pubKeyHashes: List<ByteArray>, prove: Boolean = false): GetIdentityIdsByPublicKeyHashesResponse {
+        logger.info("getIdentityIdsByPublicKeyHashes(${pubKeyHashes.map { it.toHexString() }}, $prove")
         val method = GetIdentityIdsByPublicKeyHashes(pubKeyHashes, prove)
-        val response = grpcRequest(method) as PlatformOuterClass.GetIdentityIdsByPublicKeyHashesResponse?
+        val response = grpcRequest(method) as PlatformOuterClass.GetIdentityIdsByPublicKeyHashesResponse
 
         return when {
-            response == null -> {
-                null
-            }
             prove && response.hasProof() -> {
-                val result = MerkVerifyProof.decode(Proof(response.proof).storeTreeProof)
+                val proof = Proof(response.proof)
+                val result = MerkVerifyProof.decode(proof.storeTreeProof)
                 if (result.isNotEmpty()) {
-                    result.values.map { ByteString.copyFrom(it) }
+                    GetIdentityIdsByPublicKeyHashesResponse(result.values.toList(), proof, ResponseMetadata(response.metadata))
                 } else {
-                    null
+                    GetIdentityIdsByPublicKeyHashesResponse(listOf(), proof, ResponseMetadata(response.metadata))
                 }
             }
             else -> {
-                return if (response.identityIdsCount > 0 && !response.identityIdsList[0].isEmpty) {
-                    response.identityIdsList
-                } else {
-                    null
-                }
+                GetIdentityIdsByPublicKeyHashesResponse(response)
             }
         }
     }
@@ -490,24 +484,25 @@ class DapiClient(
      * @param contractId String
      * @return ByteString? The contract bytes or null if not found
      */
-    fun getDataContract(contractId: ByteArray, prove: Boolean = false, retryCallback: GrpcMethodShouldRetryCallback = defaultShouldRetryCallback): ByteString? {
+    fun getDataContract(contractId: ByteArray, prove: Boolean = false, retryCallback: GrpcMethodShouldRetryCallback = defaultShouldRetryCallback): GetDataContractResponse {
         logger.info("getDataContract(${contractId.toBase58()})")
         val method = GetContractMethod(contractId, prove)
         val response = grpcRequest(method, retryCallback = retryCallback) as PlatformOuterClass.GetDataContractResponse?
         return when {
             response == null -> {
-                null
+                throw NotFoundException("DataContract ${Identifier.from(contractId)} does not exist")
             }
             prove && response.hasProof() -> {
-                val result = MerkVerifyProof.decode(Proof(response.proof).storeTreeProof)
+                val proof = Proof(response.proof)
+                val result = MerkVerifyProof.decode(proof.storeTreeProof)
                 if (result.isNotEmpty()) {
-                    ByteString.copyFrom(result[ByteArrayKey(contractId)])
+                    GetDataContractResponse(result[ByteArrayKey(contractId)]!!, proof, ResponseMetadata(response.metadata))
                 } else {
-                    null
+                    throw NotFoundException("DataContract ${Identifier.from(contractId)} does not exist in the proof")
                 }
             }
             else -> {
-                response.dataContract
+                GetDataContractResponse(response)
             }
         }
     }
@@ -520,21 +515,22 @@ class DapiClient(
      * and pagination
      * @return List<ByteArray>? a list of documents matching the provided parameters
      */
-    fun getDocuments(contractId: ByteArray, type: String, documentQuery: DocumentQuery, prove: Boolean = false, retryCallback: GrpcMethodShouldRetryCallback = DefaultGetDocumentsRetryCallback()): List<ByteArray> {
+    fun getDocuments(contractId: ByteArray, type: String, documentQuery: DocumentQuery, prove: Boolean = false, retryCallback: GrpcMethodShouldRetryCallback = DefaultGetDocumentsRetryCallback()): GetDocumentsResponse {
         logger.info("getDocuments(${contractId.toBase58()}, $type, ${documentQuery.toJSON()})")
         val method = GetDocumentsMethod(contractId, type, documentQuery, prove)
         val response = grpcRequest(method, retryCallback = retryCallback) as PlatformOuterClass.GetDocumentsResponse
         return when {
             prove && response.hasProof() -> {
-                val result = MerkVerifyProof.decode(Proof(response.proof).storeTreeProof)
+                val proof = Proof(response.proof)
+                val result = MerkVerifyProof.decode(proof.storeTreeProof)
                 if (result.isNotEmpty()) {
-                    result.values.map { it }
+                    GetDocumentsResponse(result.values.toList(), proof, ResponseMetadata(response.metadata))
                 } else {
-                    listOf()
+                    GetDocumentsResponse(listOf(), proof, ResponseMetadata(response.metadata))
                 }
             }
             else -> {
-                response.documentsList.map { it.toByteArray() }
+                GetDocumentsResponse(response)
             }
         }
     }
