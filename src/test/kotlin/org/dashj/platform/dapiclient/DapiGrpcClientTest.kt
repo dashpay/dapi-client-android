@@ -102,9 +102,9 @@ class DapiGrpcClientTest {
     fun getDPNSContractTest() {
         val client = DapiClient(masternodeList)
         try {
-            val contractBytes = client.getDataContract(dpnsContractId)
+            val contractResponse = client.getDataContract(dpnsContractId)
 
-            val contract = ContractFactory(stateRepository).createFromBuffer(contractBytes!!.toByteArray())
+            val contract = ContractFactory(stateRepository).createFromBuffer(contractResponse.dataContract)
             val jsonDpnsFile = File("src/test/resources/dpns-contract.json").readText()
             val jsonDpns = JSONObject(jsonDpnsFile)
             val rawContract = jsonDpns.toMap()
@@ -119,9 +119,9 @@ class DapiGrpcClientTest {
     fun getDashPayContractTest() {
         val client = DapiClient(masternodeList)
         try {
-            val contractBytes = client.getDataContract(dashPayContractId)
+            val contractResponse = client.getDataContract(dashPayContractId)
 
-            val contract = ContractFactory(stateRepository).createFromBuffer(contractBytes!!.toByteArray())
+            val contract = ContractFactory(stateRepository).createFromBuffer(contractResponse.dataContract)
             val jsonDpnsFile = File("src/test/resources/dashpay-contract.json").readText()
             val jsonDpns = JSONObject(jsonDpnsFile)
             val rawContract = jsonDpns.toMap()
@@ -152,18 +152,18 @@ class DapiGrpcClientTest {
                 .where(listOf("normalizedParentDomainName", "==", "dash").toMutableList())
                 // .where(listOf("normalizedLabel", "startsWith", "test").toMutableList())
                 .build()
-            val documents = client.getDocuments(dpnsContractId, "domain", query)
-            println(documents!![0].toHexString())
+            val documentsResponse = client.getDocuments(dpnsContractId, "domain", query)
+            println(documentsResponse.documents[0].toHexString())
 
             val jsonDpnsFile = File("src/test/resources/dpns-contract.json").readText()
             val jsonDpns = JSONObject(jsonDpnsFile)
             val rawContract = jsonDpns.toMap()
             val dpnsContract = ContractFactory(stateRepository).createFromObject(rawContract)
 
-            val document = Document(Cbor.decode(documents[0]), dpnsContract)
+            val document = Document(Cbor.decode(documentsResponse.documents[0]), dpnsContract)
 
-            val docs = ArrayList<Document>(documents.size)
-            for (d in documents) {
+            val docs = ArrayList<Document>(documentsResponse.documents.size)
+            for (d in documentsResponse.documents) {
                 docs.add(Document(Cbor.decode(d), dpnsContract))
             }
 
@@ -180,14 +180,14 @@ class DapiGrpcClientTest {
         val identityBytes = client.getIdentity(id)
         val badIdentityBytes = client.getIdentity(badId)
         assertEquals(null, badIdentityBytes)
-        val identity = IdentityFactory(stateRepository).createFromBuffer(identityBytes!!.toByteArray())
+        val identity = IdentityFactory(stateRepository).createFromBuffer(identityBytes.identity)
         println(JSONObject(identity.toJSON()).toString(2))
 
         val pubKeyHash = ECKey.fromPublicOnly(identity.getPublicKeyById(0)!!.data).pubKeyHash
         val identityByPublicKeyBytes = client.getIdentityByFirstPublicKey(pubKeyHash)
         val identitiesByPublicKeyHashes = client.getIdentitiesByPublicKeyHashes(listOf(pubKeyHash))
         val identityByPublicKey = IdentityFactory(stateRepository).createFromBuffer(identityByPublicKeyBytes!!.toByteArray())
-        val identityByPublicKeyHashes = IdentityFactory(stateRepository).createFromBuffer(identitiesByPublicKeyHashes!![0].toByteArray())
+        val identityByPublicKeyHashes = IdentityFactory(stateRepository).createFromBuffer(identitiesByPublicKeyHashes.identities[0])
         val identityIdByPublicKey = client.getIdentityIdByFirstPublicKey(pubKeyHash)
 
         val identityIdsByPublicKey = client.getIdentityIdsByPublicKeyHashes(listOf(pubKeyHash))
@@ -195,7 +195,7 @@ class DapiGrpcClientTest {
         assertEquals(identityIdString, identityByPublicKey.id.toString())
         assertEquals(identityIdString, identityByPublicKeyHashes!!.id.toString())
         assertArrayEquals(id, identityIdByPublicKey!!.toByteArray())
-        assertArrayEquals(id, identityIdsByPublicKey!![0].toByteArray())
+        assertArrayEquals(id, identityIdsByPublicKey.identityIds[0])
     }
 
     @Test

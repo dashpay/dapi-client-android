@@ -2,6 +2,7 @@ package org.dashj.platform.dapiclient
 
 import org.bitcoinj.core.Context
 import org.bitcoinj.params.SchnappsDevNetParams
+import org.dashj.platform.dapiclient.errors.NotFoundException
 import org.dashj.platform.dapiclient.model.DocumentQuery
 import org.dashj.platform.dpp.identifier.Identifier
 import org.dashj.platform.dpp.toHexString
@@ -33,16 +34,22 @@ class ProofTest {
         val client = DapiClient(masternodeList.toList())
         try {
             val identityBytes = client.getIdentity(identityId.toBuffer(), false)!!
-            println("identity: ${identityBytes.toByteArray().toHexString()}")
+            println("identity: ${identityBytes.identity.toHexString()}")
 
             val identityBytesWithProof = client.getIdentity(identityId.toBuffer(), true)!!
-            println("identity: ${identityBytesWithProof.toByteArray().toHexString()}")
+            println("identity: ${identityBytesWithProof.identity.toHexString()}")
 
-            val badIdentityBytes = client.getIdentity(badIdentityId.toBuffer(), false)
-            println("contract: $badIdentityBytes")
+            try {
+                client.getIdentity(badIdentityId.toBuffer(), false)
+            } catch (e: NotFoundException) {
+                println(e.message)
+            }
 
-            val badIdentityBytesWithProof = client.getIdentity(badIdentityId.toBuffer(), true)
-            println("contract: $badIdentityBytesWithProof")
+            try {
+                client.getIdentity(badIdentityId.toBuffer(), true)
+            } catch (e: NotFoundException) {
+                println(e.message)
+            }
         } catch (e: Exception) {
             fail("exception", e)
         }
@@ -55,21 +62,21 @@ class ProofTest {
             val query = DocumentQuery.Builder()
                 .where(listOf("normalizedParentDomainName", "==", "dash").toMutableList())
                 .build()
-            val documents = client.getDocuments(dpnsContractId.toBuffer(), "domain", query, false)
-            println("documents: ${documents.size}")
+            val documentsResponse = client.getDocuments(dpnsContractId.toBuffer(), "domain", query, false)
+            println("documents: ${documentsResponse.documents.size}")
 
             val documentsWithProof = client.getDocuments(dpnsContractId.toBuffer(), "domain", query, true)
-            println("documents: ${documentsWithProof.size}")
+            println("documents: ${documentsResponse.documents.size}")
 
             val badQuery = DocumentQuery.Builder()
                 .where(listOf("normalizedParentDomainName", "==", "dash").toMutableList())
                 .where(listOf("normalizedLabel", "startsWith", "8z9y7z").toMutableList())
                 .build()
-            val badDocuments = client.getDocuments(dpnsContractId.toBuffer(), "domain", badQuery, false)
-            println("documents: ${badDocuments.size}")
+            val badDocumentResponse = client.getDocuments(dpnsContractId.toBuffer(), "domain", badQuery, false)
+            println("documents: ${badDocumentResponse.documents.size}")
 
-            val badDocumentsWithProof = client.getDocuments(dpnsContractId.toBuffer(), "domain", badQuery, true)
-            println("documents: ${badDocumentsWithProof.size}")
+            val badDocumentsResponseWithProof = client.getDocuments(dpnsContractId.toBuffer(), "domain", badQuery, true)
+            println("documents: ${badDocumentsResponseWithProof.documents.size}")
         } catch (e: Exception) {
             fail("exception", e)
         }
@@ -80,16 +87,22 @@ class ProofTest {
         val client = DapiClient(masternodeList.toList())
         try {
             val contractBytes = client.getDataContract(dpnsContractId.toBuffer(), false)!!
-            println("contract: ${contractBytes.toByteArray().toHexString()}")
+            println("contract: ${contractBytes.dataContract}")
 
             val constractBytesWithProof = client.getDataContract(dpnsContractId.toBuffer(), true)!!
-            println("contract: ${constractBytesWithProof.toByteArray().toHexString()}")
+            println("contract: ${constractBytesWithProof.dataContract}")
 
-            val badContractBytes = client.getDataContract(badDpnsContractId.toBuffer(), false)
-            println("contract: $badContractBytes")
+            try {
+                client.getDataContract(badDpnsContractId.toBuffer(), false)
+            } catch (e: NotFoundException) {
+                println(e.message)
+            }
 
-            val badConstractBytesWithProof = client.getDataContract(badDpnsContractId.toBuffer(), true)
-            println("contract: $badConstractBytesWithProof")
+            try {
+                client.getDataContract(badDpnsContractId.toBuffer(), true)
+            } catch (e: NotFoundException) {
+                println(e.message)
+            }
         } catch (e: Exception) {
             fail("exception", e)
         }
@@ -139,17 +152,17 @@ class ProofTest {
     fun getIdentityIdsWithProof() {
         val client = DapiClient(masternodeList.toList())
         try {
-            val identityIds = client.getIdentityIdsByPublicKeyHashes(publicKeyHashes, false)!!
-            println("identity id: ${identityIds.map { it.toByteArray().toHexString()}}")
+            val response = client.getIdentityIdsByPublicKeyHashes(publicKeyHashes, false)!!
+            println("identity ids: ${response.identityIds.map { it.toHexString()}}")
 
-            val identityIdsWithProof = client.getIdentityIdsByPublicKeyHashes(publicKeyHashes, true)!!
-            println("identity id: ${identityIdsWithProof.map { it.toByteArray().toHexString()}}")
+            val responseWithProof = client.getIdentityIdsByPublicKeyHashes(publicKeyHashes, true)!!
+            println("identity ids: ${responseWithProof.identityIds.map { it.toHexString()}}")
 
-            val badIdentityIds = client.getIdentityIdsByPublicKeyHashes(badPublicKeyHashes, false)
-            println("identity id: $badIdentityIds")
+            val badResponse = client.getIdentityIdsByPublicKeyHashes(badPublicKeyHashes, false)
+            println("identity ids: ${badResponse.identityIds.size}")
 
-            val badIdentityIdsWithProof = client.getIdentityIdsByPublicKeyHashes(badPublicKeyHashes, true)
-            println("identity id: $badIdentityIdsWithProof")
+            val badResponseWithProof = client.getIdentityIdsByPublicKeyHashes(badPublicKeyHashes, true)
+            println("identity ids: ${badResponseWithProof.identityIds.size}")
         } catch (e: Exception) {
             fail("exception", e)
         }
@@ -159,17 +172,17 @@ class ProofTest {
     fun getIdentitiesWithProof() {
         val client = DapiClient(masternodeList.toList())
         try {
-            val identityIds = client.getIdentitiesByPublicKeyHashes(publicKeyHashes, false)!!
-            println("identities: ${identityIds.map { it.toByteArray().toHexString()}}")
+            val response = client.getIdentitiesByPublicKeyHashes(publicKeyHashes, false)!!
+            println("identities: ${response.identities.map { it.toHexString()}}")
 
-            val identityIdsWithProof = client.getIdentitiesByPublicKeyHashes(publicKeyHashes, true)!!
-            println("identities: ${identityIdsWithProof.map { it.toByteArray().toHexString()}}")
+            val responseWithProof = client.getIdentitiesByPublicKeyHashes(publicKeyHashes, true)!!
+            println("identities: ${responseWithProof.identities.map { it.toHexString()}}")
 
-            val badIdentityIds = client.getIdentitiesByPublicKeyHashes(badPublicKeyHashes, false)
-            println("identities: $badIdentityIds")
+            val badResponse = client.getIdentitiesByPublicKeyHashes(badPublicKeyHashes, false)
+            println("identities: $badResponse")
 
-            val badIdentityIdsWithProof = client.getIdentitiesByPublicKeyHashes(badPublicKeyHashes, true)
-            println("identities: $badIdentityIdsWithProof")
+            val badResponseWithProof = client.getIdentitiesByPublicKeyHashes(badPublicKeyHashes, true)
+            println("identities: $badResponseWithProof")
         } catch (e: Exception) {
             fail("exception", e)
         }
