@@ -126,6 +126,11 @@ artifacts {
     archives sourcesJar
 }
 
+tasks.withType(Test) {
+    systemProperty "java.library.path", "src/main/jniLibs"
+    println (systemProperties.get("java.library.path"))
+}
+
 publishing {
     tasks.withType(Sign)*.enabled = false
     publications {
