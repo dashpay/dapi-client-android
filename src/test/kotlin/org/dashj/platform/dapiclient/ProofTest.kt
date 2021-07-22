@@ -2,6 +2,7 @@ package org.dashj.platform.dapiclient
 
 import org.bitcoinj.core.Context
 import org.bitcoinj.params.SchnappsDevNetParams
+import org.dashj.merk.MerkVerifyProof
 import org.dashj.platform.dapiclient.errors.NotFoundException
 import org.dashj.platform.dapiclient.model.DocumentQuery
 import org.dashj.platform.dpp.identifier.Identifier
@@ -12,16 +13,20 @@ import org.junit.jupiter.api.fail
 
 class ProofTest {
 
+    init {
+        MerkVerifyProof.init()
+    }
+
     val PARAMS = SchnappsDevNetParams.get()
     val CONTEXT = Context.getOrCreate(PARAMS)
     val masternodeList = PARAMS.defaultMasternodeList.toList()
-    val dpnsContractId = Identifier.from("4BrYpaW5s26UWoBk9zEAYWxJANX7LFinmToprWo3VwgS") // DPNS contract
-    val dashPayContractId = Identifier.from("9FmdUoXZJijvARgA3Vcg73ThYp5P4AaLis1WpXp9VGg1")
-    val identityId = Identifier.from("FrdbRMnZ5pPiFWuzPR62goRVj6sxpqvLKMT87ZmuZPyr")
+    val dpnsContractId = Identifier.from("4KJF8PDRAw1rFrFTD95fE3QeutG47TwsJWjBs3wUhNWK") // DPNS contract
+    val dashPayContractId = Identifier.from("3RcLJv6CRo7arseKxt82swXQ5t7snaPdNsdP7Kv4LeEr")
+    val identityId = Identifier.from("LfhrjTK1VyCWo99DngZo7MmG1zX3VLcLBDPbv6PT4WU")
     val badDpnsContractId = Identifier.from("5BrYpaW5s26UWoBk9zEAYWxJANX7LFinmToprWo3VwgS") // DPNS contract
     val badDashPayContractId = Identifier.from("8FmdUoXZJijvARgA3Vcg73ThYp5P4AaLis1WpXp9VGg1")
     val badIdentityId = Identifier.from("GrdbRMnZ5pPiFWuzPR62goRVj6sxpqvLKMT87ZmuZPyr")
-    val publicKeyHash = HashUtils.fromHex("fa396d727565f94d26f85e7f8a4fe5418f97d7cb")
+    val publicKeyHash = HashUtils.fromHex("2ab14be3d3ff19b3e0c953e7e0e2705c66ea0948")
     val publicKeyHashes = listOf(publicKeyHash, HashUtils.fromHex("aad3374c8aa0059809d677bcb44c86d4e7746bb8"))
 
     val badPublicKeyHash = HashUtils.fromHex("ea396d727565f94d26f85e7f8a4fe5418f97d7cb")
