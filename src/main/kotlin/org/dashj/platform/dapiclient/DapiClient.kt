@@ -141,6 +141,8 @@ class DapiClient(
         if (banBaseTime != DEFAULT_BASE_BAN_TIME) {
             this.dapiAddressListProvider.setBanBaseTime(banBaseTime)
         }
+
+        MerkVerifyProof.init()
     }
 
     constructor(masternodeAddress: String, timeOut: Long = DEFAULT_TIMEOUT, retries: Int = DEFAULT_RETRY_COUNT, banBaseTime: Int = DEFAULT_BASE_BAN_TIME, waitForNodes: Int = DEFAULT_WAIT_FOR_NODES) :
@@ -349,9 +351,12 @@ class DapiClient(
                 throw NotFoundException("Identity ${Identifier.from(id)} does not exist")
             }
             prove && response.hasProof() -> {
-                val result = MerkVerifyProof.decode(Proof(response.proof).storeTreeProof)
+                val proof = Proof(response.proof)
+                logger.info("proof = $proof")
+
+                val result = MerkVerifyProof.extractProof(proof.storeTreeProof)
                 if (result.isNotEmpty()) {
-                    GetIdentityResponse(result[ByteArrayKey(id)]!!, Proof(response.proof), ResponseMetadata(response.metadata))
+                    GetIdentityResponse(result[ByteArrayKey(id)]!!, proof, ResponseMetadata(response.metadata))
                 } else {
                     throw NotFoundException("Identity ${Identifier.from(id)} does not exist in the proof")
                 }
@@ -377,7 +382,7 @@ class DapiClient(
             }
             prove && response.hasProof() -> {
                 // TODO: how do we check the proof?
-                val result = MerkVerifyProof.decode(Proof(response.proof).storeTreeProof)
+                val result = MerkVerifyProof.extractProof(Proof(response.proof).storeTreeProof)
                 if (result.isNotEmpty()) {
                     ByteString.copyFrom(result.values.first())
                 } else {
@@ -408,7 +413,7 @@ class DapiClient(
         return when {
             prove && response.hasProof() -> {
                 val proof = Proof(response.proof)
-                val result = MerkVerifyProof.decode(proof.storeTreeProof)
+                val result = MerkVerifyProof.extractProof(proof.storeTreeProof)
                 if (result.isNotEmpty()) {
                     GetIdentitiesByPublicKeyHashesResponse(result.values.toList(), proof, ResponseMetadata(response.metadata))
                 } else {
@@ -435,7 +440,8 @@ class DapiClient(
                 null
             }
             prove && response.hasProof() -> {
-                val result = MerkVerifyProof.decode(Proof(response.proof).storeTreeProof)
+                val result = MerkVerifyProof.extractProof(Proof(response.proof).storeTreeProof)
+
                 if (result.isNotEmpty()) {
                     ByteString.copyFrom(result.values.first())
                 } else {
@@ -443,7 +449,7 @@ class DapiClient(
                 }
             }
             else -> {
-                val firstResult = response?.identityIdsList?.get(0)
+                val firstResult = response.identityIdsList.get(0)
                 return if (firstResult != null && !firstResult.isEmpty) {
                     firstResult
                 } else {
@@ -466,7 +472,8 @@ class DapiClient(
         return when {
             prove && response.hasProof() -> {
                 val proof = Proof(response.proof)
-                val result = MerkVerifyProof.decode(proof.storeTreeProof)
+                val result = MerkVerifyProof.extractProof(proof.storeTreeProof)
+
                 if (result.isNotEmpty()) {
                     GetIdentityIdsByPublicKeyHashesResponse(result.values.toList(), proof, ResponseMetadata(response.metadata))
                 } else {
@@ -494,7 +501,8 @@ class DapiClient(
             }
             prove && response.hasProof() -> {
                 val proof = Proof(response.proof)
-                val result = MerkVerifyProof.decode(proof.storeTreeProof)
+                logger.info("proof = $proof")
+                val result = MerkVerifyProof.extractProof(proof.storeTreeProof)
                 if (result.isNotEmpty()) {
                     GetDataContractResponse(result[ByteArrayKey(contractId)]!!, proof, ResponseMetadata(response.metadata))
                 } else {
@@ -522,7 +530,8 @@ class DapiClient(
         return when {
             prove && response.hasProof() -> {
                 val proof = Proof(response.proof)
-                val result = MerkVerifyProof.decode(proof.storeTreeProof)
+                logger.info("proof = $proof")
+                val result = MerkVerifyProof.extractProof(proof.storeTreeProof)
                 if (result.isNotEmpty()) {
                     GetDocumentsResponse(result.values.toList(), proof, ResponseMetadata(response.metadata))
                 } else {

@@ -7,7 +7,7 @@ import org.dashj.platform.dpp.document.DocumentsBatchTransition
 import org.dashj.platform.dpp.identity.IdentityCreateTransition
 import org.dashj.platform.dpp.statetransition.StateTransitionIdentitySigned
 
-class MerkLibVerifyProof(stateTransition: StateTransitionIdentitySigned, val expectedHash: ByteArray) : DefaultVerifyProof(stateTransition) {
+class MerkLibVerifyProof(stateTransition: StateTransitionIdentitySigned/*, val expectedHash: ByteArray*/) : DefaultVerifyProof(stateTransition) {
     override fun verify(proof: Proof): Boolean {
         val values = MerkVerifyProof.decode(proof.storeTreeProof)
         if (values.isNotEmpty()) {
@@ -15,9 +15,10 @@ class MerkLibVerifyProof(stateTransition: StateTransitionIdentitySigned, val exp
                 is DocumentsBatchTransition -> {
                     val verifyMap = hashMapOf<ByteArrayKey, ByteArray>()
                     for (transition in stateTransition.transitions) {
-                        val result = MerkVerifyProof.verifyProof(proof.storeTreeProof, transition.id.toBuffer(), expectedHash)
+                        val result = MerkVerifyProof.extractProof(proof.storeTreeProof)
                         if (result.isNotEmpty()) {
-                            verifyMap[ByteArrayKey(transition.id.toBuffer())] = result
+                            val key = ByteArrayKey(transition.id.toBuffer())
+                            verifyMap[key] = result[key]!!
                         } else {
                             return false
                         }
@@ -25,17 +26,18 @@ class MerkLibVerifyProof(stateTransition: StateTransitionIdentitySigned, val exp
                     return verifyDocumentsBatchTransition(stateTransition, verifyMap)
                 }
                 is DataContractCreateTransition -> {
-                    val result = MerkVerifyProof.verifyProof(proof.storeTreeProof, stateTransition.dataContract.id.toBuffer(), expectedHash)
+                    val result = MerkVerifyProof.extractProof(proof.storeTreeProof)
+
                     return if (result.isNotEmpty()) {
-                        verifyDataContactCreateTransition(result, stateTransition)
+                        verifyDataContactCreateTransition(result[ByteArrayKey(stateTransition.dataContract.id.toBuffer())]!!, stateTransition)
                     } else {
                         false
                     }
                 }
                 is IdentityCreateTransition -> {
-                    val result = MerkVerifyProof.verifyProof(proof.storeTreeProof, stateTransition.identityId.toBuffer(), expectedHash)
+                    val result = MerkVerifyProof.extractProof(proof.storeTreeProof)
                     return if (result.isNotEmpty()) {
-                        verifyIdentityCreateTransition(stateTransition, result)
+                        verifyIdentityCreateTransition(stateTransition, result[ByteArrayKey(stateTransition.identityId.toBuffer())]!!)
                     } else {
                         false
                     }
