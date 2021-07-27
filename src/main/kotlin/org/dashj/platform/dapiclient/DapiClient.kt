@@ -249,6 +249,7 @@ class DapiClient(
                 throw e
             }
             broadcastStateTransitionAndWait(signedStateTransition, retryAttemptsLeft - 1, statusCheck, retryCallback)
+            return
         }
 
         var hasProof: Boolean = false
@@ -263,8 +264,8 @@ class DapiClient(
             for (future in futuresList) {
                 if (future.isDone && !finished.contains(future)) {
                     finished.add(future)
-                    hasProof = hasProof || future.get().proof != null
-                    logger.info("broadcastStateTransitionAndWait: ${finished.size} of $waitForNodes complete (hasProof = $hasProof)")
+                    hasProof = hasProof || (future.get().proof != null && future.get().proof!!.isValid())
+                    logger.info("broadcastStateTransitionAndWait: ${finished.size} of $waitForNodes complete (hasProof = $hasProof); proof = ${future.get().proof}")
                 }
             }
             lastWaitTime = System.currentTimeMillis()
@@ -281,6 +282,9 @@ class DapiClient(
         futuresList.forEach {
             if (!it.isDone) {
                 it.cancel(true)
+                if (it == futureWithProof) {
+                    logger.warn("canceling the future that was waiting for the proof")
+                }
             }
         }
 
@@ -304,7 +308,7 @@ class DapiClient(
 
         when {
             waitForResult == null -> {
-                logger.info("broadcastStateTransitionAndWait: failure: Timeout")
+                logger.info("broadcastStateTransitionAndWait: failure: Timeout or no proof returned")
                 throw StateTransitionBroadcastException(2, "Timeout", signedStateTransition.toBuffer())
             }
             successRate > 0.51 -> {
@@ -767,10 +771,10 @@ class DapiClient(
             address.markAsBanned()
             address.addException(e.status.code)
             if (retryAttemptsLeft == 0) {
-                throw org.dashj.platform.dapiclient.MaxRetriesReachedException(e)
+                throw MaxRetriesReachedException(e)
             }
             if (!dapiAddressListProvider.hasLiveAddresses()) {
-                throw org.dashj.platform.dapiclient.NoAvailableAddressesForRetryException(e)
+                throw NoAvailableAddressesForRetryException(e)
             }
         }
     }
