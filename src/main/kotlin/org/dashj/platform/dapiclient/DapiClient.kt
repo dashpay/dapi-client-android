@@ -319,7 +319,8 @@ class DapiClient(
                 logger.info("broadcastStateTransitionAndWait: failure: Timeout or no proof returned")
                 throw StateTransitionBroadcastException(2, "Timeout", signedStateTransition.toBuffer())
             }
-            successRate > 0.51 -> {
+            // count the proof as success
+            waitForResult.isSuccess() -> {
                 logger.info("broadcastStateTransitionAndWait: success ($successRate): ${waitForResult.proof}")
                 logger.info("root_tree_proof    : ${waitForResult.proof!!.rootTreeProof.toHexString()}")
                 logger.info("store_tree_proof   : ${waitForResult.proof.storeTreeProof.toHexString()}")
@@ -328,23 +329,29 @@ class DapiClient(
                 logger.info("state transition   : ${signedStateTransition.toBuffer().toHexString()}")
                 logger.info("ST Hash            : ${Sha256Hash.of(signedStateTransition.toBuffer())}")
                 logger.info("proof verification : ${verifyProof.verify(waitForResult.proof)}")
-                // TODO: do something with the proof here
+                logger.info("success rate       : $successRate")
             }
             waitForResult.isError() -> {
                 logger.info("broadcastStateTransitionAndWait: failure: ${waitForResult.error}")
-                if (!retryCallback.shouldRetry(broadcast!!, waitForResult.error!!)) {
+                if (!retryCallback.shouldRetry(broadcast, waitForResult.error!!)) {
                     throw waitForResult.error
                 }
                 broadcastStateTransitionAndWait(signedStateTransition, retryAttemptsLeft - 1, statusCheck, retryCallback)
+                return
             }
+            // success is more than 50% and there is no proof
+            successRate > 0.50 -> {
+                // we need to request the proof from a node
+            }
+            // success is less than 50% and there is no proof
             successRate <= 0.50 -> {
                 logger.info("broadcastStateTransitionAndWait: failure($successRate): ${waitForResult.error}")
                 Thread.sleep(3000)
                 // what do we do here?
-                if (!retryCallback.shouldRetry(broadcast!!, waitForResult.error!!)) {
+                if (!retryCallback.shouldRetry(broadcast, waitForResult.error!!)) {
                     throw waitForResult.error
                 }
-                // call wait functions only, not sure if this will work
+                // TODO: call wait functions only, not sure if this will work
             }
         }
     }
