@@ -9,15 +9,10 @@ package org.dashj.platform.dapiclient
 
 import com.google.common.base.Preconditions
 import com.google.common.base.Stopwatch
+import com.google.common.primitives.UnsignedBytes
 import com.google.protobuf.ByteString
 import io.grpc.Status
 import io.grpc.StatusRuntimeException
-import java.util.Date
-import java.util.concurrent.Callable
-import java.util.concurrent.CancellationException
-import java.util.concurrent.Executors
-import java.util.concurrent.Future
-import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import org.bitcoinj.core.BloomFilter
@@ -84,6 +79,12 @@ import org.dashj.platform.dpp.toHexString
 import org.slf4j.LoggerFactory
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.Date
+import java.util.concurrent.Callable
+import java.util.concurrent.CancellationException
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
 
 class DapiClient(
     var dapiAddressListProvider: DAPIAddressListProvider,
@@ -154,10 +155,10 @@ class DapiClient(
     }
 
     constructor(masternodeAddress: String, timeOut: Long = DEFAULT_TIMEOUT, retries: Int = DEFAULT_RETRY_COUNT, banBaseTime: Int = DEFAULT_BASE_BAN_TIME, waitForNodes: Int = DEFAULT_WAIT_FOR_NODES) :
-    this(listOf(masternodeAddress), timeOut, retries, banBaseTime, waitForNodes)
+        this(listOf(masternodeAddress), timeOut, retries, banBaseTime, waitForNodes)
 
     constructor(addresses: List<String>, timeOut: Long = DEFAULT_TIMEOUT, retries: Int = DEFAULT_RETRY_COUNT, banBaseTime: Int = DEFAULT_BASE_BAN_TIME, waitForNodes: Int = DEFAULT_WAIT_FOR_NODES) :
-    this(ListDAPIAddressProvider.fromList(addresses, banBaseTime), timeOut, retries, banBaseTime, waitForNodes)
+        this(ListDAPIAddressProvider.fromList(addresses, banBaseTime), timeOut, retries, banBaseTime, waitForNodes)
     /* Platform gRPC methods */
 
     /**
@@ -178,7 +179,7 @@ class DapiClient(
         statusCheck: Boolean = false,
         retryCallback: GrpcMethodShouldRetryCallback = DefaultShouldRetryCallback()
     ):
-    BroadcastStateTransitionMethod {
+        BroadcastStateTransitionMethod {
         logger.info("broadcastStateTransitionInternal(${stateTransition.toJSON()})")
         val method = BroadcastStateTransitionMethod(stateTransition)
         grpcRequest(method, statusCheck = statusCheck, retryCallback = retryCallback)
@@ -323,7 +324,7 @@ class DapiClient(
             waitForResult.isSuccess() -> {
                 logger.info("broadcastStateTransitionAndWait: success ($successRate): ${waitForResult.proof}")
                 logger.info("root_tree_proof    : ${waitForResult.proof!!.rootTreeProof.toHexString()}")
-                logger.info("store_tree_proof   : ${waitForResult.proof.storeTreeProof.toHexString()}")
+                logger.info("store_tree_proof   : ${waitForResult.proof.storeTreeProof}")
                 logger.info("signature_llmq_hash: ${waitForResult.proof.signatureLlmqHash.toHexString()}")
                 logger.info("signature          : ${waitForResult.proof.signature.toHexString()}")
                 logger.info("state transition   : ${signedStateTransition.toBuffer().toHexString()}")
@@ -374,12 +375,26 @@ class DapiClient(
                 logger.info("proof = $proof")
 
                 val result = if (fullVerification) {
-                    MerkVerifyProof.extractProof(proof.storeTreeProof)
+                    MerkVerifyProof.extractProof(proof.storeTreeProof.identitiesProof)
                 } else {
-                    MerkVerifyProof.decode(proof.storeTreeProof)
+                    MerkVerifyProof.decode(proof.storeTreeProof.identitiesProof)
                 }
                 if (result.isNotEmpty()) {
-                    GetIdentityResponse(result[ByteArrayKey(id)]!!, proof, ResponseMetadata(response.metadata))
+                    val key = ByteArrayKey(id)
+                    if (result.size == 1) {
+                        GetIdentityResponse(result[key]!!, proof, ResponseMetadata(response.metadata))
+                    } else {
+                        // noninclusion proof
+                        val firstKey = result.keys.first().toByteArray()
+                        val secondKey = result.keys.last().toByteArray()
+                        if (UnsignedBytes.lexicographicalComparator().compare(firstKey, id) > 0 &&
+                            UnsignedBytes.lexicographicalComparator().compare(id, secondKey) > 0
+                        ) {
+                            logger.info("Noninclusion proof ${firstKey.toHexString()} < ${key.toByteArray().toHexString()} < ${secondKey.toHexString()}")
+                            throw NotFoundException("Identity ${Identifier.from(id)} does not exist in the proof")
+                        }
+                        throw NotFoundException("Identity ${Identifier.from(id)} does not exist in the proof")
+                    }
                 } else {
                     throw NotFoundException("Identity ${Identifier.from(id)} does not exist in the proof")
                 }
@@ -407,9 +422,9 @@ class DapiClient(
                 // TODO: how do we check the proof?
                 val proof = Proof(response.proof)
                 val result = if (fullVerification) {
-                    MerkVerifyProof.extractProof(proof.storeTreeProof)
+                    MerkVerifyProof.extractProof(proof.storeTreeProof.publicKeyHashesToIdentityIdsProof)
                 } else {
-                    MerkVerifyProof.decode(proof.storeTreeProof)
+                    MerkVerifyProof.decode(proof.storeTreeProof.publicKeyHashesToIdentityIdsProof)
                 }
                 if (result.isNotEmpty()) {
                     ByteString.copyFrom(result.values.first())
@@ -442,9 +457,9 @@ class DapiClient(
             prove && response.hasProof() -> {
                 val proof = Proof(response.proof)
                 val result = if (fullVerification) {
-                    MerkVerifyProof.extractProof(proof.storeTreeProof)
+                    MerkVerifyProof.extractProof(proof.storeTreeProof.publicKeyHashesToIdentityIdsProof)
                 } else {
-                    MerkVerifyProof.decode(proof.storeTreeProof)
+                    MerkVerifyProof.decode(proof.storeTreeProof.publicKeyHashesToIdentityIdsProof)
                 }
                 if (result.isNotEmpty()) {
                     GetIdentitiesByPublicKeyHashesResponse(result.values.toList(), proof, ResponseMetadata(response.metadata))
@@ -474,9 +489,9 @@ class DapiClient(
             prove && response.hasProof() -> {
                 val proof = Proof(response.proof)
                 val result = if (fullVerification) {
-                    MerkVerifyProof.extractProof(proof.storeTreeProof)
+                    MerkVerifyProof.extractProof(proof.storeTreeProof.publicKeyHashesToIdentityIdsProof)
                 } else {
-                    MerkVerifyProof.decode(proof.storeTreeProof)
+                    MerkVerifyProof.decode(proof.storeTreeProof.publicKeyHashesToIdentityIdsProof)
                 }
                 if (result.isNotEmpty()) {
                     ByteString.copyFrom(result.values.first())
@@ -509,9 +524,9 @@ class DapiClient(
             prove && response.hasProof() -> {
                 val proof = Proof(response.proof)
                 val result = if (fullVerification) {
-                    MerkVerifyProof.extractProof(proof.storeTreeProof)
+                    MerkVerifyProof.extractProof(proof.storeTreeProof.publicKeyHashesToIdentityIdsProof)
                 } else {
-                    MerkVerifyProof.decode(proof.storeTreeProof)
+                    MerkVerifyProof.decode(proof.storeTreeProof.publicKeyHashesToIdentityIdsProof)
                 }
                 if (result.isNotEmpty()) {
                     GetIdentityIdsByPublicKeyHashesResponse(result.values.toList(), proof, ResponseMetadata(response.metadata))
@@ -542,12 +557,33 @@ class DapiClient(
                 val proof = Proof(response.proof)
                 logger.info("proof = $proof")
                 val result = if (fullVerification) {
-                    MerkVerifyProof.extractProof(proof.storeTreeProof)
+                    MerkVerifyProof.extractProof(proof.storeTreeProof.dataContractsProof)
                 } else {
-                    MerkVerifyProof.decode(proof.storeTreeProof)
+                    MerkVerifyProof.decode(proof.storeTreeProof.dataContractsProof)
                 }
                 if (result.isNotEmpty()) {
-                    GetDataContractResponse(result[ByteArrayKey(contractId)]!!, proof, ResponseMetadata(response.metadata))
+                    val key = ByteArrayKey(contractId)
+                    if (result.containsKey(key)) {
+                        val value = result[ByteArrayKey(contractId)]!!
+                        GetDataContractResponse(
+                            value,
+                            proof,
+                            ResponseMetadata(response.metadata)
+                        )
+                    } else {
+                        // non-inclusion proof
+                        if (result.size == 2) {
+                            val firstKey = result.keys.first().toByteArray()
+                            val secondKey = result.keys.last().toByteArray()
+                            if (UnsignedBytes.lexicographicalComparator().compare(firstKey, contractId) < 0 &&
+                                UnsignedBytes.lexicographicalComparator().compare(contractId, secondKey) < 0
+                            ) {
+                                logger.info("Noninclusion proof ${firstKey.toHexString()} < ${key.toByteArray().toHexString()} < ${secondKey.toHexString()}")
+                                throw NotFoundException("DataContract ${Identifier.from(contractId)} does not exist in the proof")
+                            }
+                        }
+                        throw NotFoundException("DataContract ${Identifier.from(contractId)} does not exist in the proof")
+                    }
                 } else {
                     throw NotFoundException("DataContract ${Identifier.from(contractId)} does not exist in the proof")
                 }
@@ -575,9 +611,9 @@ class DapiClient(
                 val proof = Proof(response.proof)
                 logger.info("proof = $proof")
                 val result = if (fullVerification) {
-                    MerkVerifyProof.extractProof(proof.storeTreeProof)
+                    MerkVerifyProof.extractProof(proof.storeTreeProof.documentsProof)
                 } else {
-                    MerkVerifyProof.decode(proof.storeTreeProof)
+                    MerkVerifyProof.decode(proof.storeTreeProof.documentsProof)
                 }
                 if (result.isNotEmpty()) {
                     GetDocumentsResponse(result.values.toList(), proof, ResponseMetadata(response.metadata))
