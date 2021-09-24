@@ -19,7 +19,7 @@ import org.dashj.platform.dpp.document.DocumentCreateTransition
 import org.dashj.platform.dpp.document.DocumentsBatchTransition
 import org.dashj.platform.dpp.identifier.Identifier
 import org.dashj.platform.dpp.identity.IdentityCreateTransition
-import org.dashj.platform.dpp.identity.IdentityTopupTransition
+import org.dashj.platform.dpp.identity.IdentityTopUpTransition
 import org.dashj.platform.dpp.statetransition.StateTransition
 import org.dashj.platform.dpp.toBase64
 import org.dashj.platform.dpp.util.HashUtils
@@ -321,7 +321,7 @@ open class BroadcastRetryCallback(
                 logger.info("---looking for ${stateTransition.dataContract.ownerId} in $retryIdentityIds")
                 retryIdentityIds.contains(stateTransition.dataContract.ownerId)
             }
-            is IdentityTopupTransition -> {
+            is IdentityTopUpTransition -> {
                 logger.info("---looking for ${stateTransition.identityId} in $retryIdentityIds")
                 retryIdentityIds.contains(stateTransition.identityId)
             }
