@@ -2,6 +2,8 @@ package org.dashj.platform.dapiclient.model
 
 import org.dashj.merk.ByteArrayKey
 import org.dashj.merk.MerkVerifyProof
+import org.dashj.platform.dpp.Factory
+import org.dashj.platform.dpp.ProtocolVersion
 import org.dashj.platform.dpp.contract.DataContractCreateTransition
 import org.dashj.platform.dpp.document.DocumentCreateTransition
 import org.dashj.platform.dpp.document.DocumentDeleteTransition
@@ -10,21 +12,25 @@ import org.dashj.platform.dpp.document.DocumentsBatchTransition
 import org.dashj.platform.dpp.identifier.Identifier
 import org.dashj.platform.dpp.identity.IdentityCreateTransition
 import org.dashj.platform.dpp.statetransition.StateTransitionIdentitySigned
-import org.dashj.platform.dpp.util.Cbor
 
 open class DefaultVerifyProof(protected val stateTransition: StateTransitionIdentitySigned) : VerifyProof() {
     override fun verify(proof: Proof): Boolean {
-        val values = MerkVerifyProof.decode(proof.storeTreeProof)
-        val hash = MerkVerifyProof.decodeRootHash(proof.storeTreeProof)
-        if (values.isNotEmpty()) {
-            when (stateTransition) {
-                is DocumentsBatchTransition -> {
+        when (stateTransition) {
+            is DocumentsBatchTransition -> {
+                val values = MerkVerifyProof.decode(proof.storeTreeProof.documentsProof)
+                if (values.isNotEmpty()) {
                     return verifyDocumentsBatchTransition(stateTransition, values)
                 }
-                is DataContractCreateTransition -> {
+            }
+            is DataContractCreateTransition -> {
+                val values = MerkVerifyProof.decode(proof.storeTreeProof.documentsProof)
+                if (values.isNotEmpty()) {
                     return verifyDataContactCreateTransition(values[values.keys.first()]!!, stateTransition)
                 }
-                is IdentityCreateTransition -> {
+            }
+            is IdentityCreateTransition -> {
+                val values = MerkVerifyProof.decode(proof.storeTreeProof.documentsProof)
+                if (values.isNotEmpty()) {
                     return verifyIdentityCreateTransition(stateTransition, values[values.keys.first()]!!)
                 }
             }
@@ -76,7 +82,7 @@ open class DefaultVerifyProof(protected val stateTransition: StateTransitionIden
             rawDocument["\$ownerId"] = stateTransition.ownerId
             val rawDocumentFromProofBytes = values[ByteArrayKey(transition.id.toBuffer())]
             if (rawDocumentFromProofBytes != null) {
-                val rawDocumentFromProof = Cbor.decode(rawDocumentFromProofBytes)
+                val rawDocumentFromProof = Factory.decodeProtocolEntity(rawDocumentFromProofBytes, ProtocolVersion.latestVersion).second
                 when (transition) {
                     is DocumentCreateTransition -> {
                         rawDocument.remove("\$entropy")
@@ -101,7 +107,7 @@ open class DefaultVerifyProof(protected val stateTransition: StateTransitionIden
         value: ByteArray,
         stateTransition: DataContractCreateTransition
     ): Boolean {
-        val match = Cbor.decode(value) == stateTransition.dataContract.toObject()
+        val match = Factory.decodeProtocolEntity(value, ProtocolVersion.latestVersion) == stateTransition.dataContract.toObject()
         if (!match) {
             return false
         }
@@ -119,7 +125,7 @@ open class DefaultVerifyProof(protected val stateTransition: StateTransitionIden
         rawIdentity.remove("assetLockProof")
         rawIdentity.remove("type")
 
-        val rawIdentityFromProof = Cbor.decode(value)
+        val rawIdentityFromProof = Factory.decodeProtocolEntity(value, ProtocolVersion.latestVersion).second
         rawIdentityFromProof.remove("balance")
 
         val publicKeysFromProof = rawIdentityFromProof["publicKeys"] as List<Map<String, Any?>>
