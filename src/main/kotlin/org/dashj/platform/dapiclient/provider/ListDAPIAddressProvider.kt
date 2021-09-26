@@ -19,6 +19,7 @@ class ListDAPIAddressProvider(var addresses: List<DAPIAddress>, var baseBanTime:
         }
     }
     private val alwaysBanAddresses = arrayListOf<String>()
+    private val whiteList = arrayListOf<String>()
 
     override fun getLiveAddress(): DAPIAddress {
         val liveAddresses = getLiveAddresses()
@@ -40,6 +41,7 @@ class ListDAPIAddressProvider(var addresses: List<DAPIAddress>, var baseBanTime:
         return addresses.filter {
             when {
                 alwaysBanAddresses.contains(it.host) -> false
+                whiteList.isNotEmpty() && !whiteList.contains(it.host) -> false
 
                 !it.isBanned -> true
 
@@ -62,6 +64,10 @@ class ListDAPIAddressProvider(var addresses: List<DAPIAddress>, var baseBanTime:
 
     override fun addBannedAddress(address: String) {
         alwaysBanAddresses.add(address)
+    }
+
+    override fun addAcceptedAddress(address: String) {
+        whiteList.add(address)
     }
 
     override fun setBanBaseTime(banBaseTime: Int) {

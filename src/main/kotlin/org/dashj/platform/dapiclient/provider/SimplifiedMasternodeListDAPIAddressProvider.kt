@@ -17,6 +17,7 @@ class SimplifiedMasternodeListDAPIAddressProvider(
 
     val backupListProvider: ListDAPIAddressProvider
     private val alwaysBanAddresses = arrayListOf<String>()
+    private val whiteList = arrayListOf<String>()
 
     init {
         backupListProvider = ListDAPIAddressProvider(listProvider.getAllAddresses(), listProvider.baseBanTime)
@@ -46,7 +47,7 @@ class SimplifiedMasternodeListDAPIAddressProvider(
                     } else {
                         address.host = it.service.socketAddress.hostString
                     }
-                    if (!alwaysBanAddresses.contains(address.host)) {
+                    if (!alwaysBanAddresses.contains(address.host) && whiteList.contains(address.host)) {
                         updatedAddresses.add(address)
                     }
                 }
@@ -68,6 +69,10 @@ class SimplifiedMasternodeListDAPIAddressProvider(
 
     override fun addBannedAddress(address: String) {
         alwaysBanAddresses.add(address)
+    }
+
+    override fun addAcceptedAddress(address: String) {
+        whiteList.add(address)
     }
 
     override fun setBanBaseTime(banBaseTime: Int) {

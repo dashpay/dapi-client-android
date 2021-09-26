@@ -10,6 +10,7 @@ interface DAPIAddressListProvider {
     fun getLiveAddress(): DAPIAddress
     fun hasLiveAddresses(): Boolean
     fun addBannedAddress(address: String)
+    fun addAcceptedAddress(address: String)
     fun setBanBaseTime(banBaseTime: Int)
 
     fun getStatistics(): String
