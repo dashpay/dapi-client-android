@@ -297,7 +297,7 @@ class DapiClient(
             }
         }
 
-        val waitForResult = if (hasProof && !futureWithProof.isCancelled) {
+        val waitForResult = if (!futureWithProof.isCancelled) {
             futureWithProof.get()
         } else {
             null
