@@ -7,10 +7,21 @@
 
 package org.dashj.platform.dapiclient.model
 
-import org.dashj.platform.dpp.toHexString
+import org.dashj.platform.dpp.toHex
 
-data class Proof(val rootTreeProof: ByteArray, val storeTreeProof: StoreTreeProofs, val signatureLlmqHash: ByteArray, val signature: ByteArray) {
-    constructor(proof: org.dash.platform.dapi.v0.PlatformOuterClass.Proof) : this(proof.rootTreeProof.toByteArray(), StoreTreeProofs(proof.storeTreeProofs), proof.signatureLlmqHash.toByteArray(), proof.signature.toByteArray())
+data class Proof(
+    val rootTreeProof: ByteArray,
+    val storeTreeProof: StoreTreeProofs,
+    val signatureLlmqHash: ByteArray,
+    val signature: ByteArray
+) {
+    constructor(proof: org.dash.platform.dapi.v0.PlatformOuterClass.Proof) :
+    this(
+        proof.rootTreeProof.toByteArray(),
+        StoreTreeProofs(proof.storeTreeProofs),
+        proof.signatureLlmqHash.toByteArray(),
+        proof.signature.toByteArray()
+    )
 
     val type = when {
         storeTreeProof.documentsProof.isNotEmpty() -> "documentProof"
@@ -25,6 +36,9 @@ data class Proof(val rootTreeProof: ByteArray, val storeTreeProof: StoreTreeProo
     }
 
     override fun toString(): String {
-        return "Proof(rootTreeProof: ${rootTreeProof.toHexString()}\n  storeTreeProof: $storeTreeProof\n  signatureLlmqHash: ${signatureLlmqHash.toHexString()}\n  signature: ${signature.toHexString()}"
+        return "Proof(rootTreeProof: ${rootTreeProof.toHex()}\n" +
+            "  storeTreeProof: $storeTreeProof\n" +
+            "  signatureLlmqHash: ${signatureLlmqHash.toHex()}\n" +
+            "  signature: ${signature.toHex()}"
     }
 }
