@@ -10,8 +10,9 @@ import org.dashj.platform.dpp.identifier.Identifier
 import org.dashj.platform.dpp.identity.Identity
 
 class StateRepositoryMock : StateRepository {
+    val dataContracts = hashMapOf<Identifier, DataContract>()
     override fun fetchDataContract(id: Identifier): DataContract? {
-        TODO("Not yet implemented")
+        return dataContracts[id]
     }
 
     override fun fetchDocuments(contractId: Identifier, type: String, where: Any): List<Document> {
@@ -43,7 +44,7 @@ class StateRepositoryMock : StateRepository {
     }
 
     override fun storeDataContract(dataContract: DataContract) {
-        TODO("Not yet implemented")
+        dataContracts[dataContract.id] = dataContract
     }
 
     override fun storeDocument(document: Document) {
