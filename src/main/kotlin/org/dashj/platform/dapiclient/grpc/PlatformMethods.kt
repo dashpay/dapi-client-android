@@ -108,7 +108,7 @@ class GetIdentityIdsByPublicKeyHashes(private val pubKeyHashes: List<ByteArray>,
     }
 
     override fun toString(): String {
-        return "getIdentityIdsByPublicKeyHashes(${pubKeyHashes.map { it.toHexString() }}, $prove)"
+        return "getIdentityIdsByPublicKeyHashes(${pubKeyHashes.map { it.toHex() }}, $prove)"
     }
 }
 

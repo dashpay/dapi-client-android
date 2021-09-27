@@ -10,7 +10,7 @@ package org.dashj.platform.dapiclient.grpc
 import com.google.protobuf.ByteString
 import org.dash.platform.dapi.v0.PlatformOuterClass
 import org.dashj.platform.dapiclient.provider.DAPIGrpcMasternode
-import org.dashj.platform.dpp.toHexString
+import org.dashj.platform.dpp.toHex
 
 class WaitForStateTransitionResultMethod(val hash: ByteArray, val prove: Boolean) : GrpcMethod {
 
@@ -24,6 +24,6 @@ class WaitForStateTransitionResultMethod(val hash: ByteArray, val prove: Boolean
     }
 
     override fun toString(): String {
-        return "waitForStateTransitionResult(hash=${hash.toHexString()}, prove=$prove)"
+        return "waitForStateTransitionResult(hash=${hash.toHex()}, prove=$prove)"
     }
 }
