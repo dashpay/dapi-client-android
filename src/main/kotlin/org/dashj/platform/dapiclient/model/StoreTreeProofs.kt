@@ -24,10 +24,20 @@ class StoreTreeProofs(
     )
 
     override fun toString(): String {
-        return "StoreTreeProofs(\n" +
-            " identitiesProof: ${identitiesProof.toHex()}\n" +
-            " publicKeyHashesToIdentityIdsProof: ${publicKeyHashesToIdentityIdsProof.toHex()}\n" +
-            " dataContractsProof: ${dataContractsProof.toHex()}\n" +
-            " documentsProof: ${documentsProof.toHex()})"
+        val builder = StringBuilder()
+        builder.append("StoreTreeProofs ->\n")
+        if (identitiesProof.isNotEmpty()) {
+            builder.append(" identitiesProof: ${identitiesProof.toHex()}\n")
+        }
+        if (publicKeyHashesToIdentityIdsProof.isNotEmpty()) {
+            builder.append(" publicKeyHashesToIdentityIdsProof: ${publicKeyHashesToIdentityIdsProof.toHex()}\n")
+        }
+        if (dataContractsProof.isNotEmpty()) {
+            builder.append(" dataContractsProof: ${dataContractsProof.toHex()}\n")
+        }
+        if (documentsProof.isNotEmpty()) {
+            builder.append(" documentsProof: ${documentsProof.toHex()}")
+        }
+        return builder.toString()
     }
 }
