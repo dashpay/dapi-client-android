@@ -13,9 +13,14 @@ import org.dashj.platform.dapiclient.model.DocumentQuery
 import org.dashj.platform.dapiclient.provider.DAPIGrpcMasternode
 import org.dashj.platform.dpp.statetransition.StateTransition
 import org.dashj.platform.dpp.toBase58
-import org.dashj.platform.dpp.toHexString
+import org.dashj.platform.dpp.toHex
 
-class GetDocumentsMethod(private val contractId: ByteArray, private val type: String, private val documentQuery: DocumentQuery, private val prove: Boolean) : GrpcMethod {
+class GetDocumentsMethod(
+    private val contractId: ByteArray,
+    private val type: String,
+    private val documentQuery: DocumentQuery,
+    private val prove: Boolean
+) : GrpcMethod {
 
     val request: PlatformOuterClass.GetDocumentsRequest
 
