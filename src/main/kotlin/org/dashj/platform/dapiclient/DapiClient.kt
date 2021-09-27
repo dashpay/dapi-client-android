@@ -13,6 +13,12 @@ import com.google.common.primitives.UnsignedBytes
 import com.google.protobuf.ByteString
 import io.grpc.Status
 import io.grpc.StatusRuntimeException
+import java.util.Date
+import java.util.concurrent.Callable
+import java.util.concurrent.CancellationException
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import org.bitcoinj.core.BloomFilter
@@ -71,6 +77,7 @@ import org.dashj.platform.dapiclient.provider.DAPIGrpcMasternode
 import org.dashj.platform.dapiclient.provider.ListDAPIAddressProvider
 import org.dashj.platform.dapiclient.provider.SimplifiedMasternodeListDAPIAddressProvider
 import org.dashj.platform.dapiclient.rest.DapiService
+import org.dashj.platform.dpp.errors.concensus.ConcensusException
 import org.dashj.platform.dpp.identifier.Identifier
 import org.dashj.platform.dpp.statetransition.StateTransition
 import org.dashj.platform.dpp.statetransition.StateTransitionIdentitySigned
@@ -79,12 +86,6 @@ import org.dashj.platform.dpp.toHexString
 import org.slf4j.LoggerFactory
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import java.util.Date
-import java.util.concurrent.Callable
-import java.util.concurrent.CancellationException
-import java.util.concurrent.Executors
-import java.util.concurrent.Future
-import java.util.concurrent.TimeUnit
 
 class DapiClient(
     var dapiAddressListProvider: DAPIAddressListProvider,
@@ -155,10 +156,10 @@ class DapiClient(
     }
 
     constructor(masternodeAddress: String, timeOut: Long = DEFAULT_TIMEOUT, retries: Int = DEFAULT_RETRY_COUNT, banBaseTime: Int = DEFAULT_BASE_BAN_TIME, waitForNodes: Int = DEFAULT_WAIT_FOR_NODES) :
-        this(listOf(masternodeAddress), timeOut, retries, banBaseTime, waitForNodes)
+    this(listOf(masternodeAddress), timeOut, retries, banBaseTime, waitForNodes)
 
     constructor(addresses: List<String>, timeOut: Long = DEFAULT_TIMEOUT, retries: Int = DEFAULT_RETRY_COUNT, banBaseTime: Int = DEFAULT_BASE_BAN_TIME, waitForNodes: Int = DEFAULT_WAIT_FOR_NODES) :
-        this(ListDAPIAddressProvider.fromList(addresses, banBaseTime), timeOut, retries, banBaseTime, waitForNodes)
+    this(ListDAPIAddressProvider.fromList(addresses, banBaseTime), timeOut, retries, banBaseTime, waitForNodes)
     /* Platform gRPC methods */
 
     /**
@@ -179,7 +180,7 @@ class DapiClient(
         statusCheck: Boolean = false,
         retryCallback: GrpcMethodShouldRetryCallback = DefaultShouldRetryCallback()
     ):
-        BroadcastStateTransitionMethod {
+    BroadcastStateTransitionMethod {
         logger.info("broadcastStateTransitionInternal(${stateTransition.toJSON()})")
         val method = BroadcastStateTransitionMethod(stateTransition)
         grpcRequest(method, statusCheck = statusCheck, retryCallback = retryCallback)
