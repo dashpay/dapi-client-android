@@ -1,33 +1,20 @@
 package org.dashj.platform.dapiclient.model
 
-import com.squareup.moshi.JsonAdapter
-import com.squareup.moshi.Moshi
-import com.squareup.moshi.Types
 import io.grpc.StatusRuntimeException
+import org.dashj.platform.dpp.errors.ErrorMetadata
+import org.dashj.platform.dpp.errors.concensus.ConcensusException
 
 class GrpcExceptionInfo(trailers: String) {
-    val errors = arrayListOf<Map<String, Any>>()
+    val exception: ConcensusException
 
     constructor(statusRuntimeException: StatusRuntimeException) : this(statusRuntimeException.trailers.toString())
 
     init {
-        val cursor = trailers.findAnyOf(listOf("errors="))
-        val end = trailers.findLastAnyOf(listOf(")"))
-        val endpos = end?.first ?: trailers.length
-        if (cursor != null) {
-            val errorString = trailers.substring(cursor.first + 7, endpos)
-            val json = "{errors: $errorString }"
-            val moshi = Moshi.Builder().build()
-            val map = Types.newParameterizedType(MutableMap::class.java, String::class.java, Any::class.java)
-            val adapter: JsonAdapter<Map<String, Any>> = moshi.adapter<Map<String, Any>>(map).lenient()
-            val errorMap = adapter.fromJson(json)
-            if (errorMap != null && errorMap.containsKey("errors")) {
-                errors.addAll(errorMap["errors"] as List<Map<String, Any>>)
-            }
-        }
+        val metadata = ErrorMetadata(trailers)
+        exception = ConcensusException.create(metadata.code, metadata.arguments)
     }
 
     override fun toString(): String {
-        return errors.toString()
+        return exception.toString()
     }
 }

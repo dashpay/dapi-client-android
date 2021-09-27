@@ -992,9 +992,9 @@ class DapiClient(
         return dapiService
     }
 
-    fun extractException(exception: StatusRuntimeException): List<Map<String, Any>> {
+    fun extractException(exception: StatusRuntimeException): ConcensusException {
         val trailers = GrpcExceptionInfo(exception)
-        return trailers.errors
+        return trailers.exception
     }
 
     fun setSimplifiedMasternodeListManager(simplifiedMasternodeListManager: SimplifiedMasternodeListManager, defaultList: List<String>) {

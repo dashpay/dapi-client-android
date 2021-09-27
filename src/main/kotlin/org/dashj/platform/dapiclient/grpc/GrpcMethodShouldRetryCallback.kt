@@ -11,6 +11,7 @@ import io.grpc.Status
 import io.grpc.StatusRuntimeException
 import org.dashj.platform.dapiclient.DapiClient
 import org.dashj.platform.dapiclient.model.GrpcExceptionInfo
+import org.dashj.platform.dpp.errors.concensus.basic.datacontract.InvalidDataContractIdException
 import org.dashj.platform.dpp.identifier.Identifier
 import org.slf4j.LoggerFactory
 
@@ -67,8 +68,8 @@ open class DefaultGetDocumentsWithContractIdRetryCallback(protected open val ret
     override fun shouldRetry(grpcMethod: GrpcMethod, e: StatusRuntimeException): Boolean {
         grpcMethod as GetDocumentsMethod
         if (e.status.code == Status.INVALID_ARGUMENT.code) {
-            val error = GrpcExceptionInfo(e).errors[0]
-            if (error.containsKey("name") && error["name"] == "InvalidContractIdError") {
+            val error = GrpcExceptionInfo(e).exception
+            if (error is InvalidDataContractIdException) {
                 if (retryContractIds.contains(Identifier.from(grpcMethod.request.dataContractId.toByteArray()))) {
                     logger.info("Retry ${grpcMethod.javaClass.simpleName} ${e.status.code} since error was InvalidContractIdError")
                     return true

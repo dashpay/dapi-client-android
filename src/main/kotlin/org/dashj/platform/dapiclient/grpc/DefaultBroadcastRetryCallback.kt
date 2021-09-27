@@ -17,6 +17,11 @@ import org.dashj.platform.dpp.StateRepository
 import org.dashj.platform.dpp.contract.DataContractCreateTransition
 import org.dashj.platform.dpp.document.DocumentCreateTransition
 import org.dashj.platform.dpp.document.DocumentsBatchTransition
+import org.dashj.platform.dpp.errors.concensus.basic.datacontract.InvalidDataContractIdException
+import org.dashj.platform.dpp.errors.concensus.document.DataContractNotPresentException
+import org.dashj.platform.dpp.errors.concensus.signature.IdentityNotFoundException
+import org.dashj.platform.dpp.errors.concensus.state.datacontract.DataTriggerConditionException
+import org.dashj.platform.dpp.errors.concensus.state.document.DocumentAlreadyPresentException
 import org.dashj.platform.dpp.identifier.Identifier
 import org.dashj.platform.dpp.identity.IdentityCreateTransition
 import org.dashj.platform.dpp.identity.IdentityTopUpTransition
@@ -72,32 +77,33 @@ open class BroadcastRetryCallback(
 
     override fun shouldRetry(grpcMethod: GrpcMethod, e: StatusRuntimeException): Boolean {
         logger.info("Determining if we should retry ${grpcMethod.javaClass.simpleName} ${e.status.code}")
+        if (e.status.code == Status.UNAUTHENTICATED.code) {
+            return false
+        }
         if (grpcMethod is BroadcastStateTransitionMethod) {
             if (e.status.code == Status.INVALID_ARGUMENT.code) {
                 logger.info("--> INVALID_ARGUMENT")
                 // only retry if it is DocumentsBatchTransition
                 // throw exception for any other invalid argument errors
-                val errorInfo = GrpcExceptionInfo(e)
-                if (errorInfo.errors.isNotEmpty() && errorInfo.errors[0].containsKey("name")) {
-                    logger.info("-->${errorInfo.errors[0]["name"]} was the invalid argument type")
-                    when (errorInfo.errors[0]["name"]) {
-                        "IdentityNotFoundError" -> {
-                            if (shouldRetryIdentityNotFound(grpcMethod.stateTransition)) {
-                                logger.info("---retry based on IdentityNotFoundError")
-                                return true
-                            } else {
-                                logger.info("---will not retry based on IdentityNotFoundError")
-                            }
-                        }
-                        "DataTriggerConditionError" -> {
-                            if (errorInfo.errors[0]["message"] == "preorderDocument was not found") {
-                                if (shouldRetryPreorderNotFound(grpcMethod.stateTransition as DocumentsBatchTransition)) {
-                                    return true
-                                }
-                            }
+                val exception = GrpcExceptionInfo(e).exception
+                when (exception) {
+                    is IdentityNotFoundException -> {
+                        if (shouldRetryIdentityNotFound(grpcMethod.stateTransition)) {
+                            logger.info("---retry based on IdentityNotFoundError")
+                            return true
+                        } else {
+                            logger.info("---will not retry based on IdentityNotFoundError")
                         }
                     }
+                    is DataTriggerConditionException -> {
+                        // if (errorInfo.errors[0]["message"] == "preorderDocument was not found") {
+                        if (shouldRetryPreorderNotFound(grpcMethod.stateTransition as DocumentsBatchTransition)) {
+                            return true
+                        }
+                        // }
+                    }
                 }
+
                 // there is another case that needs to be handled below for DocumentsBatchTransition
                 if (grpcMethod.stateTransition !is DocumentsBatchTransition) {
                     throw e
@@ -143,87 +149,89 @@ open class BroadcastRetryCallback(
                     val type = documentTransitions[0].type
 
                     if (e.status.code == Status.INVALID_ARGUMENT.code) {
-                        val error = GrpcExceptionInfo(e).errors[0]
-                        if (error.containsKey("name") && error["name"] == "InvalidContractIdError") {
-                            if (retryContractIds.contains(Identifier.from(dataContractId))) {
-                                logger.info("Retry ${grpcMethod.javaClass.simpleName} ${e.status.code} since error was InvalidContractIdError")
-                                return true
+                        val exception = GrpcExceptionInfo(e).exception
+                        when (exception) {
+                            is InvalidDataContractIdException -> {
+                                if (retryContractIds.contains(dataContractId)) {
+                                    logger.info("Retry ${grpcMethod.javaClass.simpleName} ${e.status.code} since error was InvalidContractIdError")
+                                    return true
+                                }
                             }
-                        } else if (error.containsKey("name") && error["name"] == "DataContractNotPresentError") {
-                            if (retryContractIds.contains(Identifier.from(dataContractId))) {
-                                logger.info("Retry ${grpcMethod.javaClass.simpleName} ${e.status.code} since error was DataContractNotPresentError")
-                                return true
+                            is DataContractNotPresentException -> {
+                                if (retryContractIds.contains(dataContractId)) {
+                                    logger.info("Retry ${grpcMethod.javaClass.simpleName} ${e.status.code} since error was DataContractNotPresentError")
+                                    return true
+                                }
                             }
-                        } else if (error.containsKey("name") && error["name"] == "DuplicateDocumentError") {
-                            if (retryContractIds.contains(Identifier.from(dataContractId))) {
-                                logger.info("Retry ${grpcMethod.javaClass.simpleName} ${e.status.code} since error was DuplicateDocumentError")
+                            // TODO: cannot find equivalent
+                            is DocumentAlreadyPresentException -> {
+                                if (retryContractIds.contains(dataContractId)) {
+                                    logger.info("Retry ${grpcMethod.javaClass.simpleName} ${e.status.code} since error was DuplicateDocumentError")
+                                    return false
+                                }
+                            }
+                            else -> {
+                                // throw exception for any other invalid argument errors
+                                throw e
+                            }
+                        }
+
+                        val queryBuilder = DocumentQuery.builder()
+                            .where(listOf("\$id", "in", idList))
+
+                        if (updatedAt != -1L) {
+                            queryBuilder.where(listOf("updatedAt", "==", updatedAt))
+                        }
+
+                        val query = queryBuilder.build()
+
+                        for (i in 0 until retryCount) {
+                            // how to delay
+                            delay()
+                            val documentsData = stateRepository.fetchDocuments(dataContractId, type, query)
+
+                            if (documentsData.isNotEmpty()) {
+                                logger.info("document(s) found. No need to retry: $idList")
                                 return false
                             }
                         }
-                        // throw exception for any other invalid argument errors
-                        throw e
+                        logger.info("document(s) not found, need to retry: $idList")
                     }
-
-                    val queryBuilder = DocumentQuery.builder()
-                        .where(listOf("\$id", "in", idList))
-
-                    if (updatedAt != -1L) {
-                        queryBuilder.where(listOf("updatedAt", "==", updatedAt))
-                    }
-
-                    val query = queryBuilder.build()
-
-                    for (i in 0 until retryCount) {
-                        // how to delay
-                        delay()
-                        val documentsData = stateRepository.fetchDocuments(dataContractId, type, query)
-
-                        if (documentsData != null && documentsData.isNotEmpty()) {
-                            logger.info("document(s) found. No need to retry: $idList")
-                            return false
-                        }
-                    }
-                    logger.info("document(s) not found, need to retry: $idList")
                 }
             }
         }
         return true
     }
 
+    // TODO: errors not handled correctly here because errorInfo is using the old conventions
     override fun shouldRetry(grpcMethod: GrpcMethod, errorInfo: StateTransitionBroadcastException): Boolean {
         logger.info("Determining if we should retry ${grpcMethod.javaClass.simpleName} ${errorInfo.errorMessage}")
         if (grpcMethod is BroadcastStateTransitionMethod) {
-            if (errorInfo.errors.isNotEmpty()) {
-                val firstError = errorInfo.errors.get(0) as Map<String, Any?>
-                // logger.info("--> INVALID_ARGUMENT")
-                // only retry if it is DocumentsBatchTransition
-                // throw exception for any other invalid argument errors
-                if (firstError.containsKey("name")) {
-                    logger.info("-->${firstError["name"]} was the invalid argument type from waitForSTResult")
-                    when (firstError["name"]) {
-                        // TODO: not sure how to handle these errors
-                        // if multiple nodes return these errors, we have a bigger problem
-                        "IdentityNotFoundError" -> {
-                            if (shouldRetryIdentityNotFound(grpcMethod.stateTransition)) {
-                                logger.info("---retry based on IdentityNotFoundError")
-                                return true
-                            } else {
-                                logger.info("---will not retry based on IdentityNotFoundError")
-                            }
-                        }
-                        "DataTriggerConditionError" -> {
-                            if (firstError["message"] == "preorderDocument was not found") {
-                                if (shouldRetryPreorderNotFound(grpcMethod.stateTransition as DocumentsBatchTransition)) {
-                                    return true
-                                }
-                            }
-                        }
+            logger.info("-->${errorInfo.code} was the invalid argument type from waitForSTResult")
+
+            when (errorInfo.exception) {
+                // TODO: not sure how to handle these errors
+                // if multiple nodes return these errors, we have a bigger problem
+                is IdentityNotFoundException -> {
+                    if (shouldRetryIdentityNotFound(grpcMethod.stateTransition)) {
+                        logger.info("---retry based on IdentityNotFoundError")
+                        return true
+                    } else {
+                        logger.info("---will not retry based on IdentityNotFoundError")
                     }
                 }
-                // there is another case that needs to be handled below for DocumentsBatchTransition
-                if (grpcMethod.stateTransition !is DocumentsBatchTransition) {
-                    throw errorInfo
+                is DataTriggerConditionException -> {
+                    // if (firstError["message"] == "preorderDocument was not found") {
+                    if (shouldRetryPreorderNotFound(grpcMethod.stateTransition as DocumentsBatchTransition)) {
+                        return true
+                    }
+                    // }
                 }
+            }
+
+            // there is another case that needs to be handled below for DocumentsBatchTransition
+            if (grpcMethod.stateTransition !is DocumentsBatchTransition) {
+                throw errorInfo
             }
 
             when (grpcMethod.stateTransition) {
@@ -231,7 +239,8 @@ open class BroadcastRetryCallback(
                     for (i in 0 until retryCount) {
                         // how to delay
                         delay()
-                        val identityData = stateRepository.fetchDataContract(grpcMethod.stateTransition.dataContract.id)
+                        val identityData =
+                            stateRepository.fetchDataContract(grpcMethod.stateTransition.dataContract.id)
 
                         if (identityData != null) {
                             logger.info("contract found. No need to retry: ${grpcMethod.stateTransition.dataContract.id}")
@@ -263,26 +272,27 @@ open class BroadcastRetryCallback(
                     val dataContractId = documentTransitions[0].dataContractId
                     val type = documentTransitions[0].type
 
-                    if (errorInfo.errors.isNotEmpty()) {
-                        val error = errorInfo.errors[0] as Map<String, Any?>
-                        if (error.containsKey("name") && error["name"] == "InvalidContractIdError") {
+                    when (errorInfo.exception) {
+                        is InvalidDataContractIdException -> {
                             if (retryContractIds.contains(Identifier.from(dataContractId))) {
                                 logger.info("Retry ${grpcMethod.javaClass.simpleName} ${errorInfo.errorMessage} since error was InvalidContractIdError")
                                 return true
                             }
-                        } else if (error.containsKey("name") && error["name"] == "DataContractNotPresentError") {
+                        }
+                        is DataContractNotPresentException -> {
                             if (retryContractIds.contains(Identifier.from(dataContractId))) {
                                 logger.info("Retry ${grpcMethod.javaClass.simpleName} ${errorInfo.errorMessage} since error was DataContractNotPresentError")
                                 return true
                             }
-                        } else if (error.containsKey("name") && error["name"] == "DuplicateDocumentError") {
+                        }
+                        is DocumentAlreadyPresentException -> {
                             if (retryContractIds.contains(Identifier.from(dataContractId))) {
                                 logger.info("Not retrying ${grpcMethod.javaClass.simpleName} ${errorInfo.errorMessage} since error was DuplicateDocumentError")
                                 return false
                             }
                         }
                         // throw exception for any other invalid argument errors
-                        throw errorInfo
+                        else -> throw errorInfo
                     }
 
                     val queryBuilder = DocumentQuery.builder()
@@ -305,6 +315,8 @@ open class BroadcastRetryCallback(
                         }
                     }
                     logger.info("document(s) not found, need to retry: $idList")
+                } else -> {
+                    // do nothing in the case of other types of transitions
                 }
             }
         }
@@ -328,7 +340,7 @@ open class BroadcastRetryCallback(
             else -> false
         }
     }
-
+    // TODO: This is not all that useful and is currently unused
     private fun shouldRetryDocumentNotFound(stateTransition: StateTransition): Boolean {
         if (stateTransition is DocumentsBatchTransition) {
             logger.info("---looking for ${stateTransition.transitions[0].id} in $retryDocumentIds")
@@ -350,7 +362,9 @@ open class BroadcastRetryCallback(
                     delay()
                     val documentsData = stateRepository.fetchDocuments(
                         createTransition.dataContractId,
-                        "preorder", DocumentQuery.builder().where("saltedDomainHash", "==", retryPreorderSalts[preorderSalt]!!.bytes)
+                        "preorder",
+                        DocumentQuery.builder()
+                            .where("saltedDomainHash", "==", retryPreorderSalts[preorderSalt]!!.bytes)
                     )
 
                     if (documentsData.isNotEmpty()) {
