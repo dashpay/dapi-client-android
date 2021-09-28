@@ -6,8 +6,8 @@ import org.dashj.merk.MerkVerifyProof
 import org.dashj.platform.dapiclient.errors.NotFoundException
 import org.dashj.platform.dapiclient.model.DocumentQuery
 import org.dashj.platform.dpp.identifier.Identifier
-import org.dashj.platform.dpp.toHexString
-import org.dashj.platform.dpp.util.HashUtils
+import org.dashj.platform.dpp.toHex
+import org.dashj.platform.dpp.util.Converters
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
 
@@ -20,17 +20,17 @@ class ProofTest {
     val PARAMS = SchnappsDevNetParams.get()
     val CONTEXT = Context.getOrCreate(PARAMS)
     val masternodeList = PARAMS.defaultMasternodeList.toList()
-    val dpnsContractId = Identifier.from("4KJF8PDRAw1rFrFTD95fE3QeutG47TwsJWjBs3wUhNWK") // DPNS contract
-    val dashPayContractId = Identifier.from("3RcLJv6CRo7arseKxt82swXQ5t7snaPdNsdP7Kv4LeEr")
-    val identityId = Identifier.from("LfhrjTK1VyCWo99DngZo7MmG1zX3VLcLBDPbv6PT4WU")
+    val dpnsContractId = Identifier.from("8F4WqzVuqyYEBMR1AraBuYG1cjk3hqUYdzLSMdYpWLbH") // DPNS contract
+    val dashPayContractId = Identifier.from("8Mpj1D1fSg1AtKoCFBcSg7UTfqChpFTHLQBPVrXUACxC")
+    val identityId = Identifier.from("5DSwyjJiUXArZ42Uj1g7wSPLgWTBYCT3p4pHPmtEDH5b")
     val badDpnsContractId = Identifier.from("5BrYpaW5s26UWoBk9zEAYWxJANX7LFinmToprWo3VwgS") // DPNS contract
     val badDashPayContractId = Identifier.from("8FmdUoXZJijvARgA3Vcg73ThYp5P4AaLis1WpXp9VGg1")
     val badIdentityId = Identifier.from("GrdbRMnZ5pPiFWuzPR62goRVj6sxpqvLKMT87ZmuZPyr")
-    val publicKeyHash = HashUtils.fromHex("2ab14be3d3ff19b3e0c953e7e0e2705c66ea0948")
-    val publicKeyHashes = listOf(publicKeyHash, HashUtils.fromHex("aad3374c8aa0059809d677bcb44c86d4e7746bb8"))
+    val publicKeyHash = Converters.fromHex("106d620310b02fe89f3c103706f3e23ffad4b680")
+    val publicKeyHashes = listOf(publicKeyHash, Converters.fromHex("106d620310b02fe89f3c103706f3e23ffad4b680"))
 
-    val badPublicKeyHash = HashUtils.fromHex("ea396d727565f94d26f85e7f8a4fe5418f97d7cb")
-    val badPublicKeyHashes = listOf(badPublicKeyHash, HashUtils.fromHex("bad3374c8aa0059809d677bcb44c86d4e7746bb9"))
+    val badPublicKeyHash = Converters.fromHex("ea396d727565f94d26f85e7f8a4fe5418f97d7cb")
+    val badPublicKeyHashes = listOf(badPublicKeyHash, Converters.fromHex("bad3374c8aa0059809d677bcb44c86d4e7746bb9"))
 
     val stateRepository = StateRepositoryMock()
 
@@ -39,10 +39,10 @@ class ProofTest {
         val client = DapiClient(masternodeList.toList())
         try {
             val identityBytes = client.getIdentity(identityId.toBuffer(), false)!!
-            println("identity: ${identityBytes.identity.toHexString()}")
+            println("identity: ${identityBytes.identity.toHex()}")
 
             val identityBytesWithProof = client.getIdentity(identityId.toBuffer(), true)!!
-            println("identity: ${identityBytesWithProof.identity.toHexString()}")
+            println("identity: ${identityBytesWithProof.identity.toHex()}")
 
             try {
                 client.getIdentity(badIdentityId.toBuffer(), false)
@@ -71,7 +71,7 @@ class ProofTest {
             println("documents: ${documentsResponse.documents.size}")
 
             val documentsWithProof = client.getDocuments(dpnsContractId.toBuffer(), "domain", query, true)
-            println("documents: ${documentsResponse.documents.size}")
+            println("documents: ${documentsWithProof.documents.size}")
 
             val badQuery = DocumentQuery.Builder()
                 .where(listOf("normalizedParentDomainName", "==", "dash").toMutableList())
@@ -118,10 +118,10 @@ class ProofTest {
         val client = DapiClient(masternodeList.toList())
         try {
             val identity = client.getIdentityByFirstPublicKey(publicKeyHash, false)!!
-            println("identity id: ${identity.toByteArray().toHexString()}")
+            println("identity id: ${identity.toByteArray().toHex()}")
 
             val identityWithProof = client.getIdentityByFirstPublicKey(publicKeyHash, true)!!
-            println("identity id: ${identityWithProof.toByteArray().toHexString()}")
+            println("identity id: ${identityWithProof.toByteArray().toHex()}")
 
             val badIdentities = client.getIdentityByFirstPublicKey(badPublicKeyHash, false)
             println("identity: $badIdentities")
@@ -138,10 +138,10 @@ class ProofTest {
         val client = DapiClient(masternodeList.toList())
         try {
             val identityIds = client.getIdentityIdByFirstPublicKey(publicKeyHash, false)!!
-            println("identity id: ${identityIds.toByteArray().toHexString()}")
+            println("identity id: ${identityIds.toByteArray().toHex()}")
 
             val identityIdsWithProof = client.getIdentityIdByFirstPublicKey(publicKeyHash, true)!!
-            println("identity id: ${identityIdsWithProof.toByteArray().toHexString()}")
+            println("identity id: ${identityIdsWithProof.toByteArray().toHex()}")
 
             val badIdentityIds = client.getIdentityIdByFirstPublicKey(badPublicKeyHash, false)
             println("identity id: $badIdentityIds")
@@ -158,10 +158,10 @@ class ProofTest {
         val client = DapiClient(masternodeList.toList())
         try {
             val response = client.getIdentityIdsByPublicKeyHashes(publicKeyHashes, false)!!
-            println("identity ids: ${response.identityIds.map { it.toHexString()}}")
+            println("identity ids: ${response.identityIds.map { it.toHex()}}")
 
             val responseWithProof = client.getIdentityIdsByPublicKeyHashes(publicKeyHashes, true)!!
-            println("identity ids: ${responseWithProof.identityIds.map { it.toHexString()}}")
+            println("identity ids: ${responseWithProof.identityIds.map { it.toHex()}}")
 
             val badResponse = client.getIdentityIdsByPublicKeyHashes(badPublicKeyHashes, false)
             println("identity ids: ${badResponse.identityIds.size}")
@@ -178,10 +178,10 @@ class ProofTest {
         val client = DapiClient(masternodeList.toList())
         try {
             val response = client.getIdentitiesByPublicKeyHashes(publicKeyHashes, false)!!
-            println("identities: ${response.identities.map { it.toHexString()}}")
+            println("identities: ${response.identities.map { it.toHex()}}")
 
             val responseWithProof = client.getIdentitiesByPublicKeyHashes(publicKeyHashes, true)!!
-            println("identities: ${responseWithProof.identities.map { it.toHexString()}}")
+            println("identities: ${responseWithProof.identities.map { it.toHex()}}")
 
             val badResponse = client.getIdentitiesByPublicKeyHashes(badPublicKeyHashes, false)
             println("identities: $badResponse")
