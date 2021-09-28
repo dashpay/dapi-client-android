@@ -96,11 +96,10 @@ open class BroadcastRetryCallback(
                         }
                     }
                     is DataTriggerConditionException -> {
-                        // if (errorInfo.errors[0]["message"] == "preorderDocument was not found") {
+                        // TODO: check for "preorderDocument was not found"?
                         if (shouldRetryPreorderNotFound(grpcMethod.stateTransition as DocumentsBatchTransition)) {
                             return true
                         }
-                        // }
                     }
                 }
 
@@ -221,11 +220,10 @@ open class BroadcastRetryCallback(
                     }
                 }
                 is DataTriggerConditionException -> {
-                    // if (firstError["message"] == "preorderDocument was not found") {
+                    // TODO: check for "preorderDocument was not found")
                     if (shouldRetryPreorderNotFound(grpcMethod.stateTransition as DocumentsBatchTransition)) {
                         return true
                     }
-                    // }
                 }
             }
 

@@ -7,7 +7,7 @@ import org.dashj.platform.dpp.document.DocumentsBatchTransition
 import org.dashj.platform.dpp.identity.IdentityCreateTransition
 import org.dashj.platform.dpp.statetransition.StateTransitionIdentitySigned
 
-class MerkLibVerifyProof(stateTransition: StateTransitionIdentitySigned/*, val expectedHash: ByteArray*/) : DefaultVerifyProof(stateTransition) {
+class MerkLibVerifyProof(stateTransition: StateTransitionIdentitySigned) : DefaultVerifyProof(stateTransition) {
     override fun verify(proof: Proof): Boolean {
         when (stateTransition) {
             is DocumentsBatchTransition -> {
