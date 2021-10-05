@@ -11,6 +11,7 @@ import org.dashj.platform.dpp.Metadata
 
 data class ResponseMetadata(val height: Long, val coreChainLockedHeight: Int) {
     constructor(metadata: PlatformOuterClass.ResponseMetadata) : this(metadata.height, metadata.coreChainLockedHeight)
+    constructor(metaDataBytes: ByteArray) : this(PlatformOuterClass.ResponseMetadata.parseFrom(metaDataBytes))
 
     fun getMetadata(): Metadata {
         return Metadata(height.toInt(), coreChainLockedHeight)
