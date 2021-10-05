@@ -7,11 +7,12 @@
 
 package org.dashj.platform.dapiclient.model
 
+import org.dash.platform.dapi.v0.PlatformOuterClass
 import org.dashj.platform.dpp.toHex
 
 data class Proof(
     val rootTreeProof: ByteArray,
-    val storeTreeProof: StoreTreeProofs,
+    val storeTreeProofs: StoreTreeProofs,
     val signatureLlmqHash: ByteArray,
     val signature: ByteArray
 ) {
@@ -22,12 +23,13 @@ data class Proof(
         proof.signatureLlmqHash.toByteArray(),
         proof.signature.toByteArray()
     )
+    constructor(proofBytes: ByteArray) : this(PlatformOuterClass.Proof.parseFrom(proofBytes))
 
     val type = when {
-        storeTreeProof.documentsProof.isNotEmpty() -> "documentProof"
-        storeTreeProof.identitiesProof.isNotEmpty() -> "identitiesProof"
-        storeTreeProof.dataContractsProof.isNotEmpty() -> "dataContractsProof"
-        storeTreeProof.publicKeyHashesToIdentityIdsProof.isNotEmpty() -> "publicKeyHashesToIdentityIdsProof"
+        storeTreeProofs.documentsProof.isNotEmpty() -> "documentProof"
+        storeTreeProofs.identitiesProof.isNotEmpty() -> "identitiesProof"
+        storeTreeProofs.dataContractsProof.isNotEmpty() -> "dataContractsProof"
+        storeTreeProofs.publicKeyHashesToIdentityIdsProof.isNotEmpty() -> "publicKeyHashesToIdentityIdsProof"
         else -> "none"
     }
 
@@ -37,7 +39,7 @@ data class Proof(
 
     override fun toString(): String {
         return "Proof(rootTreeProof: ${rootTreeProof.toHex()}\n" +
-            "  storeTreeProof: $storeTreeProof\n" +
+            "  storeTreeProof: $storeTreeProofs\n" +
             "  signatureLlmqHash: ${signatureLlmqHash.toHex()}\n" +
             "  signature: ${signature.toHex()}"
     }
