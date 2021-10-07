@@ -40,4 +40,13 @@ class StoreTreeProofs(
         }
         return builder.toString()
     }
+
+    fun getFirstProof(): ByteArray {
+        return when {
+            documentsProof.isNotEmpty() -> documentsProof
+            dataContractsProof.isNotEmpty() -> dataContractsProof
+            identitiesProof.isNotEmpty() -> identitiesProof
+            else -> publicKeyHashesToIdentityIdsProof
+        }
+    }
 }
