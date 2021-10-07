@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2021-present, Dash Core Team
+ *
+ * This source code is licensed under the MIT license found in the
+ * COPYING file in the root directory of this source tree.
+ */
+
 package org.dashj.platform.dapiclient.model
 
 import org.dashj.merk.ByteArrayKey
@@ -17,19 +24,19 @@ open class DefaultVerifyProof(protected val stateTransition: StateTransitionIden
     override fun verify(proof: Proof): Boolean {
         when (stateTransition) {
             is DocumentsBatchTransition -> {
-                val values = MerkVerifyProof.decode(proof.storeTreeProof.documentsProof)
+                val values = MerkVerifyProof.extractData(proof.storeTreeProofs.documentsProof)
                 if (values.isNotEmpty()) {
                     return verifyDocumentsBatchTransition(stateTransition, values)
                 }
             }
             is DataContractCreateTransition -> {
-                val values = MerkVerifyProof.decode(proof.storeTreeProof.documentsProof)
+                val values = MerkVerifyProof.extractData(proof.storeTreeProofs.documentsProof)
                 if (values.isNotEmpty()) {
                     return verifyDataContactCreateTransition(values[values.keys.first()]!!, stateTransition)
                 }
             }
             is IdentityCreateTransition -> {
-                val values = MerkVerifyProof.decode(proof.storeTreeProof.documentsProof)
+                val values = MerkVerifyProof.extractData(proof.storeTreeProofs.documentsProof)
                 if (values.isNotEmpty()) {
                     return verifyIdentityCreateTransition(stateTransition, values[values.keys.first()]!!)
                 }

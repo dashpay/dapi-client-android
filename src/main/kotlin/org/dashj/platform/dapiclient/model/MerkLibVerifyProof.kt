@@ -13,7 +13,7 @@ class MerkLibVerifyProof(stateTransition: StateTransitionIdentitySigned) : Defau
             is DocumentsBatchTransition -> {
                 val verifyMap = hashMapOf<ByteArrayKey, ByteArray>()
                 for (transition in stateTransition.transitions) {
-                    val result = MerkVerifyProof.extractProof(proof.storeTreeProof.documentsProof)
+                    val result = MerkVerifyProof.extractProof(proof.storeTreeProofs.documentsProof)
                     if (result.isNotEmpty()) {
                         val key = ByteArrayKey(transition.id.toBuffer())
                         verifyMap[key] = result[key]!!
@@ -24,7 +24,7 @@ class MerkLibVerifyProof(stateTransition: StateTransitionIdentitySigned) : Defau
                 return verifyDocumentsBatchTransition(stateTransition, verifyMap)
             }
             is DataContractCreateTransition -> {
-                val result = MerkVerifyProof.extractProof(proof.storeTreeProof.dataContractsProof)
+                val result = MerkVerifyProof.extractProof(proof.storeTreeProofs.dataContractsProof)
 
                 return if (result.isNotEmpty()) {
                     verifyDataContactCreateTransition(result[ByteArrayKey(stateTransition.dataContract.id.toBuffer())]!!, stateTransition)
@@ -33,7 +33,7 @@ class MerkLibVerifyProof(stateTransition: StateTransitionIdentitySigned) : Defau
                 }
             }
             is IdentityCreateTransition -> {
-                val result = MerkVerifyProof.extractProof(proof.storeTreeProof.identitiesProof)
+                val result = MerkVerifyProof.extractProof(proof.storeTreeProofs.identitiesProof)
                 return if (result.isNotEmpty()) {
                     verifyIdentityCreateTransition(stateTransition, result[ByteArrayKey(stateTransition.identityId.toBuffer())]!!)
                 } else {
