@@ -70,7 +70,7 @@ class MerkleProof(val proofHashes: List<ByteArray>, val hashFunction: (ByteArray
                 }
                 Pair(
                     parentNodeTreeIndex,
-                    concatAndHash(currentLayer[i * 2], rightNode, hashFunction),
+                    concatAndHash(currentLayer[i * 2], rightNode, hashFunction)
                 )
             }
 

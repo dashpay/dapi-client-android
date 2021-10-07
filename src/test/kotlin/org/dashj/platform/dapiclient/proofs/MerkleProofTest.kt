@@ -44,9 +44,7 @@ class MerkleProofTest {
         val merkleProof = merkleTree.getProof(leafIndicesToProve)
         val leavesCount = merkleTree.layers[0].size
 
-        val binaryRoot = merkleProof.calculateRoot(
-            leafIndicesToProve, leafHashesToProve, leavesCount,
-        )
+        val binaryRoot = merkleProof.calculateRoot(leafIndicesToProve, leafHashesToProve, leavesCount)
 
         val hexRoot = binaryRoot.toHex()
 
