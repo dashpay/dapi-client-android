@@ -71,6 +71,7 @@ import org.dashj.platform.dapiclient.model.Time
 import org.dashj.platform.dapiclient.model.VerifyProof
 import org.dashj.platform.dapiclient.model.Version
 import org.dashj.platform.dapiclient.model.WaitForStateTransitionResult
+import org.dashj.platform.dapiclient.proofs.ProofVerifier
 import org.dashj.platform.dapiclient.provider.DAPIAddress
 import org.dashj.platform.dapiclient.provider.DAPIAddressListProvider
 import org.dashj.platform.dapiclient.provider.DAPIGrpcMasternode
@@ -82,6 +83,7 @@ import org.dashj.platform.dpp.identifier.Identifier
 import org.dashj.platform.dpp.statetransition.StateTransition
 import org.dashj.platform.dpp.statetransition.StateTransitionIdentitySigned
 import org.dashj.platform.dpp.toBase58
+import org.dashj.platform.dpp.toHex
 import org.dashj.platform.dpp.toHexString
 import org.slf4j.LoggerFactory
 import retrofit2.Retrofit
@@ -115,10 +117,11 @@ class DapiClient(
 
     // proofs
     private val fullVerification: Boolean
+    private lateinit var masternodeListManager: SimplifiedMasternodeListManager
 
     // Constants
     companion object {
-        private val logger = LoggerFactory.getLogger(org.dashj.platform.dapiclient.DapiClient::class.java.name)
+        private val logger = LoggerFactory.getLogger(DapiClient::class.java.name)
         const val DEFAULT_GRPC_PORT = 3010
         const val DEFAULT_JRPC_PORT = 3000
 
@@ -325,13 +328,14 @@ class DapiClient(
             waitForResult.isSuccess() -> {
                 logger.info("broadcastStateTransitionAndWait: success ($successRate): ${waitForResult.proof}")
                 logger.info("root_tree_proof    : ${waitForResult.proof!!.rootTreeProof.toHexString()}")
-                logger.info("store_tree_proof   : ${waitForResult.proof.storeTreeProof}")
+                logger.info("store_tree_proof   : ${waitForResult.proof.storeTreeProofs}")
                 logger.info("signature_llmq_hash: ${waitForResult.proof.signatureLlmqHash.toHexString()}")
                 logger.info("signature          : ${waitForResult.proof.signature.toHexString()}")
                 logger.info("state transition   : ${signedStateTransition.toBuffer().toHexString()}")
                 logger.info("ST Hash            : ${Sha256Hash.of(signedStateTransition.toBuffer())}")
                 logger.info("proof verification : ${verifyProof.verify(waitForResult.proof)}")
                 logger.info("success rate       : $successRate")
+                logger.info("signature proof    : ${verifyProof(waitForResult.proof, waitForResult.metadata, "broadcast") }")
             }
             waitForResult.isError() -> {
                 logger.info("broadcastStateTransitionAndWait: failure: ${waitForResult.error}")
@@ -375,11 +379,14 @@ class DapiClient(
                 val proof = Proof(response.proof)
                 logger.info("proof = $proof")
 
-                val result = if (fullVerification) {
-                    MerkVerifyProof.extractProof(proof.storeTreeProof.identitiesProof)
+                val result = verifyProof(proof, ResponseMetadata(response.metadata), "getIdentity")
+
+/*                val result = if (fullVerification) {
+                    println("rootTreeProof Size: ${proof.rootTreeProof.size}")
+                    MerkVerifyProof.extractProof(proof.storeTreeProofs.identitiesProof)
                 } else {
-                    MerkVerifyProof.decode(proof.storeTreeProof.identitiesProof)
-                }
+                    MerkVerifyProof.extractData(proof.storeTreeProofs.identitiesProof)
+                }*/
                 if (result.isNotEmpty()) {
                     val key = ByteArrayKey(id)
                     if (result.size == 1) {
@@ -422,11 +429,14 @@ class DapiClient(
             prove && response.hasProof() -> {
                 // TODO: how do we check the proof?
                 val proof = Proof(response.proof)
-                val result = if (fullVerification) {
-                    MerkVerifyProof.extractProof(proof.storeTreeProof.publicKeyHashesToIdentityIdsProof)
+                val result = verifyProof(proof, ResponseMetadata(response.metadata), "getIdentityByFirstPublicKey")
+
+                /*val result = if (fullVerification) {
+                    println("rootTreeProof Size: ${proof.rootTreeProof.size}")
+                    MerkVerifyProof.extractProof(proof.storeTreeProofs.publicKeyHashesToIdentityIdsProof)
                 } else {
-                    MerkVerifyProof.decode(proof.storeTreeProof.publicKeyHashesToIdentityIdsProof)
-                }
+                    MerkVerifyProof.extractData(proof.storeTreeProofs.publicKeyHashesToIdentityIdsProof)
+                }*/
                 if (result.isNotEmpty()) {
                     ByteString.copyFrom(result.values.first())
                 } else {
@@ -457,11 +467,14 @@ class DapiClient(
         return when {
             prove && response.hasProof() -> {
                 val proof = Proof(response.proof)
-                val result = if (fullVerification) {
-                    MerkVerifyProof.extractProof(proof.storeTreeProof.publicKeyHashesToIdentityIdsProof)
+                logger.info("proof = $proof")
+                val result = verifyProof(proof, ResponseMetadata(response.metadata), "getIdentitiesByPublicKeyHashes")
+                /*val result = if (fullVerification) {
+                    println("rootTreeProof Size: ${proof.rootTreeProof.size}")
+                    MerkVerifyProof.extractProof(proof.storeTreeProofs.publicKeyHashesToIdentityIdsProof)
                 } else {
-                    MerkVerifyProof.decode(proof.storeTreeProof.publicKeyHashesToIdentityIdsProof)
-                }
+                    MerkVerifyProof.extractData(proof.storeTreeProofs.publicKeyHashesToIdentityIdsProof)
+                }*/
                 if (result.isNotEmpty()) {
                     GetIdentitiesByPublicKeyHashesResponse(result.values.toList(), proof, ResponseMetadata(response.metadata))
                 } else {
@@ -489,11 +502,14 @@ class DapiClient(
             }
             prove && response.hasProof() -> {
                 val proof = Proof(response.proof)
-                val result = if (fullVerification) {
-                    MerkVerifyProof.extractProof(proof.storeTreeProof.publicKeyHashesToIdentityIdsProof)
+                val result = verifyProof(proof, ResponseMetadata(response.metadata), "getIdentityIdByFirstPublicKey")
+
+                /*val result = if (fullVerification) {
+                    println("rootTreeProof Size: ${proof.rootTreeProof.size}")
+                    MerkVerifyProof.extractProof(proof.storeTreeProofs.publicKeyHashesToIdentityIdsProof)
                 } else {
-                    MerkVerifyProof.decode(proof.storeTreeProof.publicKeyHashesToIdentityIdsProof)
-                }
+                    MerkVerifyProof.extractData(proof.storeTreeProofs.publicKeyHashesToIdentityIdsProof)
+                }*/
                 if (result.isNotEmpty()) {
                     ByteString.copyFrom(result.values.first())
                 } else {
@@ -524,11 +540,14 @@ class DapiClient(
         return when {
             prove && response.hasProof() -> {
                 val proof = Proof(response.proof)
+                val result = verifyProof(proof, ResponseMetadata(response.metadata), "getIdentityIdsByPublicKeyHashes")
+                /*
                 val result = if (fullVerification) {
-                    MerkVerifyProof.extractProof(proof.storeTreeProof.publicKeyHashesToIdentityIdsProof)
+                    println("rootTreeProof Size: ${proof.rootTreeProof.size}")
+                    MerkVerifyProof.extractProof(proof.storeTreeProofs.publicKeyHashesToIdentityIdsProof)
                 } else {
-                    MerkVerifyProof.decode(proof.storeTreeProof.publicKeyHashesToIdentityIdsProof)
-                }
+                    MerkVerifyProof.extractData(proof.storeTreeProofs.publicKeyHashesToIdentityIdsProof)
+                }*/
                 if (result.isNotEmpty()) {
                     GetIdentityIdsByPublicKeyHashesResponse(result.values.toList(), proof, ResponseMetadata(response.metadata))
                 } else {
@@ -556,12 +575,9 @@ class DapiClient(
             }
             prove && response.hasProof() -> {
                 val proof = Proof(response.proof)
+                val responseMetadata = ResponseMetadata(response.metadata)
                 logger.info("proof = $proof")
-                val result = if (fullVerification) {
-                    MerkVerifyProof.extractProof(proof.storeTreeProof.dataContractsProof)
-                } else {
-                    MerkVerifyProof.decode(proof.storeTreeProof.dataContractsProof)
-                }
+                val result = verifyProof(proof, responseMetadata, "getDataContract")
                 if (result.isNotEmpty()) {
                     val key = ByteArrayKey(contractId)
                     if (result.containsKey(key)) {
@@ -579,7 +595,7 @@ class DapiClient(
                             if (UnsignedBytes.lexicographicalComparator().compare(firstKey, contractId) < 0 &&
                                 UnsignedBytes.lexicographicalComparator().compare(contractId, secondKey) < 0
                             ) {
-                                logger.info("Noninclusion proof ${firstKey.toHexString()} < ${key.toByteArray().toHexString()} < ${secondKey.toHexString()}")
+                                logger.info("Noninclusion proof ${firstKey.toHex()} < ${key.toByteArray().toHex()} < ${secondKey.toHex()}")
                                 throw NotFoundException("DataContract ${Identifier.from(contractId)} does not exist in the proof")
                             }
                         }
@@ -593,6 +609,38 @@ class DapiClient(
                 GetDataContractResponse(response)
             }
         }
+    }
+
+    private fun verifyProof(
+        proof: Proof,
+        responseMetadata: ResponseMetadata,
+        caller: String
+    ): Map<ByteArrayKey, ByteArray> {
+        val result = if (fullVerification) {
+            if (!this::masternodeListManager.isInitialized) {
+                logger.info("verify(): masternodeListManager is not initialized")
+                MerkVerifyProof.extractProof(proof.storeTreeProofs.getFirstProof())
+            } else {
+                if (masternodeListManager.quorumListAtTip.getQuorum(Sha256Hash.wrap(proof.signatureLlmqHash)) == null) {
+                    logger.info("verify(): ${proof.signatureLlmqHash.toHex()} is not a valid quorum\n ")
+                    val list = arrayListOf<String>()
+                    masternodeListManager.quorumListAtTip.forEachQuorum(true) { list.add("${it.quorumHash}, ${it.type}") }
+                    logger.info("verify(): quorum list $list")
+                    MerkVerifyProof.extractProof(proof.storeTreeProofs.getFirstProof())
+                } else {
+                    val resultMap = ProofVerifier.verifyAndExtractFromProof(
+                        proof,
+                        responseMetadata,
+                        masternodeListManager,
+                        caller
+                    )
+                    resultMap.values.first()
+                }
+            }
+        } else {
+            MerkVerifyProof.extractData(proof.storeTreeProofs.getFirstProof())
+        }
+        return result
     }
 
     /**
@@ -611,11 +659,7 @@ class DapiClient(
             prove && response.hasProof() -> {
                 val proof = Proof(response.proof)
                 logger.info("proof = $proof")
-                val result = if (fullVerification) {
-                    MerkVerifyProof.extractProof(proof.storeTreeProof.documentsProof)
-                } else {
-                    MerkVerifyProof.decode(proof.storeTreeProof.documentsProof)
-                }
+                val result = verifyProof(proof, ResponseMetadata(response.metadata), "getDocuments")
                 if (result.isNotEmpty()) {
                     GetDocumentsResponse(result.values.toList(), proof, ResponseMetadata(response.metadata))
                 } else {
@@ -998,9 +1042,10 @@ class DapiClient(
         return trailers.exception
     }
 
-    fun setSimplifiedMasternodeListManager(simplifiedMasternodeListManager: SimplifiedMasternodeListManager, defaultList: List<String>) {
+    fun setSimplifiedMasternodeListManager(masternodeListManager: SimplifiedMasternodeListManager, defaultList: List<String>) {
+        this.masternodeListManager = masternodeListManager
         dapiAddressListProvider = SimplifiedMasternodeListDAPIAddressProvider(
-            simplifiedMasternodeListManager,
+            masternodeListManager,
             ListDAPIAddressProvider.fromList(
                 defaultList,
                 DEFAULT_BASE_BAN_TIME
