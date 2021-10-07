@@ -317,10 +317,6 @@ class ProofTest {
         val stateHash = merkleProof.calculateRoot(rootElementsToProve.keys.toList(), rootElementsToProve.values.toList(), 6)
         assertEquals(expectedStateHash.toHex(), stateHash.toHex())
 
-        // val merkleTree = RootMerkleTree(rootElementsToProve, proof.rootTreeProof, 6)
-        // val stateHash = merkleTree.merkelRoot()
-        // assertEquals(expectedStateHash.toHex(), stateHash.toHex())
-
         val responseMetaData = ResponseMetadata(metaData)
         val results = ProofVerifier.verifyAndExtractFromProof(proof, responseMetaData, quorumEntry, "getDocuments")
 
@@ -371,10 +367,6 @@ class ProofTest {
         }
         val stateHash = merkleProof.calculateRoot(rootElementsToProve.keys.toList(), rootElementsToProve.values.toList(), 6)
         assertEquals(expectedStateHash.toHex(), stateHash.toHex())
-
-        // val merkleTree = RootMerkleTree(rootElementsToProve, proof.rootTreeProof, 6)
-        // val stateHash = merkleTree.merkelRoot()
-        // assertEquals(expectedStateHash.toHex(), stateHash.toHex())
 
         val responseMetaData = ResponseMetadata(6212, 56574)
         val results = ProofVerifier.verifyAndExtractFromProof(proof, responseMetaData, quorumEntry, "broadcast")
@@ -430,13 +422,10 @@ class ProofTest {
             contractsPair = MerkVerifyProof.extractProofWithHash(proof.storeTreeProofs.dataContractsProof)
             rootElementsToProve[Indices.Contracts.value] = contractsPair.first
         }
-        // val merkleTree = RootMerkleTree(rootElementsToProve, proof.rootTreeProof, 6)
         val merkleProof = MerkleProof.fromBuffer(proof.rootTreeProof) {
             blake3(it)
         }
         val stateHash = merkleProof.calculateRoot(rootElementsToProve.keys.toList(), rootElementsToProve.values.toList(), 6)
-        // val stateHash = merkleTree.merkelRoot()
-        // assertEquals(expectedStateHash.toHex(), stateHash.toHex())
         assertEquals(expectedStateHash.toHex(), stateHash.toHex())
 
         val responseMetaData = ResponseMetadata(metaData)
@@ -448,21 +437,12 @@ class ProofTest {
     @Test
     fun testIdentityProof() {
         /*
-INFO: proof = Proof(rootTreeProof: bfef7d172b666943c33fae47b614259412f52435edd99bbf933144411c3aeab49b901c60efbd5040ab1122197418963b88d06dc440b88e02efca9292f0f0f275072907f22609678cb56cacace7bbd6ca9d7b6db1effd1d674a83cab37d9d40ba
-  storeTreeProof: StoreTreeProofs ->
- identitiesProof: 01be2d38ffd3439ff8d039c1ae935700844bd14c7a99f7d0d2d4945bc782a7fec3028658e68fc28d13b09dd6cac7897df33f607e56f1c6bd207082c32af9dc89305810012f2c986fdfb5a1954dd5fc0fecf125f9b3e27d320e1f53957270eefbd727360a02bcadfc833a39b7497aaa993af34d9b0fb45b6b4ab77df96aa378601707fa9735100174a5d6f09b230c09dbf1c015cfd3880e8c088edf97b38aad7670a77060dc894703203e9f0e8a33ac81fbfa1cd4dc2685800c5dc1288d58eb53b6179e7579005299da007e01000000a462696458203e9f0e8a33ac81fbfa1cd4dc2685800c5dc1288d58eb53b6179e7579005299da6762616c616e6365192c5c687265766973696f6e006a7075626c69634b65797381a362696400646461746158210286be3e3248056ddae8f73bfd04e149a9b98f6632277d8fd56077fffaafd7cf726474797065001001510d76cde92eeda7e86ef1b4dc8caea7ca002fb4cc46d16006830a0424aa1a3311111102887fcd3a7fef9b356dd12fc2e4d58c54c9e42908070dee2aaf7c7b5d389f736010018004cb6cefede5289b75f661279735cfe374d1b7f12e9840e1c9d1dc0e7c24461102c97ff70a287f4d9741f5c54e5fc5e6a365043cdbedf623ae7d0e280a6a32b70b10018a28f5bebdbf987079878315cde74e22ef591983a576d3c6e2807ae1fd12ff8811
+        INFO: proof = Proof(rootTreeProof: bfef7d172b666943c33fae47b614259412f52435edd99bbf933144411c3aeab49b901c60efbd5040ab1122197418963b88d06dc440b88e02efca9292f0f0f275072907f22609678cb56cacace7bbd6ca9d7b6db1effd1d674a83cab37d9d40ba
+        storeTreeProof: StoreTreeProofs ->
+        identitiesProof: 01be2d38ffd3439ff8d039c1ae935700844bd14c7a99f7d0d2d4945bc782a7fec3028658e68fc28d13b09dd6cac7897df33f607e56f1c6bd207082c32af9dc89305810012f2c986fdfb5a1954dd5fc0fecf125f9b3e27d320e1f53957270eefbd727360a02bcadfc833a39b7497aaa993af34d9b0fb45b6b4ab77df96aa378601707fa9735100174a5d6f09b230c09dbf1c015cfd3880e8c088edf97b38aad7670a77060dc894703203e9f0e8a33ac81fbfa1cd4dc2685800c5dc1288d58eb53b6179e7579005299da007e01000000a462696458203e9f0e8a33ac81fbfa1cd4dc2685800c5dc1288d58eb53b6179e7579005299da6762616c616e6365192c5c687265766973696f6e006a7075626c69634b65797381a362696400646461746158210286be3e3248056ddae8f73bfd04e149a9b98f6632277d8fd56077fffaafd7cf726474797065001001510d76cde92eeda7e86ef1b4dc8caea7ca002fb4cc46d16006830a0424aa1a3311111102887fcd3a7fef9b356dd12fc2e4d58c54c9e42908070dee2aaf7c7b5d389f736010018004cb6cefede5289b75f661279735cfe374d1b7f12e9840e1c9d1dc0e7c24461102c97ff70a287f4d9741f5c54e5fc5e6a365043cdbedf623ae7d0e280a6a32b70b10018a28f5bebdbf987079878315cde74e22ef591983a576d3c6e2807ae1fd12ff8811
 
-  signatureLlmqHash: 00000015d26abafc6844e8d1ff95244cda2c7f1b12c1beb629eaf22348f60310
-  signature: 0a03ec4d401a4fad7235e1f5b0770114a221bd8811e24bc7eb5f9ea68a52af1ba12612d07827fdcd367df3e93da914be09a948e380b63d11a9422491f8ff4ffda38d70456ac72273d6f101dd3a265690e3f5036bc18c40d4a612916644250add
-
-Oct 01, 2021 9:36:21 PM org.dashj.platform.dapiclient.DapiClient getIdentity
-INFO: proof = Proof(rootTreeProof: bfef7d172b666943c33fae47b614259412f52435edd99bbf933144411c3aeab49b901c60efbd5040ab1122197418963b88d06dc440b88e02efca9292f0f0f275072907f22609678cb56cacace7bbd6ca9d7b6db1effd1d674a83cab37d9d40ba
-  storeTreeProof: StoreTreeProofs ->
- identitiesProof: 01be2d38ffd3439ff8d039c1ae935700844bd14c7a99f7d0d2d4945bc782a7fec3028658e68fc28d13b09dd6cac7897df33f607e56f1c6bd207082c32af9dc89305810012f2c986fdfb5a1954dd5fc0fecf125f9b3e27d320e1f53957270eefbd727360a02bcadfc833a39b7497aaa993af34d9b0fb45b6b4ab77df96aa378601707fa9735100174a5d6f09b230c09dbf1c015cfd3880e8c088edf97b38aad7670a77060dc894703203e9f0e8a33ac81fbfa1cd4dc2685800c5dc1288d58eb53b6179e7579005299da007e01000000a462696458203e9f0e8a33ac81fbfa1cd4dc2685800c5dc1288d58eb53b6179e7579005299da6762616c616e6365192c5c687265766973696f6e006a7075626c69634b65797381a362696400646461746158210286be3e3248056ddae8f73bfd04e149a9b98f6632277d8fd56077fffaafd7cf726474797065001001510d76cde92eeda7e86ef1b4dc8caea7ca002fb4cc46d16006830a0424aa1a3311111102887fcd3a7fef9b356dd12fc2e4d58c54c9e42908070dee2aaf7c7b5d389f736010018004cb6cefede5289b75f661279735cfe374d1b7f12e9840e1c9d1dc0e7c24461102c97ff70a287f4d9741f5c54e5fc5e6a365043cdbedf623ae7d0e280a6a32b70b10018a28f5bebdbf987079878315cde74e22ef591983a576d3c6e2807ae1fd12ff8811
-
-  signatureLlmqHash: 00000015d26abafc6844e8d1ff95244cda2c7f1b12c1beb629eaf22348f60310
-  signature: 8454d755b25c686cb3386826ab340fbb1554a3bba48e4845af03f79c1f7a360ca9e8146308bb5f31cf89308f6824a85a08cbb00dbad0436b7a3e6620d28929de213a4c9c166ac55e7bbc92e1a22f44a823bfd3bdc11ec4e6245515b4187cf632
-
+        signatureLlmqHash: 00000015d26abafc6844e8d1ff95244cda2c7f1b12c1beb629eaf22348f60310
+        signature: 0a03ec4d401a4fad7235e1f5b0770114a221bd8811e24bc7eb5f9ea68a52af1ba12612d07827fdcd367df3e93da914be09a948e380b63d11a9422491f8ff4ffda38d70456ac72273d6f101dd3a265690e3f5036bc18c40d4a612916644250add
          */
         val rootTreeProofData = Converters.fromHex("bfef7d172b666943c33fae47b614259412f52435edd99bbf933144411c3aeab49b901c60efbd5040ab1122197418963b88d06dc440b88e02efca9292f0f0f275072907f22609678cb56cacace7bbd6ca9d7b6db1effd1d674a83cab37d9d40ba")
         val identityProofData = Converters.fromHex("01be2d38ffd3439ff8d039c1ae935700844bd14c7a99f7d0d2d4945bc782a7fec3028658e68fc28d13b09dd6cac7897df33f607e56f1c6bd207082c32af9dc89305810012f2c986fdfb5a1954dd5fc0fecf125f9b3e27d320e1f53957270eefbd727360a02bcadfc833a39b7497aaa993af34d9b0fb45b6b4ab77df96aa378601707fa9735100174a5d6f09b230c09dbf1c015cfd3880e8c088edf97b38aad7670a77060dc894703203e9f0e8a33ac81fbfa1cd4dc2685800c5dc1288d58eb53b6179e7579005299da007e01000000a462696458203e9f0e8a33ac81fbfa1cd4dc2685800c5dc1288d58eb53b6179e7579005299da6762616c616e6365192c5c687265766973696f6e006a7075626c69634b65797381a362696400646461746158210286be3e3248056ddae8f73bfd04e149a9b98f6632277d8fd56077fffaafd7cf726474797065001001510d76cde92eeda7e86ef1b4dc8caea7ca002fb4cc46d16006830a0424aa1a3311111102887fcd3a7fef9b356dd12fc2e4d58c54c9e42908070dee2aaf7c7b5d389f736010018004cb6cefede5289b75f661279735cfe374d1b7f12e9840e1c9d1dc0e7c24461102c97ff70a287f4d9741f5c54e5fc5e6a365043cdbedf623ae7d0e280a6a32b70b10018a28f5bebdbf987079878315cde74e22ef591983a576d3c6e2807ae1fd12ff8811")
