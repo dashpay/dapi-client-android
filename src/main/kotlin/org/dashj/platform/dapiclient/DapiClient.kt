@@ -380,13 +380,6 @@ class DapiClient(
                 logger.info("proof = $proof")
 
                 val result = verifyProof(proof, ResponseMetadata(response.metadata), "getIdentity")
-
-/*                val result = if (fullVerification) {
-                    println("rootTreeProof Size: ${proof.rootTreeProof.size}")
-                    MerkVerifyProof.extractProof(proof.storeTreeProofs.identitiesProof)
-                } else {
-                    MerkVerifyProof.extractData(proof.storeTreeProofs.identitiesProof)
-                }*/
                 if (result.isNotEmpty()) {
                     val key = ByteArrayKey(id)
                     if (result.size == 1) {
@@ -431,12 +424,6 @@ class DapiClient(
                 val proof = Proof(response.proof)
                 val result = verifyProof(proof, ResponseMetadata(response.metadata), "getIdentityByFirstPublicKey")
 
-                /*val result = if (fullVerification) {
-                    println("rootTreeProof Size: ${proof.rootTreeProof.size}")
-                    MerkVerifyProof.extractProof(proof.storeTreeProofs.publicKeyHashesToIdentityIdsProof)
-                } else {
-                    MerkVerifyProof.extractData(proof.storeTreeProofs.publicKeyHashesToIdentityIdsProof)
-                }*/
                 if (result.isNotEmpty()) {
                     ByteString.copyFrom(result.values.first())
                 } else {
@@ -469,12 +456,7 @@ class DapiClient(
                 val proof = Proof(response.proof)
                 logger.info("proof = $proof")
                 val result = verifyProof(proof, ResponseMetadata(response.metadata), "getIdentitiesByPublicKeyHashes")
-                /*val result = if (fullVerification) {
-                    println("rootTreeProof Size: ${proof.rootTreeProof.size}")
-                    MerkVerifyProof.extractProof(proof.storeTreeProofs.publicKeyHashesToIdentityIdsProof)
-                } else {
-                    MerkVerifyProof.extractData(proof.storeTreeProofs.publicKeyHashesToIdentityIdsProof)
-                }*/
+
                 if (result.isNotEmpty()) {
                     GetIdentitiesByPublicKeyHashesResponse(result.values.toList(), proof, ResponseMetadata(response.metadata))
                 } else {
@@ -504,12 +486,6 @@ class DapiClient(
                 val proof = Proof(response.proof)
                 val result = verifyProof(proof, ResponseMetadata(response.metadata), "getIdentityIdByFirstPublicKey")
 
-                /*val result = if (fullVerification) {
-                    println("rootTreeProof Size: ${proof.rootTreeProof.size}")
-                    MerkVerifyProof.extractProof(proof.storeTreeProofs.publicKeyHashesToIdentityIdsProof)
-                } else {
-                    MerkVerifyProof.extractData(proof.storeTreeProofs.publicKeyHashesToIdentityIdsProof)
-                }*/
                 if (result.isNotEmpty()) {
                     ByteString.copyFrom(result.values.first())
                 } else {
@@ -541,13 +517,7 @@ class DapiClient(
             prove && response.hasProof() -> {
                 val proof = Proof(response.proof)
                 val result = verifyProof(proof, ResponseMetadata(response.metadata), "getIdentityIdsByPublicKeyHashes")
-                /*
-                val result = if (fullVerification) {
-                    println("rootTreeProof Size: ${proof.rootTreeProof.size}")
-                    MerkVerifyProof.extractProof(proof.storeTreeProofs.publicKeyHashesToIdentityIdsProof)
-                } else {
-                    MerkVerifyProof.extractData(proof.storeTreeProofs.publicKeyHashesToIdentityIdsProof)
-                }*/
+
                 if (result.isNotEmpty()) {
                     GetIdentityIdsByPublicKeyHashesResponse(result.values.toList(), proof, ResponseMetadata(response.metadata))
                 } else {

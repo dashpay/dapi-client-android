@@ -17,7 +17,6 @@ import org.bitcoinj.quorums.LLMQParameters
 import org.bitcoinj.quorums.Quorum
 import org.dashj.merk.ByteArrayKey
 import org.dashj.merk.MerkVerifyProof
-import org.dashj.merk.MerkleProof
 import org.dashj.merk.blake3
 import org.dashj.platform.dapiclient.model.Proof
 import org.dashj.platform.dapiclient.model.ResponseMetadata
