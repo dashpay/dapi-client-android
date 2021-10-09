@@ -9,10 +9,13 @@ package org.dashj.platform.dapiclient.proofs
 
 import kotlin.math.ceil
 import org.dashj.platform.dapiclient.proofs.Arrays.concatAndHash
-import org.dashj.platform.dapiclient.proofs.Arrays.getParentIndices
 import org.dashj.platform.dapiclient.proofs.Arrays.getSiblingIndex
 import org.dashj.platform.dapiclient.proofs.Arrays.getTreeDepth
 import org.dashj.platform.dpp.toHex
+
+/**
+ * This class was translated from https://github.com/antouhou/js-merkle
+ */
 
 data class ProofAccumulator(
     var currentLayerIndices: List<Int>,
@@ -56,8 +59,6 @@ class MerkleTree(
 
     /**
      * Returns tree depth. Tree depth is needed for the proof verification
-     *
-     * @return {number}
      */
     fun getDepth(): Int {
         return this.layers.size - 1
@@ -66,8 +67,7 @@ class MerkleTree(
     /**
      *  Returns merkle proof for the given leaf indices
      *
-     * @param {number[]} leafIndices
-     * @return {MerkleProof}
+     * @param leafIndices a list of leaf indices
      */
     fun getProof(leafIndices: List<Int>): MerkleProof {
         // Proof consists of all siblings hashes that aren't in the set we're trying to prove
@@ -92,9 +92,7 @@ class MerkleTree(
     }
 
     /**
-     * Get tree layers as an array of hex hashes
-     *
-     * @return {string[][]}
+     * Get tree layers as a List of hex hashes
      */
     fun getHexLayers(): List<List<String>> {
         return layers.map { layer ->

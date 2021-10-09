@@ -13,6 +13,10 @@ import org.dashj.platform.dapiclient.proofs.Arrays.getProofIndices
 import org.dashj.platform.dapiclient.proofs.Arrays.zip
 import org.dashj.platform.dpp.toHex
 
+/**
+ * This class was translated from https://github.com/antouhou/js-merkle
+ */
+
 data class LayerInfo(val index: Int, val leavesCount: Int)
 
 class MerkleProof(val proofHashes: List<ByteArray>, val hashFunction: (ByteArray) -> ByteArray) {

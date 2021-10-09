@@ -11,6 +11,10 @@ import kotlin.math.ceil
 import kotlin.math.ln
 import kotlin.math.pow
 
+/**
+ * This file was translated from https://github.com/antouhou/js-merkle
+ */
+
 object Arrays {
     @JvmStatic
     fun <T, U> zip(a: List<T>, b: List<U>): List<Pair<T, U>> {
@@ -48,7 +52,6 @@ object Arrays {
     fun getParentIndices(indices: List<Int>): List<Int> {
         // new Set removed all duplicates if two nodes were siblings
         return indices.map { getParentIndex(it) }.toSet().toList()
-        // return [...new Set(indices.map(getParentIndex))];
     }
     @JvmStatic
     fun getTreeDepth(leavesCount: Int): Int {
