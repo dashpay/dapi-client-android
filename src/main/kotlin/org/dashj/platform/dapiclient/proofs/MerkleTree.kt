@@ -79,24 +79,12 @@ class MerkleTree(
         val proofAccumulator = ProofAccumulator(leafIndices, proofHashes)
 
         val proof = layers.fold(proofAccumulator) { acc, treeLayer ->
-//            proofHashes.addAll(
-//                acc.currentLayerIndices.map { getSiblingIndex(it) }
-//                    .filter { siblingIndex -> !acc.currentLayerIndices.contains(siblingIndex) }
-//                    .map { index -> if (treeLayer.size > index) treeLayer[index] else ByteArray(0) }
-//                    .filter { proofHash -> proofHash.isNotEmpty() }
-//            )
-            val v1 = acc.currentLayerIndices.map { getSiblingIndex(it) }
-            val v2 = v1.filter { siblingIndex ->
-                println("sibling index $siblingIndex in ${acc.currentLayerIndices}")
-                !acc.currentLayerIndices.contains(siblingIndex)
-            }
-            val v3 = v2.map { index ->
-                println("$index of tree ${treeLayer.size}")
-                if (treeLayer.size > index) treeLayer[index] else ByteArray(0)
-            }
-            val v4 = v3.filter { proofHash -> proofHash.isNotEmpty() }
-            acc.currentLayerIndices = getParentIndices(acc.currentLayerIndices)
-            proofHashes.addAll(v4)
+            proofHashes.addAll(
+                acc.currentLayerIndices.map { getSiblingIndex(it) }
+                    .filter { siblingIndex -> !acc.currentLayerIndices.contains(siblingIndex) }
+                    .map { index -> if (treeLayer.size > index) treeLayer[index] else ByteArray(0) }
+                    .filter { proofHash -> proofHash.isNotEmpty() }
+            )
             acc
         }
 
