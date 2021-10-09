@@ -89,21 +89,7 @@ object ProofVerifier {
             quorum.llmqParameters.type
         )
         if (!signatureVerified) {
-            val tryHigher = verifyStateSignature(
-                proof.signature,
-                stateMessageHash,
-                metaData.height - 2,
-                quorum,
-                quorum.llmqParameters.type
-            )
-            val tryHigher2 = verifyStateSignature(
-                proof.signature,
-                stateMessageHash,
-                metaData.height - 3,
-                quorum,
-                quorum.llmqParameters.type
-            )
-            logger.warn("verify(height=${metaData.height}, stateHash=${stateHash.toHex().substring(0, 20)}, quorum=${quorum.quorumHash.toString().substring(0, 20)}, $caller): unable to verify platform signature, $tryHigher, $tryHigher2")
+            logger.warn("verify(height=${metaData.height}, stateHash=${stateHash.toHex().substring(0, 20)}, quorum=${quorum.quorumHash.toString().substring(0, 20)}, $caller): unable to verify platform signature")
         } else {
             logger.info("verify(height=${metaData.height}, stateHash=${stateHash.toHex().substring(0, 20)}, quorum=${quorum.quorumHash.toString().substring(0, 20)}, $caller): platform signature verified")
         }
