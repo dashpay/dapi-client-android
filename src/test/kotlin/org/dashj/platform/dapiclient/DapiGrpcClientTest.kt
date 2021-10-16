@@ -36,9 +36,9 @@ class DapiGrpcClientTest {
     val PARAMS = SchnappsDevNetParams.get()
     val CONTEXT = Context.getOrCreate(PARAMS)
     val masternodeList = PARAMS.defaultMasternodeList.toList()
-    val dpnsContractId = Base58.decode("8F4WqzVuqyYEBMR1AraBuYG1cjk3hqUYdzLSMdYpWLbH") // DPNS contract
-    val dashPayContractId = Base58.decode("8Mpj1D1fSg1AtKoCFBcSg7UTfqChpFTHLQBPVrXUACxC")
-    val identityIdString = "5DSwyjJiUXArZ42Uj1g7wSPLgWTBYCT3p4pHPmtEDH5b"
+    val dpnsContractId = Base58.decode("EBnvxB5RSW8NbBbXdRS3zPqFEaZnjCZ8WeurjvLTaru7") // DPNS contract
+    val dashPayContractId = Base58.decode("GAvZdha4t3mCQyvCVvv7LMYw3CXN4X5hvFZ4S6qCAdod")
+    val identityIdString = "EBnvxB5RSW8NbBbXdRS3zPqFEaZnjCZ8WeurjvLTaru7"
     val stateRepository = StateRepositoryMock()
     val dpp = DashPlatformProtocol(stateRepository)
     val contractFactory = ContractFactory(dpp, stateRepository)

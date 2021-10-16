@@ -49,14 +49,14 @@ class ProofTest {
     val PARAMS = SchnappsDevNetParams.get()
     val CONTEXT = Context.getOrCreate(PARAMS)
     val masternodeList = PARAMS.defaultMasternodeList.toList()
-    val dpnsContractId = Identifier.from("8F4WqzVuqyYEBMR1AraBuYG1cjk3hqUYdzLSMdYpWLbH") // DPNS contract
-    val dashPayContractId = Identifier.from("8Mpj1D1fSg1AtKoCFBcSg7UTfqChpFTHLQBPVrXUACxC")
-    val identityId = Identifier.from("5DSwyjJiUXArZ42Uj1g7wSPLgWTBYCT3p4pHPmtEDH5b")
+    val dpnsContractId = Identifier.from("EBnvxB5RSW8NbBbXdRS3zPqFEaZnjCZ8WeurjvLTaru7") // DPNS contract
+    val dashPayContractId = Identifier.from("GAvZdha4t3mCQyvCVvv7LMYw3CXN4X5hvFZ4S6qCAdod")
+    val identityId = Identifier.from("7ziiQcPfHqhR5CnCnhQKT4H4x5XpKaf8XJpjzvZShDpu")
     val badDpnsContractId = Identifier.from("5BrYpaW5s26UWoBk9zEAYWxJANX7LFinmToprWo3VwgS") // DPNS contract
     val badDashPayContractId = Identifier.from("8FmdUoXZJijvARgA3Vcg73ThYp5P4AaLis1WpXp9VGg1")
     val badIdentityId = Identifier.from("GrdbRMnZ5pPiFWuzPR62goRVj6sxpqvLKMT87ZmuZPyr")
-    val publicKeyHash = Converters.fromHex("106d620310b02fe89f3c103706f3e23ffad4b680")
-    val publicKeyHashes = listOf(publicKeyHash, Converters.fromHex("106d620310b02fe89f3c103706f3e23ffad4b680"))
+    val publicKeyHash = Converters.fromHex("f01cc7d94f57e0c3d33c38b67805e76f566818a0")
+    val publicKeyHashes = listOf(publicKeyHash, Converters.fromHex("f01cc7d94f57e0c3d33c38b67805e76f566818a0"))
 
     val badPublicKeyHash = Converters.fromHex("ea396d727565f94d26f85e7f8a4fe5418f97d7cb")
     val badPublicKeyHashes = listOf(badPublicKeyHash, Converters.fromHex("bad3374c8aa0059809d677bcb44c86d4e7746bb9"))
