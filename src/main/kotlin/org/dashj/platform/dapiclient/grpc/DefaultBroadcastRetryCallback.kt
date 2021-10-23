@@ -85,8 +85,7 @@ open class BroadcastRetryCallback(
                 logger.info("--> INVALID_ARGUMENT")
                 // only retry if it is DocumentsBatchTransition
                 // throw exception for any other invalid argument errors
-                val exception = GrpcExceptionInfo(e).exception
-                when (exception) {
+                when (GrpcExceptionInfo(e).exception) {
                     is IdentityNotFoundException -> {
                         if (shouldRetryIdentityNotFound(grpcMethod.stateTransition)) {
                             logger.info("---retry based on IdentityNotFoundError")
@@ -162,7 +161,6 @@ open class BroadcastRetryCallback(
                                     return true
                                 }
                             }
-                            // TODO: cannot find equivalent
                             is DocumentAlreadyPresentException -> {
                                 if (retryContractIds.contains(dataContractId)) {
                                     logger.info("Retry ${grpcMethod.javaClass.simpleName} ${e.status.code} since error was DuplicateDocumentError")
@@ -202,7 +200,6 @@ open class BroadcastRetryCallback(
         return true
     }
 
-    // TODO: errors not handled correctly here because errorInfo is using the old conventions
     override fun shouldRetry(grpcMethod: GrpcMethod, errorInfo: StateTransitionBroadcastException): Boolean {
         logger.info("Determining if we should retry ${grpcMethod.javaClass.simpleName} ${errorInfo.errorMessage}")
         if (grpcMethod is BroadcastStateTransitionMethod) {
