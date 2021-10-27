@@ -181,12 +181,19 @@ class DapiClient(
     fun broadcastStateTransitionInternal(
         stateTransition: StateTransition,
         statusCheck: Boolean = false,
-        retryCallback: GrpcMethodShouldRetryCallback = DefaultShouldRetryCallback()
+        retryCallback: BroadcastShouldRetryCallback = DefaultBroadcastRetryCallback()
     ):
     BroadcastStateTransitionMethod {
         logger.info("broadcastStateTransitionInternal(${stateTransition.toJSON()})")
         val method = BroadcastStateTransitionMethod(stateTransition)
-        grpcRequest(method, statusCheck = statusCheck, retryCallback = retryCallback)
+        grpcRequest(
+            method, statusCheck = statusCheck,
+            retryCallback = object : DefaultShouldRetryCallback() {
+                override fun shouldRetry(grpcMethod: GrpcMethod, e: StatusRuntimeException): Boolean {
+                    return retryCallback.shouldRetry(grpcMethod, e)
+                }
+            }
+        )
         return method
     }
 
@@ -248,7 +255,7 @@ class DapiClient(
 
         var broadcast: BroadcastStateTransitionMethod? = null
         try {
-            broadcast = broadcastStateTransitionInternal(signedStateTransition, statusCheck)
+            broadcast = broadcastStateTransitionInternal(signedStateTransition, statusCheck, retryCallback)
         } catch (e: StatusRuntimeException) {
             // should we retry
             logger.info("broadcastStateTransitionInternal: failure: $e")
