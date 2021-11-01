@@ -329,7 +329,7 @@ class DapiClient(
         when {
             waitForResult == null -> {
                 logger.info("broadcastStateTransitionAndWait: failure: Timeout or no proof returned")
-                throw StateTransitionBroadcastException(2, "Timeout", signedStateTransition.toBuffer())
+                throw StateTransitionBroadcastException(2, "Timeout", ByteArray(0))
             }
             // count the proof as success
             waitForResult.isSuccess() -> {
