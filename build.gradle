@@ -3,7 +3,7 @@ import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
 buildscript {
     ext.kotlin_version = '1.4.32'
-    ext.dashj_version = '0.18-SNAPSHOT'
+    ext.dashj_version = '0.18.0-SNAPSHOT'
     ext.dpp_version = '0.21-SNAPSHOT'
     ext.dapi_client_version = '0.21-SNAPSHOT'
     repositories {
@@ -85,6 +85,7 @@ dependencies {
 
     implementation "org.dashj.platform:dpp:$dpp_version"
     implementation "org.dashj:dashj-core:$dashj_version"
+    implementation "org.dashj:dashj-bls:0.18.1"
     implementation "org.dashj:dashj-merk:0.21-SNAPSHOT"
     implementation 'com.squareup.retrofit2:retrofit:2.4.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.4.0'
@@ -107,6 +108,8 @@ dependencies {
     }
     implementation 'io.grpc:grpc-stub:1.28.0' // CURRENT_GRPC_VERSION
     compileOnly 'javax.annotation:javax.annotation-api:1.3.2'
+    implementation 'org.slf4j:slf4j-api:1.7.30'
+    implementation 'org.json:json:20190722'
 }
 
 compileKotlin {
