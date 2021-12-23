@@ -4,8 +4,8 @@ import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 buildscript {
     ext.kotlin_version = '1.4.32'
     ext.dashj_version = '0.18.0-SNAPSHOT'
-    ext.dpp_version = '0.21-SNAPSHOT'
-    ext.dapi_client_version = '0.21-SNAPSHOT'
+    ext.dpp_version = '0.22-SNAPSHOT'
+    ext.dapi_client_version = '0.22-SNAPSHOT'
     repositories {
         mavenLocal()
         mavenCentral()
