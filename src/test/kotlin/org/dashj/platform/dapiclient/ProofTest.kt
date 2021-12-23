@@ -11,7 +11,7 @@ import com.google.protobuf.ByteString
 import org.bitcoinj.core.Context
 import org.bitcoinj.core.Sha256Hash
 import org.bitcoinj.crypto.BLSPublicKey
-import org.bitcoinj.params.SchnappsDevNetParams
+import org.bitcoinj.params.KrupnikDevNetParams
 import org.bitcoinj.quorums.LLMQParameters
 import org.bitcoinj.quorums.Quorum
 import org.dash.platform.dapi.v0.PlatformOuterClass
@@ -46,17 +46,17 @@ class ProofTest {
         BLS.Init()
     }
 
-    val PARAMS = SchnappsDevNetParams.get()
+    val PARAMS = KrupnikDevNetParams.get()
     val CONTEXT = Context.getOrCreate(PARAMS)
     val masternodeList = PARAMS.defaultMasternodeList.toList()
-    val dpnsContractId = Identifier.from("EBnvxB5RSW8NbBbXdRS3zPqFEaZnjCZ8WeurjvLTaru7") // DPNS contract
+    val dpnsContractId = Identifier.from("5cE6PjNoo1bpfa25LBnSWkMdW25egnhwZ5ThEwFkjSp7") // DPNS contract
     val dashPayContractId = Identifier.from("GAvZdha4t3mCQyvCVvv7LMYw3CXN4X5hvFZ4S6qCAdod")
-    val identityId = Identifier.from("7ziiQcPfHqhR5CnCnhQKT4H4x5XpKaf8XJpjzvZShDpu")
+    val identityId = Identifier.from("Dpajw3sTQhZgGixBM2S8K2oDHibpCC8xmTzYKdNbA6uK")
     val badDpnsContractId = Identifier.from("5BrYpaW5s26UWoBk9zEAYWxJANX7LFinmToprWo3VwgS") // DPNS contract
     val badDashPayContractId = Identifier.from("8FmdUoXZJijvARgA3Vcg73ThYp5P4AaLis1WpXp9VGg1")
     val badIdentityId = Identifier.from("GrdbRMnZ5pPiFWuzPR62goRVj6sxpqvLKMT87ZmuZPyr")
-    val publicKeyHash = Converters.fromHex("f01cc7d94f57e0c3d33c38b67805e76f566818a0")
-    val publicKeyHashes = listOf(publicKeyHash, Converters.fromHex("f01cc7d94f57e0c3d33c38b67805e76f566818a0"))
+    val publicKeyHash = Converters.fromHex("bf12f1bde18e1450e66b35d1eefbfd8dcf09cdcd")
+    val publicKeyHashes = listOf(publicKeyHash, Converters.fromHex("bf12f1bde18e1450e66b35d1eefbfd8dcf09cdcd"))
 
     val badPublicKeyHash = Converters.fromHex("ea396d727565f94d26f85e7f8a4fe5418f97d7cb")
     val badPublicKeyHashes = listOf(badPublicKeyHash, Converters.fromHex("bad3374c8aa0059809d677bcb44c86d4e7746bb9"))
@@ -242,7 +242,7 @@ class ProofTest {
 
         // Quorum()
         val quorumEntry = Quorum(
-            SchnappsDevNetParams.get(),
+            PARAMS,
             LLMQParameters.llmq_devnet,
             Sha256Hash.wrapReversed(Converters.fromHex("7f315ea78de78c3ac9b2c089f40138114088963314a3c0101fb7eaaad5000000")),
             BLSPublicKey(PublicKey.FromBytes(Converters.fromHex("0a396fd00ac8f678a242c4b14004fe3402bdb9ada641e48e11ca6be3c87c5858b4cbc6014622d98df95b1a68b1bbd46c")))
@@ -297,7 +297,7 @@ class ProofTest {
 
         // Quorum()
         val quorumEntry = Quorum(
-            SchnappsDevNetParams.get(),
+            PARAMS,
             LLMQParameters.llmq_devnet,
             Sha256Hash.wrapReversed(Converters.fromHex("7f315ea78de78c3ac9b2c089f40138114088963314a3c0101fb7eaaad5000000")),
             BLSPublicKey(PublicKey.FromBytes(Converters.fromHex("0a396fd00ac8f678a242c4b14004fe3402bdb9ada641e48e11ca6be3c87c5858b4cbc6014622d98df95b1a68b1bbd46c")))
@@ -348,7 +348,7 @@ class ProofTest {
 
         // Quorum()
         val quorumEntry = Quorum(
-            SchnappsDevNetParams.get(),
+            PARAMS,
             LLMQParameters.llmq_devnet,
             Sha256Hash.wrap(Converters.fromHex("0000005369ba47b478ff971bba47f8c969291de751aa40cca165e6f5f98aaacc")),
             BLSPublicKey(PublicKey.FromBytes(Converters.fromHex("139ead0c787b4feea1b99217544dd6548c38285d57a6e5e8c7f650e93567ffc783a39bc469e0e4da0cc36a427bab9ae4")))
@@ -408,7 +408,7 @@ class ProofTest {
 
         // Quorum()
         val quorumEntry = Quorum(
-            SchnappsDevNetParams.get(),
+            PARAMS,
             LLMQParameters.llmq_devnet,
             Sha256Hash.wrapReversed(Converters.fromHex("7f315ea78de78c3ac9b2c089f40138114088963314a3c0101fb7eaaad5000000")),
             BLSPublicKey(PublicKey.FromBytes(Converters.fromHex("0a396fd00ac8f678a242c4b14004fe3402bdb9ada641e48e11ca6be3c87c5858b4cbc6014622d98df95b1a68b1bbd46c")))
@@ -468,7 +468,7 @@ class ProofTest {
 
         // Quorum()
         val quorumEntry = Quorum(
-            SchnappsDevNetParams.get(),
+            PARAMS,
             LLMQParameters.llmq_devnet,
             Sha256Hash.wrapReversed(Converters.fromHex("7f315ea78de78c3ac9b2c089f40138114088963314a3c0101fb7eaaad5000000")),
             BLSPublicKey(PublicKey.FromBytes(Converters.fromHex("0a396fd00ac8f678a242c4b14004fe3402bdb9ada641e48e11ca6be3c87c5858b4cbc6014622d98df95b1a68b1bbd46c")))
@@ -525,7 +525,7 @@ class ProofTest {
 
         // Quorum()
         val quorumEntry = Quorum(
-            SchnappsDevNetParams.get(),
+            PARAMS,
             LLMQParameters.llmq_devnet,
             Sha256Hash.wrapReversed(Converters.fromHex("7f315ea78de78c3ac9b2c089f40138114088963314a3c0101fb7eaaad5000000")),
             BLSPublicKey(PublicKey.FromBytes(Converters.fromHex("0a396fd00ac8f678a242c4b14004fe3402bdb9ada641e48e11ca6be3c87c5858b4cbc6014622d98df95b1a68b1bbd46c")))
