@@ -389,7 +389,8 @@ class DapiClient(
                 val result = verifyProof(proof, ResponseMetadata(response.metadata), "getIdentity")
                 if (result.isNotEmpty()) {
                     val key = ByteArrayKey(id)
-                    if (result.size == 1) {
+                    // was there a change in 0.22 that made a non-inclusion proof return 1 key?
+                    if (result.size == 1 && key == result.keys.first()) {
                         GetIdentityResponse(result[key]!!, proof, ResponseMetadata(response.metadata))
                     } else {
                         // noninclusion proof
@@ -482,7 +483,7 @@ class DapiClient(
      * @return String
      */
     fun getIdentityIdByFirstPublicKey(pubKeyHash: ByteArray, prove: Boolean = false): ByteString? {
-        logger.info("getIdentityIdByFirstPublicKey(${pubKeyHash.toHexString()}, $prove)")
+        logger.info("getIdentityIdByFirstPublicKey(${pubKeyHash.toHex()}, $prove)")
         val method = GetIdentityIdsByPublicKeyHashes(listOf(pubKeyHash), prove)
         val response = grpcRequest(method) as PlatformOuterClass.GetIdentityIdsByPublicKeyHashesResponse?
         return when {
