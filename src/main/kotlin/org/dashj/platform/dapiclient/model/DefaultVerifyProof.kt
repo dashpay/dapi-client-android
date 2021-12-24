@@ -89,7 +89,7 @@ open class DefaultVerifyProof(protected val stateTransition: StateTransitionIden
             rawDocument["\$ownerId"] = stateTransition.ownerId
             val rawDocumentFromProofBytes = values[ByteArrayKey(transition.id.toBuffer())]
             if (rawDocumentFromProofBytes != null) {
-                val rawDocumentFromProof = Factory.decodeProtocolEntity(rawDocumentFromProofBytes, ProtocolVersion.latestVersion).second
+                val rawDocumentFromProof = Factory.decodeProtocolEntity(rawDocumentFromProofBytes).second
                 when (transition) {
                     is DocumentCreateTransition -> {
                         rawDocument.remove("\$entropy")
@@ -114,7 +114,7 @@ open class DefaultVerifyProof(protected val stateTransition: StateTransitionIden
         value: ByteArray,
         stateTransition: DataContractCreateTransition
     ): Boolean {
-        val match = Factory.decodeProtocolEntity(value, ProtocolVersion.latestVersion) == stateTransition.dataContract.toObject()
+        val match = Factory.decodeProtocolEntity(value) == stateTransition.dataContract.toObject()
         if (!match) {
             return false
         }
@@ -132,7 +132,7 @@ open class DefaultVerifyProof(protected val stateTransition: StateTransitionIden
         rawIdentity.remove("assetLockProof")
         rawIdentity.remove("type")
 
-        val rawIdentityFromProof = Factory.decodeProtocolEntity(value, ProtocolVersion.latestVersion).second
+        val rawIdentityFromProof = Factory.decodeProtocolEntity(value).second
         rawIdentityFromProof.remove("balance")
 
         val publicKeysFromProof = rawIdentityFromProof["publicKeys"] as List<Map<String, Any?>>
