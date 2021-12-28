@@ -18,6 +18,7 @@ import org.dashj.platform.dpp.contract.DataContractCreateTransition
 import org.dashj.platform.dpp.document.DocumentCreateTransition
 import org.dashj.platform.dpp.document.DocumentsBatchTransition
 import org.dashj.platform.dpp.errors.concensus.basic.datacontract.InvalidDataContractIdException
+import org.dashj.platform.dpp.errors.concensus.basic.identity.InvalidInstantAssetLockProofException
 import org.dashj.platform.dpp.errors.concensus.document.DataContractNotPresentException
 import org.dashj.platform.dpp.errors.concensus.signature.IdentityNotFoundException
 import org.dashj.platform.dpp.errors.concensus.state.datacontract.DataTriggerConditionException
@@ -85,6 +86,7 @@ open class BroadcastRetryCallback(
                 logger.info("--> INVALID_ARGUMENT")
                 // only retry if it is DocumentsBatchTransition
                 // throw exception for any other invalid argument errors
+                val exception = GrpcExceptionInfo(e).exception
                 when (GrpcExceptionInfo(e).exception) {
                     is IdentityNotFoundException -> {
                         if (shouldRetryIdentityNotFound(grpcMethod.stateTransition)) {
@@ -99,6 +101,9 @@ open class BroadcastRetryCallback(
                         if (shouldRetryPreorderNotFound(grpcMethod.stateTransition as DocumentsBatchTransition)) {
                             return true
                         }
+                    }
+                    is InvalidInstantAssetLockProofException -> {
+                        throw exception
                     }
                 }
 
