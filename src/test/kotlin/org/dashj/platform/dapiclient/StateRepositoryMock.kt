@@ -23,7 +23,7 @@ class StateRepositoryMock : StateRepository {
         TODO("Not yet implemented")
     }
 
-    override fun fetchLatestPlatformBlockHeader(): Block {
+    override fun fetchLatestPlatformBlockHeader(): ByteArray {
         TODO("Not yet implemented")
     }
 
