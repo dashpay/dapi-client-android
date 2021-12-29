@@ -10,7 +10,6 @@ package org.dashj.platform.dapiclient.model
 import org.dashj.merk.ByteArrayKey
 import org.dashj.merk.MerkVerifyProof
 import org.dashj.platform.dpp.Factory
-import org.dashj.platform.dpp.ProtocolVersion
 import org.dashj.platform.dpp.contract.DataContractCreateTransition
 import org.dashj.platform.dpp.document.DocumentCreateTransition
 import org.dashj.platform.dpp.document.DocumentDeleteTransition

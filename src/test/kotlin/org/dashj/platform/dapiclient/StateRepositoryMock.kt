@@ -1,6 +1,5 @@
 package org.dashj.platform.dapiclient
 
-import org.bitcoinj.core.Block
 import org.bitcoinj.core.Transaction
 import org.bitcoinj.quorums.InstantSendLock
 import org.dashj.platform.dpp.StateRepository
