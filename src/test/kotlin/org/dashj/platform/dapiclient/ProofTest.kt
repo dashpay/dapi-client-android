@@ -49,9 +49,9 @@ class ProofTest {
     val PARAMS = KrupnikDevNetParams.get()
     val CONTEXT = Context.getOrCreate(PARAMS)
     val masternodeList = PARAMS.defaultMasternodeList.toList()
-    val dpnsContractId = Identifier.from("5cE6PjNoo1bpfa25LBnSWkMdW25egnhwZ5ThEwFkjSp7") // DPNS contract
-    val dashPayContractId = Identifier.from("GAvZdha4t3mCQyvCVvv7LMYw3CXN4X5hvFZ4S6qCAdod")
-    val identityId = Identifier.from("Dpajw3sTQhZgGixBM2S8K2oDHibpCC8xmTzYKdNbA6uK")
+    val dpnsContractId = Identifier.from("FBzwdxUzv1BLZCdpwdYRVCihTLtYe73UxviWsxJd7FYQ") // DPNS contract
+    val dashPayContractId = Identifier.from("3Ftm5vrpH2sYRanYfNmzuYNPHw4tzAkZzrCDqz7dLf9Q")
+    val identityId = Identifier.from("CFVmk7MaepcAHxQAZCJ3cvGvYiXecDSPjry32TuKa9DL")
     val badDpnsContractId = Identifier.from("5BrYpaW5s26UWoBk9zEAYWxJANX7LFinmToprWo3VwgS") // DPNS contract
     val badDashPayContractId = Identifier.from("8FmdUoXZJijvARgA3Vcg73ThYp5P4AaLis1WpXp9VGg1")
     val badIdentityId = Identifier.from("GrdbRMnZ5pPiFWuzPR62goRVj6sxpqvLKMT87ZmuZPyr")
