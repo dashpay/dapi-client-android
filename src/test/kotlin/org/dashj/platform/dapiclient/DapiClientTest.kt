@@ -6,19 +6,24 @@
  */
 package org.dashj.platform.dapiclient
 
+import org.bitcoinj.params.KrupnikDevNetParams
 import org.bitcoinj.params.TestNet3Params
+import org.dashj.platform.dpp.DashPlatformProtocol
 import org.junit.jupiter.api.Test
 
 class DapiClientTest {
 
+    val PARAMS = KrupnikDevNetParams.get()
+    val stateRepository = StateRepositoryMock()
+    val dpp = DashPlatformProtocol(stateRepository, PARAMS)
+    val client = DapiClient(TestNet3Params.MASTERNODES.toList(), dpp)
+
     @Test
     fun jRPCTests() {
-        val client = DapiClient(TestNet3Params.MASTERNODES.toList())
         println("blocking=> hash: " + client.getBestBlockHash())
     }
 
     fun getMnListDiff(): Map<String, Any> {
-        val client = DapiClient(TestNet3Params.MASTERNODES.toList())
         val success = 0
         do {
             try {
@@ -35,7 +40,6 @@ class DapiClientTest {
 
     @Test
     fun getMnListDiffTest() {
-        val client = DapiClient(TestNet3Params.MASTERNODES.toList())
         println("blocking=> hash: " + client.getBestBlockHash())
         println(getMnListDiff()["mnList"])
     }
