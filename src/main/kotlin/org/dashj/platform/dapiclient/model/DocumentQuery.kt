@@ -70,6 +70,14 @@ class DocumentQuery private constructor(
             return where(listOf(left, operator, right))
         }
 
+        fun where(left: String, operator: String, right: Int): Builder {
+            return where(listOf(left, operator, right))
+        }
+
+        fun where(left: String, operator: String, right: Long): Builder {
+            return where(listOf(left, operator, right))
+        }
+
         fun whereIn(left: String, right: List<Any>): Builder {
             return where(listOf(left, "in", right))
         }
