@@ -378,7 +378,7 @@ class DapiClient(
     /**
      * Fetch the identity by id
      * @param id String
-     * @return ByteString?
+     * @return GetIdentityResponse?
      */
     fun getIdentity(id: ByteArray, prove: Boolean = false, retryCallback: GrpcMethodShouldRetryCallback = defaultShouldRetryCallback): GetIdentityResponse {
         logger.info("getIdentity(${id.toBase58()}, $prove)")
@@ -467,7 +467,7 @@ class DapiClient(
     /**
      * Fetch the identity ids by the public key hashes
      * @param pubKeyHashes List<ByteArray>
-     * @return List<ByteString>?
+     * @return GetIdentitiesByPublicKeyHashesResponse
      */
     fun getIdentitiesByPublicKeyHashes(pubKeyHashes: List<ByteArray>, prove: Boolean = false): GetIdentitiesByPublicKeyHashesResponse {
         logger.info("getIdentitiesByPublicKeyHashes(${pubKeyHashes.map { it.toHexString() }}, $prove")
@@ -536,7 +536,7 @@ class DapiClient(
     /**
      * Fetch the identity ids by the public key hashes
      * @param pubKeyHashes List<ByteArray>
-     * @return List<ByteString>?
+     * @return GetIdentityIdsByPublicKeyHashesResponse
      */
     fun getIdentityIdsByPublicKeyHashes(pubKeyHashes: List<ByteArray>, prove: Boolean = false): GetIdentityIdsByPublicKeyHashesResponse {
         logger.info("getIdentityIdsByPublicKeyHashes(${pubKeyHashes.map { it.toHexString() }}, $prove")
@@ -581,7 +581,8 @@ class DapiClient(
     /**
      * Fetch Data Contract by id
      * @param contractId String
-     * @return ByteString? The contract bytes or null if not found
+     * @return GetDataContractResponse
+     * @throws NotFoundException if the contract is not found
      */
     fun getDataContract(contractId: ByteArray, prove: Boolean = false, retryCallback: GrpcMethodShouldRetryCallback = defaultShouldRetryCallback): GetDataContractResponse {
         logger.info("getDataContract(${contractId.toBase58()})")
@@ -993,7 +994,7 @@ class DapiClient(
     /**
      *
      * @param txHex String
-     * @return ByteString?
+     * @return GetTransactionResponse?
      */
     fun getTransaction(txHex: String): GetTransactionResponse? {
         logger.info("getTransaction($txHex)")
