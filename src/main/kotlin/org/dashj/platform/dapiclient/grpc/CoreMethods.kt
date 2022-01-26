@@ -34,10 +34,10 @@ class GetStatusMethod : GrpcMethod {
     }
 }
 
-class BroadcastTransactionMethod(txBytes: ByteString, allowHighFees: Boolean, bypassLimits: Boolean) : GrpcMethod {
+class BroadcastTransactionMethod(txBytes: ByteArray, allowHighFees: Boolean, bypassLimits: Boolean) : GrpcMethod {
 
     val request = CoreOuterClass.BroadcastTransactionRequest.newBuilder()
-        .setTransaction(txBytes)
+        .setTransaction(ByteString.copyFrom(txBytes))
         .setAllowHighFees(allowHighFees)
         .setBypassLimits(bypassLimits)
         .build()
