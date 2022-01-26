@@ -23,6 +23,7 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import org.bitcoinj.core.BloomFilter
 import org.bitcoinj.core.Sha256Hash
+import org.bitcoinj.core.Utils
 import org.bitcoinj.evolution.SimplifiedMasternodeListManager
 import org.dash.platform.dapi.v0.CoreOuterClass
 import org.dash.platform.dapi.v0.PlatformOuterClass
@@ -78,8 +79,12 @@ import org.dashj.platform.dapiclient.provider.DAPIGrpcMasternode
 import org.dashj.platform.dapiclient.provider.ListDAPIAddressProvider
 import org.dashj.platform.dapiclient.provider.SimplifiedMasternodeListDAPIAddressProvider
 import org.dashj.platform.dapiclient.rest.DapiService
+import org.dashj.platform.dpp.DashPlatformProtocol
+import org.dashj.platform.dpp.contract.DataContractTransition
+import org.dashj.platform.dpp.document.DocumentsBatchTransition
 import org.dashj.platform.dpp.errors.concensus.ConcensusException
 import org.dashj.platform.dpp.identifier.Identifier
+import org.dashj.platform.dpp.identity.IdentityStateTransition
 import org.dashj.platform.dpp.statetransition.StateTransition
 import org.dashj.platform.dpp.statetransition.StateTransitionIdentitySigned
 import org.dashj.platform.dpp.toBase58
@@ -91,6 +96,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 class DapiClient(
     var dapiAddressListProvider: DAPIAddressListProvider,
+    val dpp: DashPlatformProtocol,
     private var timeOut: Long = DEFAULT_TIMEOUT,
     private var retries: Int = DEFAULT_RETRY_COUNT,
     private var banBaseTime: Int = DEFAULT_BASE_BAN_TIME,
@@ -158,11 +164,11 @@ class DapiClient(
         }
     }
 
-    constructor(masternodeAddress: String, timeOut: Long = DEFAULT_TIMEOUT, retries: Int = DEFAULT_RETRY_COUNT, banBaseTime: Int = DEFAULT_BASE_BAN_TIME, waitForNodes: Int = DEFAULT_WAIT_FOR_NODES) :
-    this(listOf(masternodeAddress), timeOut, retries, banBaseTime, waitForNodes)
+    constructor(masternodeAddress: String, dpp: DashPlatformProtocol, timeOut: Long = DEFAULT_TIMEOUT, retries: Int = DEFAULT_RETRY_COUNT, banBaseTime: Int = DEFAULT_BASE_BAN_TIME, waitForNodes: Int = DEFAULT_WAIT_FOR_NODES) :
+    this(listOf(masternodeAddress), dpp, timeOut, retries, banBaseTime, waitForNodes)
 
-    constructor(addresses: List<String>, timeOut: Long = DEFAULT_TIMEOUT, retries: Int = DEFAULT_RETRY_COUNT, banBaseTime: Int = DEFAULT_BASE_BAN_TIME, waitForNodes: Int = DEFAULT_WAIT_FOR_NODES) :
-    this(ListDAPIAddressProvider.fromList(addresses, banBaseTime), timeOut, retries, banBaseTime, waitForNodes)
+    constructor(addresses: List<String>, dpp: DashPlatformProtocol, timeOut: Long = DEFAULT_TIMEOUT, retries: Int = DEFAULT_RETRY_COUNT, banBaseTime: Int = DEFAULT_BASE_BAN_TIME, waitForNodes: Int = DEFAULT_WAIT_FOR_NODES) :
+    this(ListDAPIAddressProvider.fromList(addresses, banBaseTime), dpp, timeOut, retries, banBaseTime, waitForNodes)
     /* Platform gRPC methods */
 
     /**
