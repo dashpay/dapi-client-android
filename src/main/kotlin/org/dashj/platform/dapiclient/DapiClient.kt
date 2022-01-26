@@ -423,9 +423,9 @@ class DapiClient(
     /**
      * Fetch the identity by the first public key hash
      * @param pubKeyHash ByteArray
-     * @return ByteString?
+     * @return ByteArray?
      */
-    fun getIdentityByFirstPublicKey(pubKeyHash: ByteArray, prove: Boolean = false): ByteString? {
+    fun getIdentityByFirstPublicKey(pubKeyHash: ByteArray, prove: Boolean = false): ByteArray? {
         logger.info("getIdentityByFirstPublicKey(${pubKeyHash.toHex()})")
         val method = GetIdentitiesByPublicKeyHashes(listOf(pubKeyHash), prove)
         val response = grpcRequest(method) as PlatformOuterClass.GetIdentitiesByPublicKeyHashesResponse?
@@ -972,7 +972,7 @@ class DapiClient(
         }
     }
 
-    fun broadcastTransaction(txBytes: ByteString, allowHighFees: Boolean = false, bypassLimits: Boolean = false): String {
+    fun broadcastTransaction(txBytes: ByteArray, allowHighFees: Boolean = false, bypassLimits: Boolean = false): String {
         val method = BroadcastTransactionMethod(txBytes, allowHighFees, bypassLimits)
         val response = grpcRequest(method) as CoreOuterClass.BroadcastTransactionResponse?
         return response?.transactionId!!
@@ -983,11 +983,11 @@ class DapiClient(
      * @param txHex String
      * @return ByteString?
      */
-    fun getTransactionBytes(txHex: String): ByteString? {
+    fun getTransactionBytes(txHex: String): ByteArray? {
         logger.info("getTransaction($txHex)")
         val method = GetTransactionMethod(txHex)
         val response = grpcRequest(method) as CoreOuterClass.GetTransactionResponse?
-        return response?.transaction
+        return response?.transaction?.toByteArray()
     }
 
     /**
