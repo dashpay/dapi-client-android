@@ -348,7 +348,7 @@ class DapiClient(
                 logger.info("ST Hash            : ${Sha256Hash.of(signedStateTransition.toBuffer())}")
                 logger.info("proof verification : ${verifyProof.verify(waitForResult.proof)}")
                 logger.info("success rate       : $successRate")
-                logger.info("signature proof    : ${verifyProof(waitForResult.proof, waitForResult.metadata, "broadcast") }")
+                logger.info("signature proof    : ${verifyProof(waitForResult.proof, waitForResult.metadata, broadcast) }")
             }
             waitForResult.isError() -> {
                 logger.info("broadcastStateTransitionAndWait: failure: ${waitForResult.error}")
@@ -392,7 +392,7 @@ class DapiClient(
                 val proof = Proof(response.proof)
                 logger.info("proof = $proof")
 
-                val result = verifyProof(proof, ResponseMetadata(response.metadata), "getIdentity")
+                val result = verifyProof(proof, ResponseMetadata(response.metadata), method).first
                 if (result.isNotEmpty()) {
                     val key = ByteArrayKey(id)
                     // was there a change in 0.22 that made a non-inclusion proof return 1 key?
@@ -426,7 +426,7 @@ class DapiClient(
      * @return ByteString?
      */
     fun getIdentityByFirstPublicKey(pubKeyHash: ByteArray, prove: Boolean = false): ByteString? {
-        logger.info("getIdentityByFirstPublicKey(${pubKeyHash.toHexString()})")
+        logger.info("getIdentityByFirstPublicKey(${pubKeyHash.toHex()})")
         val method = GetIdentitiesByPublicKeyHashes(listOf(pubKeyHash), prove)
         val response = grpcRequest(method) as PlatformOuterClass.GetIdentitiesByPublicKeyHashesResponse?
         return when {
@@ -434,19 +434,28 @@ class DapiClient(
                 null
             }
             prove && response.hasProof() -> {
-                // TODO: how do we check the proof?
                 val proof = Proof(response.proof)
-                val result = verifyProof(proof, ResponseMetadata(response.metadata), "getIdentityByFirstPublicKey")
+                val (inclusion, noninclusion) = verifyProof(proof, ResponseMetadata(response.metadata), method)
 
-                if (result.isNotEmpty()) {
-                    ByteString.copyFrom(result.values.first())
+                if (inclusion.isNotEmpty()) {
+                    val identityBytes = ByteString.copyFrom(inclusion.values.first())
+                    if (verifyIdentityWithPublicKeyHash(pubKeyHash, identityBytes.toByteArray())) {
+                        logger.info("inclusion proof for identity with pubkeyhash: $pubKeyHash")
+                        identityBytes
+                    } else if (!verifyIdentitiesWithPublicKeyHashes(listOf(pubKeyHash), noninclusion.values.map { it })) {
+                        logger.info("noninclusion proof for identity")
+                        null
+                    } else {
+                        // this shouldn't happpen
+                        null
+                    }
                 } else {
                     null
                 }
             }
             else -> {
                 val firstResult = response.identitiesList?.get(0)
-                if (firstResult != null && !firstResult.isEmpty) {
+                if (firstResult != null && !firstResult.isEmpty && firstResult.size() > 1 && verifyIdentityWithPublicKeyHash(pubKeyHash, firstResult.toByteArray())) {
                     firstResult
                 } else {
                     null
@@ -469,10 +478,10 @@ class DapiClient(
             prove && response.hasProof() -> {
                 val proof = Proof(response.proof)
                 logger.info("proof = $proof")
-                val result = verifyProof(proof, ResponseMetadata(response.metadata), "getIdentitiesByPublicKeyHashes")
+                val (inclusion, noninclusion) = verifyProof(proof, ResponseMetadata(response.metadata), method)
 
-                if (result.isNotEmpty()) {
-                    GetIdentitiesByPublicKeyHashesResponse(result.values.toList(), proof, ResponseMetadata(response.metadata))
+                if (inclusion.isNotEmpty()) {
+                    GetIdentitiesByPublicKeyHashesResponse(inclusion.values.toList(), proof, ResponseMetadata(response.metadata))
                 } else {
                     GetIdentitiesByPublicKeyHashesResponse(listOf(), proof, ResponseMetadata(response.metadata))
                 }
@@ -498,17 +507,24 @@ class DapiClient(
             }
             prove && response.hasProof() -> {
                 val proof = Proof(response.proof)
-                val result = verifyProof(proof, ResponseMetadata(response.metadata), "getIdentityIdByFirstPublicKey")
+                val result = verifyProof(proof, ResponseMetadata(response.metadata), method).second
 
-                if (result.isNotEmpty()) {
-                    ByteString.copyFrom(result.values.first())
-                } else {
-                    null
+                val key = ByteArrayKey(pubKeyHash)
+                when {
+                    result.keys.size == 1 && key == result.keys.first() -> {
+                        ByteString.copyFrom(result.values.first())
+                    }
+                    result.keys.size == 2 && key != result.keys.first() && key != result.keys.last() -> {
+                        null
+                    }
+                    else -> {
+                        throw IllegalStateException()
+                    }
                 }
             }
             else -> {
-                val firstResult = response.identityIdsList.get(0)
-                return if (firstResult != null && !firstResult.isEmpty) {
+                val firstResult = response.identityIdsList[0]
+                return if (firstResult != null && !firstResult.isEmpty && firstResult.size() > 1) {
                     firstResult
                 } else {
                     null
@@ -530,10 +546,28 @@ class DapiClient(
         return when {
             prove && response.hasProof() -> {
                 val proof = Proof(response.proof)
-                val result = verifyProof(proof, ResponseMetadata(response.metadata), "getIdentityIdsByPublicKeyHashes")
+                val (inclusion, noninclusion) = verifyProof(proof, ResponseMetadata(response.metadata), method)
 
-                if (result.isNotEmpty()) {
-                    GetIdentityIdsByPublicKeyHashesResponse(result.values.toList(), proof, ResponseMetadata(response.metadata))
+                if (inclusion.isNotEmpty()) {
+                    val includedPubKeyHashes = arrayListOf<ByteArray>()
+                    val excludedPubKeyHashes = arrayListOf<ByteArray>()
+                    pubKeyHashes.forEach {
+                        val key = ByteArrayKey(it)
+                        if (inclusion.containsKey(key) && verifyIdentityWithPublicKeyHash(it, inclusion[key]!!)) {
+                            includedPubKeyHashes.add(it)
+                        } else {
+                            excludedPubKeyHashes.add(it)
+                        }
+                    }
+                    if (includedPubKeyHashes == inclusion.keys.map { it.toByteArray() }) {
+                        GetIdentityIdsByPublicKeyHashesResponse(
+                            inclusion.values.toList(),
+                            proof,
+                            ResponseMetadata(response.metadata)
+                        )
+                    } else {
+                        throw IllegalStateException()
+                    }
                 } else {
                     GetIdentityIdsByPublicKeyHashesResponse(listOf(), proof, ResponseMetadata(response.metadata))
                 }
@@ -561,7 +595,7 @@ class DapiClient(
                 val proof = Proof(response.proof)
                 val responseMetadata = ResponseMetadata(response.metadata)
                 logger.info("proof = $proof")
-                val result = verifyProof(proof, responseMetadata, "getDataContract")
+                val result = verifyProof(proof, responseMetadata, method).first
                 if (result.isNotEmpty()) {
                     val key = ByteArrayKey(contractId)
                     if (result.containsKey(key)) {
@@ -595,34 +629,67 @@ class DapiClient(
         }
     }
 
+    private fun extractProof(inclusion: ByteArray, noninclusion: ByteArray):
+    Pair<Map<ByteArrayKey, ByteArray>, Map<ByteArrayKey, ByteArray>> {
+        return if (inclusion === noninclusion) {
+            Pair(MerkVerifyProof.extractProof(inclusion), mapOf())
+        } else {
+            Pair(MerkVerifyProof.extractProof(inclusion), MerkVerifyProof.extractProof(noninclusion))
+        }
+    }
+
     private fun verifyProof(
         proof: Proof,
         responseMetadata: ResponseMetadata,
-        caller: String
-    ): Map<ByteArrayKey, ByteArray> {
+        caller: GrpcMethod
+    ): Pair<Map<ByteArrayKey, ByteArray>, Map<ByteArrayKey, ByteArray>> {
+        val (inclusion, noninclusion) = when (caller) {
+            is GetIdentityMethod -> Pair(proof.storeTreeProofs.identitiesProof, proof.storeTreeProofs.identitiesProof)
+            is GetContractMethod -> Pair(proof.storeTreeProofs.dataContractsProof, proof.storeTreeProofs.dataContractsProof)
+            is GetDocumentsMethod -> Pair(proof.storeTreeProofs.documentsProof, proof.storeTreeProofs.dataContractsProof)
+            is GetIdentityIdsByPublicKeyHashes,
+            is GetIdentitiesByPublicKeyHashes -> Pair(proof.storeTreeProofs.identitiesProof, proof.storeTreeProofs.publicKeyHashesToIdentityIdsProof)
+            is BroadcastStateTransitionMethod -> {
+                when (caller.stateTransition) {
+                    is IdentityStateTransition -> Pair(proof.storeTreeProofs.identitiesProof, proof.storeTreeProofs.identitiesProof)
+                    is DataContractTransition -> Pair(proof.storeTreeProofs.dataContractsProof, proof.storeTreeProofs.dataContractsProof)
+                    is DocumentsBatchTransition -> Pair(proof.storeTreeProofs.documentsProof, proof.storeTreeProofs.dataContractsProof)
+                    else -> throw IllegalArgumentException("Invalid state transition broadcast type: ${caller.stateTransition::class.java.simpleName}")
+                }
+            }
+            else -> throw IllegalArgumentException("Invalid method type: ${caller::class.java.simpleName}")
+        }
+
         val result = if (fullVerification) {
             if (!this::masternodeListManager.isInitialized) {
                 logger.info("verify(): masternodeListManager is not initialized")
-                MerkVerifyProof.extractProof(proof.storeTreeProofs.getFirstProof())
+                // MerkVerifyProof.extractProof(inclusion)
+                extractProof(inclusion, noninclusion)
             } else {
                 if (masternodeListManager.quorumListAtTip.getQuorum(Sha256Hash.wrap(proof.signatureLlmqHash)) == null) {
                     logger.info("verify(): ${proof.signatureLlmqHash.toHex()} is not a valid quorum\n ")
                     val list = arrayListOf<String>()
                     masternodeListManager.quorumListAtTip.forEachQuorum(true) { list.add("${it.quorumHash}, ${it.type}") }
                     logger.info("verify(): quorum list $list")
-                    MerkVerifyProof.extractProof(proof.storeTreeProofs.getFirstProof())
+                    // MerkVerifyProof.extractProof(inclusion)
+                    extractProof(inclusion, noninclusion)
                 } else {
                     val resultMap = ProofVerifier.verifyAndExtractFromProof(
                         proof,
                         responseMetadata,
                         masternodeListManager,
-                        caller
+                        caller.toString()
                     )
-                    resultMap.values.first()
+                    if (inclusion === noninclusion) {
+                        Pair(resultMap.values.first(), mapOf())
+                    } else {
+                        Pair(resultMap.values.first(), resultMap.values.last())
+                    }
                 }
             }
         } else {
-            MerkVerifyProof.extractData(proof.storeTreeProofs.getFirstProof())
+            // MerkVerifyProof.extractProof(inclusion)
+            extractProof(inclusion, noninclusion)
         }
         return result
     }
@@ -643,7 +710,7 @@ class DapiClient(
             prove && response.hasProof() -> {
                 val proof = Proof(response.proof)
                 logger.info("proof = $proof")
-                val result = verifyProof(proof, ResponseMetadata(response.metadata), "getDocuments")
+                val result = verifyProof(proof, ResponseMetadata(response.metadata), method).first
                 if (result.isNotEmpty()) {
                     GetDocumentsResponse(result.values.toList(), proof, ResponseMetadata(response.metadata))
                 } else {
@@ -1051,5 +1118,25 @@ class DapiClient(
 
     fun reportErrorStatus(): String {
         return dapiAddressListProvider.getErrorStatistics()
+    }
+
+    private fun verifyIdentityWithPublicKeyHash(pubKeyHash: ByteArray, identityBytes: ByteArray): Boolean {
+        val identity = dpp.identity.createFromBuffer(identityBytes)
+        return identity.publicKeys.find { Utils.sha256hash160(it.data).contentEquals(pubKeyHash) } != null
+    }
+
+    fun verifyIdentitiesWithPublicKeyHashes(pubKeyHashes: List<ByteArray>, identityBytesLists: List<ByteArray>): Boolean {
+        var matches = 0
+        identityBytesLists.forEach { identityBytes ->
+            val identity = dpp.identity.createFromBuffer(identityBytes)
+            identity.publicKeys.forEach { publicKey ->
+                pubKeyHashes.forEach { pubKeyHash ->
+                    if (Utils.sha256hash160(publicKey.data).contentEquals(pubKeyHash)) {
+                        matches += 1
+                    }
+                }
+            }
+        }
+        return matches != 0
     }
 }
