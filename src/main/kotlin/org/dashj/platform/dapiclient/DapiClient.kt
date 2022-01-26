@@ -81,15 +81,18 @@ import org.dashj.platform.dapiclient.provider.SimplifiedMasternodeListDAPIAddres
 import org.dashj.platform.dapiclient.rest.DapiService
 import org.dashj.platform.dpp.DashPlatformProtocol
 import org.dashj.platform.dpp.contract.DataContractTransition
+import org.dashj.platform.dpp.deepCompare
 import org.dashj.platform.dpp.document.DocumentsBatchTransition
 import org.dashj.platform.dpp.errors.concensus.ConcensusException
 import org.dashj.platform.dpp.identifier.Identifier
+import org.dashj.platform.dpp.identity.Identity
 import org.dashj.platform.dpp.identity.IdentityStateTransition
 import org.dashj.platform.dpp.statetransition.StateTransition
 import org.dashj.platform.dpp.statetransition.StateTransitionIdentitySigned
 import org.dashj.platform.dpp.toBase58
 import org.dashj.platform.dpp.toHex
 import org.dashj.platform.dpp.toHexString
+import org.dashj.platform.dpp.util.Cbor
 import org.slf4j.LoggerFactory
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -439,9 +442,10 @@ class DapiClient(
 
                 if (inclusion.isNotEmpty()) {
                     val identityBytes = ByteString.copyFrom(inclusion.values.first())
-                    if (verifyIdentityWithPublicKeyHash(pubKeyHash, identityBytes.toByteArray())) {
+                    val identity = verifyIdentityWithPublicKeyHash(pubKeyHash, identityBytes.toByteArray())
+                    if (identity != null) {
                         logger.info("inclusion proof for identity with pubkeyhash: $pubKeyHash")
-                        identityBytes
+                        identityBytes.toByteArray()
                     } else if (!verifyIdentitiesWithPublicKeyHashes(listOf(pubKeyHash), noninclusion.values.map { it })) {
                         logger.info("noninclusion proof for identity")
                         null
@@ -455,8 +459,8 @@ class DapiClient(
             }
             else -> {
                 val firstResult = response.identitiesList?.get(0)
-                if (firstResult != null && !firstResult.isEmpty && firstResult.size() > 1 && verifyIdentityWithPublicKeyHash(pubKeyHash, firstResult.toByteArray())) {
-                    firstResult
+                if (firstResult != null && !firstResult.isEmpty && firstResult.size() > 1 && verifyIdentityWithPublicKeyHashCbor(pubKeyHash, firstResult.toByteArray()) != null) {
+                    (Cbor.decodeList(firstResult.toByteArray()) as List<ByteArray>)[0]
                 } else {
                     null
                 }
@@ -470,7 +474,7 @@ class DapiClient(
      * @return GetIdentitiesByPublicKeyHashesResponse
      */
     fun getIdentitiesByPublicKeyHashes(pubKeyHashes: List<ByteArray>, prove: Boolean = false): GetIdentitiesByPublicKeyHashesResponse {
-        logger.info("getIdentitiesByPublicKeyHashes(${pubKeyHashes.map { it.toHexString() }}, $prove")
+        logger.info("getIdentitiesByPublicKeyHashes(${pubKeyHashes.map { it.toHex() }}, $prove")
         val method = GetIdentitiesByPublicKeyHashes(pubKeyHashes, prove)
         val response = grpcRequest(method) as PlatformOuterClass.GetIdentitiesByPublicKeyHashesResponse
 
@@ -481,6 +485,7 @@ class DapiClient(
                 val (inclusion, noninclusion) = verifyProof(proof, ResponseMetadata(response.metadata), method)
 
                 if (inclusion.isNotEmpty()) {
+                    // determine the pubKeyHashes not found
                     GetIdentitiesByPublicKeyHashesResponse(inclusion.values.toList(), proof, ResponseMetadata(response.metadata))
                 } else {
                     GetIdentitiesByPublicKeyHashesResponse(listOf(), proof, ResponseMetadata(response.metadata))
@@ -497,7 +502,7 @@ class DapiClient(
      * @param pubKeyHash ByteArray
      * @return String
      */
-    fun getIdentityIdByFirstPublicKey(pubKeyHash: ByteArray, prove: Boolean = false): ByteString? {
+    fun getIdentityIdByFirstPublicKey(pubKeyHash: ByteArray, prove: Boolean = false): ByteArray? {
         logger.info("getIdentityIdByFirstPublicKey(${pubKeyHash.toHex()}, $prove)")
         val method = GetIdentityIdsByPublicKeyHashes(listOf(pubKeyHash), prove)
         val response = grpcRequest(method) as PlatformOuterClass.GetIdentityIdsByPublicKeyHashesResponse?
@@ -512,7 +517,7 @@ class DapiClient(
                 val key = ByteArrayKey(pubKeyHash)
                 when {
                     result.keys.size == 1 && key == result.keys.first() -> {
-                        ByteString.copyFrom(result.values.first())
+                        result.values.first()
                     }
                     result.keys.size == 2 && key != result.keys.first() && key != result.keys.last() -> {
                         null
@@ -525,7 +530,7 @@ class DapiClient(
             else -> {
                 val firstResult = response.identityIdsList[0]
                 return if (firstResult != null && !firstResult.isEmpty && firstResult.size() > 1) {
-                    firstResult
+                    (Cbor.decodeList(firstResult.toByteArray()) as List<ByteArray>)[0]
                 } else {
                     null
                 }
@@ -546,34 +551,48 @@ class DapiClient(
         return when {
             prove && response.hasProof() -> {
                 val proof = Proof(response.proof)
-                val (inclusion, noninclusion) = verifyProof(proof, ResponseMetadata(response.metadata), method)
+                val (identityMap, pubkeyHashesMap) = verifyProof(proof, ResponseMetadata(response.metadata), method)
 
-                if (inclusion.isNotEmpty()) {
-                    val includedPubKeyHashes = arrayListOf<ByteArray>()
-                    val excludedPubKeyHashes = arrayListOf<ByteArray>()
+                if (pubkeyHashesMap.isNotEmpty()) {
+                    val includedPubKeyHashes = arrayListOf<ByteArrayKey>()
+                    val excludedPubKeyHashes = arrayListOf<ByteArrayKey>()
                     pubKeyHashes.forEach {
                         val key = ByteArrayKey(it)
-                        if (inclusion.containsKey(key) && verifyIdentityWithPublicKeyHash(it, inclusion[key]!!)) {
-                            includedPubKeyHashes.add(it)
+                        if (pubkeyHashesMap.containsKey(key)/* && verifyIdentityWithPublicKeyHash(it, pubkeyHashes[key]!!) != null*/) {
+                            includedPubKeyHashes.add(ByteArrayKey(it))
                         } else {
-                            excludedPubKeyHashes.add(it)
+                            excludedPubKeyHashes.add(ByteArrayKey(it))
                         }
                     }
-                    if (includedPubKeyHashes == inclusion.keys.map { it.toByteArray() }) {
+                    if (includedPubKeyHashes.deepCompare(pubkeyHashesMap.keys.map { it })) {
+                        // all public key hashes were found
                         GetIdentityIdsByPublicKeyHashesResponse(
-                            inclusion.values.toList(),
+                            pubkeyHashesMap.values.map { Cbor.decodeList(it)[0] as ByteArray },
                             proof,
                             ResponseMetadata(response.metadata)
                         )
                     } else {
-                        throw IllegalStateException()
+                        // not all were found, but return the same information
+                        GetIdentityIdsByPublicKeyHashesResponse(
+                            pubkeyHashesMap.values.map { Cbor.decodeList(it)[0] as ByteArray },
+                            proof,
+                            ResponseMetadata(response.metadata)
+                        )
                     }
                 } else {
                     GetIdentityIdsByPublicKeyHashesResponse(listOf(), proof, ResponseMetadata(response.metadata))
                 }
             }
             else -> {
-                GetIdentityIdsByPublicKeyHashesResponse(response)
+                val identityIds = response.identityIdsList.map {
+                    val list = Cbor.decodeList(it.toByteArray()) as List<ByteArray>
+                    if (list.isNotEmpty()) {
+                        list[0]
+                    } else {
+                        ByteArray(0)
+                    }
+                }
+                GetIdentityIdsByPublicKeyHashesResponse(identityIds, Proof(response.proof), ResponseMetadata(response.metadata))
             }
         }
     }
@@ -1121,15 +1140,30 @@ class DapiClient(
         return dapiAddressListProvider.getErrorStatistics()
     }
 
-    private fun verifyIdentityWithPublicKeyHash(pubKeyHash: ByteArray, identityBytes: ByteArray): Boolean {
+    fun verifyIdentityWithPublicKeyHashCbor(pubKeyHash: ByteArray, identityBytes: ByteArray): Identity? {
+        val identityList = Cbor.decodeList(identityBytes) as List<ByteArray>
+        val identity = dpp.identity.createFromBuffer(identityList[0])
+        return if (identity.publicKeys.find { Utils.sha256hash160(it.data).contentEquals(pubKeyHash) } != null) {
+            identity
+        } else {
+            null
+        }
+    }
+
+    fun verifyIdentityWithPublicKeyHash(pubKeyHash: ByteArray, identityBytes: ByteArray): Identity? {
         val identity = dpp.identity.createFromBuffer(identityBytes)
-        return identity.publicKeys.find { Utils.sha256hash160(it.data).contentEquals(pubKeyHash) } != null
+        return if (identity.publicKeys.find { Utils.sha256hash160(it.data).contentEquals(pubKeyHash) } != null) {
+            identity
+        } else {
+            null
+        }
     }
 
     fun verifyIdentitiesWithPublicKeyHashes(pubKeyHashes: List<ByteArray>, identityBytesLists: List<ByteArray>): Boolean {
         var matches = 0
         identityBytesLists.forEach { identityBytes ->
-            val identity = dpp.identity.createFromBuffer(identityBytes)
+            val identityList = Cbor.decodeList(identityBytes) as List<ByteArray>
+            val identity = dpp.identity.createFromBuffer(identityList[0])
             identity.publicKeys.forEach { publicKey ->
                 pubKeyHashes.forEach { pubKeyHash ->
                     if (Utils.sha256hash160(publicKey.data).contentEquals(pubKeyHash)) {
