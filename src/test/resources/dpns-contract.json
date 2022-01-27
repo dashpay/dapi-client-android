@@ -1,10 +1,11 @@
 {
   "protocolVersion": 1,
   "$schema": "https://schema.dash.org/dpp-0-4-0/meta/data-contract",
-  "ownerId": "5DSwyjJiUXArZ42Uj1g7wSPLgWTBYCT3p4pHPmtEDH5b",
+  "ownerId": "4EfA9Jrvv3nnCFdSf7fad59851iiTRZ6Wcu6YVJ4iSeF",
   "documents": {
     "preorder": {
       "indices": [{
+        "name": "saltedHash",
         "properties": [{"saltedDomainHash": "asc"}],
         "unique": true
       }],
@@ -23,6 +24,7 @@
     "domain": {
       "indices": [
         {
+          "name": "parentNameAndLabel",
           "properties": [
             {"normalizedParentDomainName": "asc"},
             {"normalizedLabel": "asc"}
@@ -30,10 +32,14 @@
           "unique": true
         },
         {
+          "name": "dashIdentityId",
           "properties": [{"records.dashUniqueIdentityId": "asc"}],
           "unique": true
         },
-        {"properties": [{"records.dashAliasIdentityId": "asc"}]}
+        {
+          "name": "dashAlias",
+          "properties": [{"records.dashAliasIdentityId": "asc"}]
+        }
       ],
       "$comment": "In order to register a domain you need to create a preorder. The preorder step is needed to prevent man-in-the-middle attacks. normalizedLabel + '.' + normalizedParentDomain must not be longer than 253 chars length as defined by RFC 1035. Domain documents are immutable: modification and deletion are restricted",
       "additionalProperties": false,
@@ -117,5 +123,6 @@
       }
     }
   },
-  "$id": "8F4WqzVuqyYEBMR1AraBuYG1cjk3hqUYdzLSMdYpWLbH"
+  "version": 1,
+  "$id": "GWRSAVFMjXx8HpQFaNJMqBV7MBgMK4br5UESsB4S31Ec"
 }

@@ -19,10 +19,8 @@ import org.dashj.platform.dapiclient.model.DocumentQuery
 import org.dashj.platform.dapiclient.provider.DAPIAddress
 import org.dashj.platform.dapiclient.provider.ListDAPIAddressProvider
 import org.dashj.platform.dpp.DashPlatformProtocol
-import org.dashj.platform.dpp.contract.ContractFactory
 import org.dashj.platform.dpp.document.Document
-import org.dashj.platform.dpp.document.DocumentFactory
-import org.dashj.platform.dpp.identity.IdentityFactory
+import org.dashj.platform.dpp.identifier.Identifier
 import org.dashj.platform.dpp.toHexString
 import org.json.JSONObject
 import org.junit.jupiter.api.Assertions.assertArrayEquals
@@ -30,26 +28,31 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 
 class DapiGrpcClientTest {
 
     val PARAMS = KrupnikDevNetParams.get()
     val CONTEXT = Context.getOrCreate(PARAMS)
     val masternodeList = PARAMS.defaultMasternodeList.toList()
-    val dpnsContractId = Base58.decode("EBnvxB5RSW8NbBbXdRS3zPqFEaZnjCZ8WeurjvLTaru7") // DPNS contract
-    val dashPayContractId = Base58.decode("GAvZdha4t3mCQyvCVvv7LMYw3CXN4X5hvFZ4S6qCAdod")
-    val identityIdString = "EBnvxB5RSW8NbBbXdRS3zPqFEaZnjCZ8WeurjvLTaru7"
+    val dpnsContractId = SystemIds.dpnsDataContractId // DPNS contract
+    val dashPayContractId = SystemIds.dashpayDataContractId
+    val identityId = SystemIds.dpnsOwnerId
+    val badDpnsContractId = Identifier.from("5BrYpaW5s26UWoBk9zEAYWxJANX7LFinmToprWo3VwgS") // DPNS contract
+    val badDashPayContractId = Identifier.from("8FmdUoXZJijvARgA3Vcg73ThYp5P4AaLis1WpXp9VGg1")
+
+    val identityIdString = SystemIds.dpnsOwnerId.toString()
     val stateRepository = StateRepositoryMock()
     val dpp = DashPlatformProtocol(stateRepository)
-    val contractFactory = ContractFactory(dpp, stateRepository)
-    val identityFactory = IdentityFactory(dpp, stateRepository)
-    private val documentFactory = DocumentFactory(dpp, stateRepository)
+
+    // default client used in most unit tests
+    private val client = DapiClient(masternodeList, dpp)
 
     @Test
     fun getStatusOfInvalidNodeTest() {
         val watch = Stopwatch.createStarted()
         val list = ListDAPIAddressProvider(listOf("211.30.243.83").map { DAPIAddress(it) }, 0)
-        val client = DapiClient(list, 3000, 0, 3)
+        val client = DapiClient(list, dpp, 3000, 0, 3)
         try {
             client.getStatus(DAPIAddress("211.30.243.82"), 0)
             fail<Nothing>("The node queried should not exist")
@@ -67,7 +70,6 @@ class DapiGrpcClientTest {
 
     @Test
     fun getStatusTest() {
-        val client = DapiClient(masternodeList)
         try {
             val status = client.getStatus()
             println(status)
@@ -78,7 +80,7 @@ class DapiGrpcClientTest {
     @Test
     fun getBlockTest() {
         val nodes = listOf("127.0.0.1", masternodeList[-0])
-        val client = DapiClient(nodes)
+        val client = DapiClient(nodes, dpp)
         try {
             val block1 = when (PARAMS) {
                 is DevNetParams -> (PARAMS as DevNetParams).devNetGenesisBlock
@@ -105,15 +107,14 @@ class DapiGrpcClientTest {
 
     @Test
     fun getDPNSContractTest() {
-        val client = DapiClient(masternodeList)
         try {
-            val contractResponse = client.getDataContract(dpnsContractId)
+            val contractResponse = client.getDataContract(dpnsContractId.toBuffer())
 
-            val contract = contractFactory.createFromBuffer(contractResponse.dataContract)
+            val contract = dpp.dataContract.createFromBuffer(contractResponse.dataContract)
             val jsonDpnsFile = File("src/test/resources/dpns-contract.json").readText()
             val jsonDpns = JSONObject(jsonDpnsFile)
             val rawContract = jsonDpns.toMap()
-            val dpnsContract = contractFactory.createFromObject(rawContract)
+            val dpnsContract = dpp.dataContract.createFromObject(rawContract)
 
             assertEquals(dpnsContract.toJSON(), contract.toJSON())
         } finally {
@@ -122,15 +123,14 @@ class DapiGrpcClientTest {
 
     @Test
     fun getDashPayContractTest() {
-        val client = DapiClient(masternodeList)
         try {
-            val contractResponse = client.getDataContract(dashPayContractId)
+            val contractResponse = client.getDataContract(dashPayContractId.toBuffer())
 
-            val contract = contractFactory.createFromBuffer(contractResponse.dataContract)
+            val contract = dpp.dataContract.createFromBuffer(contractResponse.dataContract)
             val jsonDpnsFile = File("src/test/resources/dashpay-contract.json").readText()
             val jsonDpns = JSONObject(jsonDpnsFile)
             val rawContract = jsonDpns.toMap()
-            val dpnsContract = contractFactory.createFromObject(rawContract)
+            val dpnsContract = dpp.dataContract.createFromObject(rawContract)
 
             assertEquals(dpnsContract.toJSON(), contract.toJSON())
         } finally {
@@ -139,7 +139,7 @@ class DapiGrpcClientTest {
 
     @Test
     fun getNonExistantContract() {
-        val client = DapiClient(masternodeList.toList())
+        val client = DapiClient(masternodeList.toList(), dpp)
         val contractId = Base58.decode("88w8Xqn25HwJhjodrHW133aXhjuTsTv9ozQaYpSHACE3")
         try {
             // val contractBytes = client.getDataContract(contractId)
@@ -150,25 +150,24 @@ class DapiGrpcClientTest {
 
     @Test
     fun getDocumentsTest() {
-        val client = DapiClient(masternodeList.toList())
+        val client = DapiClient(masternodeList.toList(), dpp)
         try {
             val query = DocumentQuery.Builder()
-                .where(listOf("normalizedParentDomainName", "==", "dash").toMutableList())
-                // .where(listOf("normalizedLabel", "startsWith", "test").toMutableList())
+                .where("normalizedParentDomainName", "==", "dash")
+                .where("normalizedLabel", "startsWith", "rt-")
                 .build()
-            val documentsResponse = client.getDocuments(dpnsContractId, "domain", query)
-            println(documentsResponse.documents[0].toHexString())
+            val documentsResponse = client.getDocuments(dpnsContractId.toBuffer(), "domain", query)
 
             val jsonDpnsFile = File("src/test/resources/dpns-contract.json").readText()
             val jsonDpns = JSONObject(jsonDpnsFile)
             val rawContract = jsonDpns.toMap()
-            val dpnsContract = contractFactory.createFromObject(rawContract)
+            val dpnsContract = dpp.dataContract.createFromObject(rawContract)
             stateRepository.storeDataContract(dpnsContract)
-            val document = documentFactory.createFromBuffer(documentsResponse.documents[0])
+            val document = dpp.document.createFromBuffer(documentsResponse.documents[0])
 
             val docs = ArrayList<Document>(documentsResponse.documents.size)
             for (doc in documentsResponse.documents) {
-                docs.add(documentFactory.createFromBuffer(doc))
+                docs.add(dpp.document.createFromBuffer(doc))
             }
 
             println(document.toJSON())
@@ -180,33 +179,34 @@ class DapiGrpcClientTest {
     fun getIdentityTest() {
         val id = Base58.decode(identityIdString)
         val badId = Base58.decode(identityIdString.replace(identityIdString[0], '3'))
-        val client = DapiClient(masternodeList)
         val identityBytes = client.getIdentity(id)
         assertThrows(NotFoundException::class.java) {
             client.getIdentity(badId)
         }
-        val identity = identityFactory.createFromBuffer(identityBytes.identity)
+        val identity = dpp.identity.createFromBuffer(identityBytes.identity)
         println(JSONObject(identity.toJSON()).toString(2))
 
         val pubKeyHash = ECKey.fromPublicOnly(identity.getPublicKeyById(0)!!.data).pubKeyHash
-        val identityByPublicKeyBytes = client.getIdentityByFirstPublicKey(pubKeyHash)
-        val identitiesByPublicKeyHashes = client.getIdentitiesByPublicKeyHashes(listOf(pubKeyHash))
-        val identityByPublicKey = identityFactory.createFromBuffer(identityByPublicKeyBytes!!.toByteArray())
-        val identityByPublicKeyHashes = identityFactory.createFromBuffer(identitiesByPublicKeyHashes.identities[0])
-        val identityIdByPublicKey = client.getIdentityIdByFirstPublicKey(pubKeyHash)
+        val identityByPublicKeyCbor = client.getIdentityByFirstPublicKey(pubKeyHash)!!
 
+        val identitiesByPublicKeyHashesCbor = client.getIdentitiesByPublicKeyHashes(listOf(pubKeyHash))
+
+        val identityByPublicKey = dpp.identity.createFromBuffer(identityByPublicKeyCbor)
+
+        val identityByPublicKeyHashes = dpp.identity.createFromBuffer(identitiesByPublicKeyHashesCbor.identities[0])
+
+        val identityIdByPublicKey = client.getIdentityIdByFirstPublicKey(pubKeyHash)
         val identityIdsByPublicKey = client.getIdentityIdsByPublicKeyHashes(listOf(pubKeyHash))
 
         assertEquals(identityIdString, identityByPublicKey.id.toString())
-        assertEquals(identityIdString, identityByPublicKeyHashes!!.id.toString())
-        assertArrayEquals(id, identityIdByPublicKey!!.toByteArray())
+        assertEquals(identityIdString, identityByPublicKeyHashes.id.toString())
+        assertArrayEquals(id, identityIdByPublicKey!!)
         assertArrayEquals(id, identityIdsByPublicKey.identityIds[0])
     }
 
     @Test
     fun getIdentityFromBadPubKeyBytes() {
         val key = ECKey()
-        val client = DapiClient(masternodeList)
 
         val identity = client.getIdentityByFirstPublicKey(key.pubKeyHash)
         assertEquals(null, identity)
@@ -220,16 +220,95 @@ class DapiGrpcClientTest {
 
         val identityIdListResponse = client.getIdentityIdsByPublicKeyHashes(listOf(key.pubKeyHash))
         assertEquals(1, identityIdListResponse.identityIds.size)
-        assertEquals(0, identityIdListResponse.identityIds[0].size)
+        assertEquals(1, identityIdListResponse.identityIds.size)
     }
 
     @Test
     fun getTransationTest() {
         val txid = "7609edb70ffe29ccad3054858abab0379965878bcafe18cf76dd80a6ccccf63d"
-        val client = DapiClient(masternodeList)
 
         val result = client.getTransaction(txid)
 
         println(result)
+
+        val resultTwo = client.getTransactionBytes(txid)
+
+        println(resultTwo)
+    }
+
+    @Test
+    fun getDocumentsFailureTest() {
+        val query = DocumentQuery.Builder()
+            .where("normalizedParentDomainName", "==", "dash")
+            .where("normalizedLabel", "==", "hash")
+            .build()
+        val response = client.getDocuments(dpnsContractId.toBuffer(), "domain", query, false)
+        println("documents: ${response.documents.size}")
+
+        val badContractQuery = DocumentQuery.Builder()
+            .where("normalizedParentDomainName", "==", "dash")
+            .where("normalizedLabel", "startsWith", "RT-")
+            .orderBy("normalizedLabel", true)
+            .build()
+        val badContractResponse = client.getDocuments(dpnsContractId.toBuffer(), "domain", badContractQuery, false)
+        println("documents: ${badContractResponse.documents.size}")
+    }
+
+    @Test
+    fun getDocumentsTests() {
+        client.getDocuments(
+            dashPayContractId.toBuffer(),
+            "profile",
+            DocumentQuery.builder()
+                .where("\$ownerId", "==", Identifier.from("3HSUPuMgR5qpZt1y5NbE2BBheM11yLRXKZoqdsKgxVNt"))
+                .where("\$updatedAt", ">", 0)
+                .build()
+        )
+
+        client.getDocuments(
+            dpnsContractId.toBuffer(),
+            "domain",
+            DocumentQuery.builder()
+                .where("normalizedParentDomainName", "==", "dash")
+                .where("normalizedLabel", "startsWith", "test")
+                .build()
+        )
+
+        // orderBy with two operators
+        client.getDocuments(
+            dpnsContractId.toBuffer(),
+            "domain",
+            DocumentQuery.builder()
+                .where("normalizedParentDomainName", "==", "dash")
+                .where("normalizedLabel", "startsWith", "test")
+                .orderBy("normalizedLabel", true)
+                .build()
+        )
+
+        // as of 0.22-dev-7 this query should fail
+        // where clauses must be in a particular order
+        assertThrows<StatusRuntimeException> {
+            client.getDocuments(
+                dpnsContractId.toBuffer(),
+                "domain",
+                DocumentQuery.builder()
+                    .where("normalizedLabel", "startsWith", "test")
+                    .where("normalizedParentDomainName", "==", "dash")
+                    .build()
+            )
+        }
+
+        // as of 0.22-dev-7 this query should fail
+        // multiple ranges are not supported
+        assertThrows<StatusRuntimeException> {
+            client.getDocuments(
+                dashPayContractId.toBuffer(),
+                "profile",
+                DocumentQuery.builder()
+                    .where("\$ownerId", "in", Identifier.from("3HSUPuMgR5qpZt1y5NbE2BBheM11yLRXKZoqdsKgxVNt"))
+                    .where("\$updatedAt", ">", 0)
+                    .build()
+            )
+        }
     }
 }

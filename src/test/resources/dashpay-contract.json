@@ -1,11 +1,12 @@
 {
   "protocolVersion": 1,
   "$schema": "https://schema.dash.org/dpp-0-4-0/meta/data-contract",
-  "ownerId": "F12d4X1ALRDx2dqbsWNQjRAFCUyQS1huedxiSRMPM6ue",
+  "ownerId": "5PhRFRrWZc5Mj8NqtpHNXCmmEQkcZE8akyDkKhsUVD4k",
   "documents": {
     "contactInfo": {
       "indices": [
         {
+          "name": "ownerIdAndKeys",
           "properties": [
             {"$ownerId": "asc"},
             {"rootEncryptionKeyIndex": "asc"},
@@ -13,10 +14,13 @@
           ],
           "unique": true
         },
-        {"properties": [
-          {"$ownerId": "asc"},
-          {"$updatedAt": "asc"}
-        ]}
+        {
+          "name": "ownerIdAndUpdatedAt",
+          "properties": [
+            {"$ownerId": "asc"},
+            {"$updatedAt": "asc"}
+          ]
+        }
       ],
       "additionalProperties": false,
       "type": "object",
@@ -55,6 +59,7 @@
     "contactRequest": {
       "indices": [
         {
+          "name": "ownerIdUserIdAndAccountRef",
           "properties": [
             {"$ownerId": "asc"},
             {"toUserId": "asc"},
@@ -62,18 +67,27 @@
           ],
           "unique": true
         },
-        {"properties": [
-          {"$ownerId": "asc"},
-          {"toUserId": "asc"}
-        ]},
-        {"properties": [
-          {"toUserId": "asc"},
-          {"$createdAt": "asc"}
-        ]},
-        {"properties": [
-          {"$ownerId": "asc"},
-          {"$createdAt": "asc"}
-        ]}
+        {
+          "name": "ownerIdUserId",
+          "properties": [
+            {"$ownerId": "asc"},
+            {"toUserId": "asc"}
+          ]
+        },
+        {
+          "name": "userIdCreatedAt",
+          "properties": [
+            {"toUserId": "asc"},
+            {"$createdAt": "asc"}
+          ]
+        },
+        {
+          "name": "ownerIdCreatedAt",
+          "properties": [
+            {"$ownerId": "asc"},
+            {"$createdAt": "asc"}
+          ]
+        }
       ],
       "additionalProperties": false,
       "type": "object",
@@ -132,13 +146,17 @@
     "profile": {
       "indices": [
         {
+          "name": "ownerId",
           "properties": [{"$ownerId": "asc"}],
           "unique": true
         },
-        {"properties": [
-          {"$ownerId": "asc"},
-          {"$updatedAt": "asc"}
-        ]}
+        {
+          "name": "ownerIdAndUpdatedAt",
+          "properties": [
+            {"$ownerId": "asc"},
+            {"$updatedAt": "asc"}
+          ]
+        }
       ],
       "additionalProperties": false,
       "type": "object",
@@ -177,5 +195,6 @@
       }
     }
   },
-  "$id": "8Mpj1D1fSg1AtKoCFBcSg7UTfqChpFTHLQBPVrXUACxC"
+  "version": 1,
+  "$id": "Bwr4WHCPz5rFVAD87RqTs3izo4zpzwsEdKPWUT1NS1C7"
 }
