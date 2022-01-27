@@ -492,7 +492,17 @@ class DapiClient(
                 }
             }
             else -> {
-                GetIdentitiesByPublicKeyHashesResponse(response)
+                val inclusion = arrayListOf<Identity>()
+                val notFoundPublicKeys = arrayListOf<ByteArray>()
+                val identityList = response.identitiesList.map {
+                    val item = Cbor.decodeList(it.toByteArray())
+                    if (item.isNotEmpty()) {
+                        item[0] as ByteArray
+                    } else {
+                        ByteArray(0)
+                    }
+                }
+                GetIdentitiesByPublicKeyHashesResponse(identityList, Proof(response.proof), ResponseMetadata(response.metadata))
             }
         }
     }
