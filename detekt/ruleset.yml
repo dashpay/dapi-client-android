@@ -1,0 +1,10 @@
+build:
+  maxIssues: 60 # break the build if more than ten weighted issues are found
+style:
+  MagicNumber:
+    ignoreEnums: true
+complexity:
+  TooManyFunctions:
+    thresholdInClasses: 20
+    thresholdInObjects: 20
+    thresholdInFiles: 20
