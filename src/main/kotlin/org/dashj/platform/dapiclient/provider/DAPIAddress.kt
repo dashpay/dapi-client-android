@@ -7,9 +7,9 @@
 package org.dashj.platform.dapiclient.provider
 
 import io.grpc.Status
-import java.util.Date
 import org.bitcoinj.core.Sha256Hash
 import org.dashj.platform.dapiclient.model.GetStatusResponse
+import java.util.Date
 
 class DAPIAddress(
     var host: String,

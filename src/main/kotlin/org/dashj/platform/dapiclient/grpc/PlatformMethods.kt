@@ -85,15 +85,20 @@ class GetIdentityMethod(private val identityId: ByteArray, private val prove: Bo
     }
 }
 
-class GetIdentitiesByPublicKeyHashes(private val pubKeyHashes: List<ByteArray>, private val prove: Boolean) : GrpcMethod {
+class GetIdentitiesByPublicKeyHashes(
+    private val pubKeyHashes: List<ByteArray>,
+    private val prove: Boolean
+) : GrpcMethod {
 
-    val request: PlatformOuterClass.GetIdentitiesByPublicKeyHashesRequest = PlatformOuterClass.GetIdentitiesByPublicKeyHashesRequest.newBuilder()
-        .addAllPublicKeyHashes(pubKeyHashes.map { ByteString.copyFrom(it) })
-        .setProve(prove)
-        .build()
+    val request: PlatformOuterClass.GetIdentitiesByPublicKeyHashesRequest =
+        PlatformOuterClass.GetIdentitiesByPublicKeyHashesRequest.newBuilder()
+            .addAllPublicKeyHashes(pubKeyHashes.map { ByteString.copyFrom(it) })
+            .setProve(prove)
+            .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
-        return masternode.platform.getIdentitiesByPublicKeyHashes(request) as PlatformOuterClass.GetIdentitiesByPublicKeyHashesResponse
+        return masternode.platform.getIdentitiesByPublicKeyHashes(request) as
+            PlatformOuterClass.GetIdentitiesByPublicKeyHashesResponse
     }
 
     override fun toString(): String {
@@ -101,12 +106,14 @@ class GetIdentitiesByPublicKeyHashes(private val pubKeyHashes: List<ByteArray>, 
     }
 }
 
-class GetIdentityIdsByPublicKeyHashes(private val pubKeyHashes: List<ByteArray>, private val prove: Boolean) : GrpcMethod {
+class GetIdentityIdsByPublicKeyHashes(private val pubKeyHashes: List<ByteArray>, private val prove: Boolean) :
+    GrpcMethod {
 
-    val request: PlatformOuterClass.GetIdentityIdsByPublicKeyHashesRequest = PlatformOuterClass.GetIdentityIdsByPublicKeyHashesRequest.newBuilder()
-        .addAllPublicKeyHashes(pubKeyHashes.map { ByteString.copyFrom(it) })
-        .setProve(prove)
-        .build()
+    val request: PlatformOuterClass.GetIdentityIdsByPublicKeyHashesRequest =
+        PlatformOuterClass.GetIdentityIdsByPublicKeyHashesRequest.newBuilder()
+            .addAllPublicKeyHashes(pubKeyHashes.map { ByteString.copyFrom(it) })
+            .setProve(prove)
+            .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
         return masternode.platform.getIdentityIdsByPublicKeyHashes(request)
@@ -119,15 +126,17 @@ class GetIdentityIdsByPublicKeyHashes(private val pubKeyHashes: List<ByteArray>,
 
 class BroadcastStateTransitionMethod(val stateTransition: StateTransition) : GrpcMethod {
 
-    val request: PlatformOuterClass.BroadcastStateTransitionRequest = PlatformOuterClass.BroadcastStateTransitionRequest.newBuilder()
-        .setStateTransition(ByteString.copyFrom(stateTransition.toBuffer()))
-        .build()
+    val request: PlatformOuterClass.BroadcastStateTransitionRequest =
+        PlatformOuterClass.BroadcastStateTransitionRequest.newBuilder()
+            .setStateTransition(ByteString.copyFrom(stateTransition.toBuffer()))
+            .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
         return masternode.platformWithoutDeadline.broadcastStateTransition(request)
     }
 
     override fun toString(): String {
-        return "broadcastStateTransition(${stateTransition.toJSON()}): sha256: ${Sha256Hash.of(stateTransition.toBuffer())}"
+        return "broadcastStateTransition(${stateTransition.toJSON()}): sha256: ${
+        Sha256Hash.of(stateTransition.toBuffer())}"
     }
 }

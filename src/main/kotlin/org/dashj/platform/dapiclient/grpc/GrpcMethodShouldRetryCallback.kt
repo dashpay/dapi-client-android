@@ -54,7 +54,7 @@ open class DefaultShouldRetryCallback : GrpcMethodShouldRetryCallback {
     }
 }
 
-open class DefaultGetDocumentsRetryCallback() : DefaultShouldRetryCallback()
+open class DefaultGetDocumentsRetryCallback : DefaultShouldRetryCallback()
 
 open class DefaultGetIdentityRetryCallback : DefaultShouldRetryCallback()
 
@@ -70,7 +70,10 @@ open class DefaultGetDocumentsWithContractIdRetryCallback(protected open val ret
             val error = DriveErrorMetadata(e.trailers.toString())
             if (error.getFirstError() == "InvalidDataContractIdError") {
                 if (retryContractIds.contains(Identifier.from(grpcMethod.request.dataContractId.toByteArray()))) {
-                    logger.info("Retry ${grpcMethod.javaClass.simpleName} ${e.status.code} since error was InvalidContractIdError")
+                    logger.info(
+                        "Retry ${grpcMethod.javaClass.simpleName} ${e.status.code} " +
+                            "since error was ${error.getFirstError()}"
+                    )
                     return true
                 }
             }
@@ -85,8 +88,9 @@ open class DefaultGetDocumentsWithContractIdRetryCallback(protected open val ret
     }
 }
 
-open class DefaultGetIdentityWithIdentitiesRetryCallback(protected open val retryIdentityIds: List<Identifier> = listOf()) :
-    DefaultShouldRetryCallback() {
+open class DefaultGetIdentityWithIdentitiesRetryCallback(
+    protected open val retryIdentityIds: List<Identifier> = listOf()
+) : DefaultShouldRetryCallback() {
     companion object {
         private val logger = LoggerFactory.getLogger(DefaultGetIdentityWithIdentitiesRetryCallback::class.java.name)
     }
@@ -109,8 +113,9 @@ open class DefaultGetIdentityWithIdentitiesRetryCallback(protected open val retr
 
 open class DefaultGetContractRetryCallback : DefaultShouldRetryCallback()
 
-open class DefaultGetDataContractWithContractIdRetryCallback(protected open val retryContractIds: List<Identifier> = listOf()) :
-    DefaultShouldRetryCallback() {
+open class DefaultGetDataContractWithContractIdRetryCallback(
+    protected open val retryContractIds: List<Identifier> = listOf()
+) : DefaultShouldRetryCallback() {
     companion object {
         private val logger = LoggerFactory.getLogger(DefaultGetDataContractWithContractIdRetryCallback::class.java.name)
     }

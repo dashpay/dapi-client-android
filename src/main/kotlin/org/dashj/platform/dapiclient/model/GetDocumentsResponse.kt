@@ -10,5 +10,10 @@ import org.dash.platform.dapi.v0.PlatformOuterClass
 
 class GetDocumentsResponse(val documents: List<ByteArray>, proof: Proof, metadata: ResponseMetadata) :
     AbstractResponse(proof, metadata) {
-    constructor(response: PlatformOuterClass.GetDocumentsResponse) : this(response.documentsList.map { it.toByteArray() }, Proof(response.proof), ResponseMetadata(response.metadata))
+    constructor(response: PlatformOuterClass.GetDocumentsResponse) :
+        this(
+            response.documentsList.map { it.toByteArray() },
+            Proof(response.proof),
+            ResponseMetadata(response.metadata)
+        )
 }

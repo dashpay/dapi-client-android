@@ -19,7 +19,7 @@ class StateTransitionBroadcastException(val code: Int, val errorMessage: String,
     }
 
     constructor(error: org.dash.platform.dapi.v0.PlatformOuterClass.StateTransitionBroadcastError) :
-    this(error.code, error.message, error.data.toByteArray())
+        this(error.code, error.message, error.data.toByteArray())
 
     private val metaData: Map<String, Any?> = try {
         Cbor.decode(data)

@@ -17,11 +17,23 @@ class SubscribeToTransactionsWithProofsMethod(
     private val subscribeToTransactions: SubscribeToTransactionsWithProofs
 ) : GrpcMethod {
 
-    constructor(bloomFilter: BloomFilter, fromBlockHash: Sha256Hash, count: Int, sendTransactionHashes: Boolean, subscribeToTransactions: SubscribeToTransactionsWithProofs) :
-    this(bloomFilter, fromBlockHash, -1, count, sendTransactionHashes, subscribeToTransactions)
+    constructor(
+        bloomFilter: BloomFilter,
+        fromBlockHash: Sha256Hash,
+        count: Int,
+        sendTransactionHashes: Boolean,
+        subscribeToTransactions: SubscribeToTransactionsWithProofs
+    ) :
+        this(bloomFilter, fromBlockHash, -1, count, sendTransactionHashes, subscribeToTransactions)
 
-    constructor(bloomFilter: BloomFilter, fromBlockHeight: Int, count: Int, sendTransactionHashes: Boolean, subscribeToTransactions: SubscribeToTransactionsWithProofs) :
-    this(bloomFilter, Sha256Hash.ZERO_HASH, fromBlockHeight, count, sendTransactionHashes, subscribeToTransactions)
+    constructor(
+        bloomFilter: BloomFilter,
+        fromBlockHeight: Int,
+        count: Int,
+        sendTransactionHashes: Boolean,
+        subscribeToTransactions: SubscribeToTransactionsWithProofs
+    ) :
+        this(bloomFilter, Sha256Hash.ZERO_HASH, fromBlockHeight, count, sendTransactionHashes, subscribeToTransactions)
 
     val request: CoreOuterClass.TransactionsWithProofsRequest
 
@@ -67,6 +79,7 @@ class SubscribeToTransactionsWithProofsMethod(
     }
 
     override fun toString(): String {
-        return "subscribeToTransactionsWithProofs($bloomFilter, $fromBlockHash, $fromBlockHeight, $count, $sendTransactionHashes, ...)}"
+        return "subscribeToTransactionsWithProofs($bloomFilter, $fromBlockHash, $fromBlockHeight, " +
+            "$count, $sendTransactionHashes, ...)"
     }
 }

@@ -13,12 +13,6 @@ import com.google.common.primitives.UnsignedBytes
 import com.google.protobuf.ByteString
 import io.grpc.Status
 import io.grpc.StatusRuntimeException
-import java.util.Date
-import java.util.concurrent.Callable
-import java.util.concurrent.CancellationException
-import java.util.concurrent.Executors
-import java.util.concurrent.Future
-import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import org.bitcoinj.core.BloomFilter
@@ -30,6 +24,7 @@ import org.dash.platform.dapi.v0.PlatformOuterClass
 import org.dashj.merk.ByteArrayKey
 import org.dashj.merk.MerkVerifyProof
 import org.dashj.platform.dapiclient.errors.NotFoundException
+import org.dashj.platform.dapiclient.errors.ResponseException
 import org.dashj.platform.dapiclient.grpc.BroadcastShouldRetryCallback
 import org.dashj.platform.dapiclient.grpc.BroadcastStateTransitionMethod
 import org.dashj.platform.dapiclient.grpc.BroadcastTransactionMethod
@@ -91,11 +86,16 @@ import org.dashj.platform.dpp.statetransition.StateTransition
 import org.dashj.platform.dpp.statetransition.StateTransitionIdentitySigned
 import org.dashj.platform.dpp.toBase58
 import org.dashj.platform.dpp.toHex
-import org.dashj.platform.dpp.toHexString
 import org.dashj.platform.dpp.util.Cbor
 import org.slf4j.LoggerFactory
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.Date
+import java.util.concurrent.Callable
+import java.util.concurrent.CancellationException
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
 
 class DapiClient(
     var dapiAddressListProvider: DAPIAddressListProvider,
@@ -141,7 +141,10 @@ class DapiClient(
         const val DEFAULT_RETRY_COUNT = 10
         const val USE_DEFAULT_RETRY_COUNT = -1
         const val DEFAULT_TIMEOUT = 5000L // normally a timeout is 5 seconds longer than this
+        const val DEFAULT_BROADCAST_TIMEOUT = 80000L
         const val DEFAULT_WAIT_FOR_NODES = 5
+        const val DEFAULT_HTTP_TIMEOUT = 10L
+        const val REQUIRED_SUCCESS_RATE = 0.50 // 50%
     }
 
     init {
@@ -150,9 +153,9 @@ class DapiClient(
 
         debugOkHttpClient = OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
-            .connectTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(10, TimeUnit.SECONDS)
-            .writeTimeout(10, TimeUnit.SECONDS)
+            .connectTimeout(DEFAULT_HTTP_TIMEOUT, TimeUnit.SECONDS)
+            .readTimeout(DEFAULT_HTTP_TIMEOUT, TimeUnit.SECONDS)
+            .writeTimeout(DEFAULT_HTTP_TIMEOUT, TimeUnit.SECONDS)
             .build()
 
         if (banBaseTime != DEFAULT_BASE_BAN_TIME) {
@@ -167,11 +170,25 @@ class DapiClient(
         }
     }
 
-    constructor(masternodeAddress: String, dpp: DashPlatformProtocol, timeOut: Long = DEFAULT_TIMEOUT, retries: Int = DEFAULT_RETRY_COUNT, banBaseTime: Int = DEFAULT_BASE_BAN_TIME, waitForNodes: Int = DEFAULT_WAIT_FOR_NODES) :
-    this(listOf(masternodeAddress), dpp, timeOut, retries, banBaseTime, waitForNodes)
+    constructor(
+        masternodeAddress: String,
+        dpp: DashPlatformProtocol,
+        timeOut: Long = DEFAULT_TIMEOUT,
+        retries: Int = DEFAULT_RETRY_COUNT,
+        banBaseTime: Int = DEFAULT_BASE_BAN_TIME,
+        waitForNodes: Int = DEFAULT_WAIT_FOR_NODES
+    ) :
+        this(listOf(masternodeAddress), dpp, timeOut, retries, banBaseTime, waitForNodes)
 
-    constructor(addresses: List<String>, dpp: DashPlatformProtocol, timeOut: Long = DEFAULT_TIMEOUT, retries: Int = DEFAULT_RETRY_COUNT, banBaseTime: Int = DEFAULT_BASE_BAN_TIME, waitForNodes: Int = DEFAULT_WAIT_FOR_NODES) :
-    this(ListDAPIAddressProvider.fromList(addresses, banBaseTime), dpp, timeOut, retries, banBaseTime, waitForNodes)
+    constructor(
+        addresses: List<String>,
+        dpp: DashPlatformProtocol,
+        timeOut: Long = DEFAULT_TIMEOUT,
+        retries: Int = DEFAULT_RETRY_COUNT,
+        banBaseTime: Int = DEFAULT_BASE_BAN_TIME,
+        waitForNodes: Int = DEFAULT_WAIT_FOR_NODES
+    ) :
+        this(ListDAPIAddressProvider.fromList(addresses, banBaseTime), dpp, timeOut, retries, banBaseTime, waitForNodes)
     /* Platform gRPC methods */
 
     /**
@@ -181,7 +198,11 @@ class DapiClient(
      * @param statusCheck Whether to call getStatus on a node before broadcastStateTransition to avoid usign a bad node
      * @param retryCallback Determines if the broadcast shoudl be tried again after a failure
      */
-    fun broadcastStateTransition(stateTransition: StateTransition, statusCheck: Boolean = false, retryCallback: GrpcMethodShouldRetryCallback = DefaultShouldRetryCallback()) {
+    fun broadcastStateTransition(
+        stateTransition: StateTransition,
+        statusCheck: Boolean = false,
+        retryCallback: GrpcMethodShouldRetryCallback = DefaultShouldRetryCallback()
+    ) {
         logger.info("broadcastStateTransition(${stateTransition.toJSON()})")
         val method = BroadcastStateTransitionMethod(stateTransition)
         grpcRequest(method, statusCheck = statusCheck, retryCallback = retryCallback)
@@ -192,24 +213,24 @@ class DapiClient(
         statusCheck: Boolean = false,
         retryCallback: BroadcastShouldRetryCallback = DefaultBroadcastRetryCallback()
     ):
-    BroadcastStateTransitionMethod {
-        logger.info("broadcastStateTransitionInternal(${stateTransition.toJSON()})")
-        val method = BroadcastStateTransitionMethod(stateTransition)
-        grpcRequest(
-            method, statusCheck = statusCheck,
-            retryCallback = object : DefaultShouldRetryCallback() {
-                override fun shouldRetry(grpcMethod: GrpcMethod, e: StatusRuntimeException): Boolean {
-                    return retryCallback.shouldRetry(grpcMethod, e)
+        BroadcastStateTransitionMethod {
+            logger.info("broadcastStateTransitionInternal(${stateTransition.toJSON()})")
+            val method = BroadcastStateTransitionMethod(stateTransition)
+            grpcRequest(
+                method, statusCheck = statusCheck,
+                retryCallback = object : DefaultShouldRetryCallback() {
+                    override fun shouldRetry(grpcMethod: GrpcMethod, e: StatusRuntimeException): Boolean {
+                        return retryCallback.shouldRetry(grpcMethod, e)
+                    }
                 }
-            }
-        )
-        return method
-    }
+            )
+            return method
+        }
 
     /**
      * Wait for state transition result
      * @param hash
-     * @param prove
+     * @param prove Whether to return the proof
      */
     fun waitForStateTransitionResult(hash: ByteArray, prove: Boolean): WaitForStateTransitionResult {
         val method = WaitForStateTransitionResultMethod(hash, prove)
@@ -217,7 +238,9 @@ class DapiClient(
         val result = grpcRequest(method) as PlatformOuterClass.WaitForStateTransitionResultResponse
 
         return if (result.hasError()) {
-            WaitForStateTransitionResult(StateTransitionBroadcastException(result.error), ResponseMetadata(result.metadata))
+            WaitForStateTransitionResult(
+                StateTransitionBroadcastException(result.error), ResponseMetadata(result.metadata)
+            )
         } else {
             WaitForStateTransitionResult(Proof(result.proof), ResponseMetadata(result.metadata))
         }
@@ -225,7 +248,10 @@ class DapiClient(
 
     val threadPoolService = Executors.newCachedThreadPool()
 
-    inner class WaitForStateSubmissionCallable(val signedStateTransition: StateTransitionIdentitySigned, val prove: Boolean) :
+    inner class WaitForStateSubmissionCallable(
+        val signedStateTransition: StateTransitionIdentitySigned,
+        val prove: Boolean
+    ) :
         Callable<WaitForStateTransitionResult> {
         override fun call(): WaitForStateTransitionResult {
             return try {
@@ -236,7 +262,10 @@ class DapiClient(
                 } else {
                     logger.error("waitForStateTransitionResult exception: $e")
                 }
-                WaitForStateTransitionResult(StateTransitionBroadcastException(e.status.code.value(), e.message ?: "", ByteArray(0)), ResponseMetadata(0, 0))
+                WaitForStateTransitionResult(
+                    StateTransitionBroadcastException(e.status.code.value(), e.message ?: "", ByteArray(0)),
+                    ResponseMetadata(0, 0)
+                )
             }
         }
     }
@@ -262,7 +291,7 @@ class DapiClient(
         for (i in 0 until waitForNodes - 1)
             futuresList.add(threadPoolService.submit(WaitForStateSubmissionCallable(signedStateTransition, false)))
 
-        var broadcast: BroadcastStateTransitionMethod? = null
+        var broadcast: BroadcastStateTransitionMethod?
         try {
             broadcast = broadcastStateTransitionInternal(signedStateTransition, statusCheck, retryCallback)
         } catch (e: StatusRuntimeException) {
@@ -283,7 +312,7 @@ class DapiClient(
 
         var hasProof: Boolean = false
         val finished = hashSetOf<Future<WaitForStateTransitionResult>>()
-        val waitForTimeout = 80000
+        val waitForTimeout = DEFAULT_BROADCAST_TIMEOUT
         var lastWaitTime = System.currentTimeMillis()
         val startWaitTime = System.currentTimeMillis()
 
@@ -294,18 +323,24 @@ class DapiClient(
                 if (future.isDone && !finished.contains(future)) {
                     finished.add(future)
                     hasProof = hasProof || (future.get().proof != null && future.get().proof!!.isValid())
-                    logger.info("broadcastStateTransitionAndWait: ${finished.size} of $waitForNodes complete (hasProof = $hasProof); proof = ${future.get().proof}")
+                    logger.info(
+                        "broadcastStateTransitionAndWait: ${finished.size} of $waitForNodes complete " +
+                            "(hasProof = $hasProof); proof = ${future.get().proof}"
+                    )
                 }
             }
             lastWaitTime = System.currentTimeMillis()
-            Thread.sleep(1000)
+            Thread.sleep(TimeUnit.SECONDS.toMillis(1))
         }
         var timedout = false
         if ((startWaitTime + waitForTimeout) < System.currentTimeMillis()) {
             logger.info("broadcastStateTransitionAndWait: timeout with ${finished.size} of $waitForNodes complete")
             timedout = finished.size == 0
         } else {
-            logger.info("broadcastStateTransitionAndWait: finished waiting in ${(lastWaitTime - startWaitTime) / 1000}s")
+            logger.info(
+                "broadcastStateTransitionAndWait: finished waiting in " +
+                    "${(lastWaitTime - startWaitTime) / TimeUnit.SECONDS.toMillis(1)}s"
+            )
         }
         // cancel any futures that are not finished
         futuresList.forEach {
@@ -343,32 +378,42 @@ class DapiClient(
             // count the proof as success
             waitForResult.isSuccess() -> {
                 logger.info("broadcastStateTransitionAndWait: success ($successRate): ${waitForResult.proof}")
-                logger.info("root_tree_proof    : ${waitForResult.proof!!.rootTreeProof.toHexString()}")
+                logger.info("root_tree_proof    : ${waitForResult.proof!!.rootTreeProof.toHex()}")
                 logger.info("store_tree_proof   : ${waitForResult.proof.storeTreeProofs}")
-                logger.info("signature_llmq_hash: ${waitForResult.proof.signatureLlmqHash.toHexString()}")
-                logger.info("signature          : ${waitForResult.proof.signature.toHexString()}")
-                logger.info("state transition   : ${signedStateTransition.toBuffer().toHexString()}")
+                logger.info("signature_llmq_hash: ${waitForResult.proof.signatureLlmqHash.toHex()}")
+                logger.info("signature          : ${waitForResult.proof.signature.toHex()}")
+                logger.info("state transition   : ${signedStateTransition.toBuffer().toHex()}")
                 logger.info("ST Hash            : ${Sha256Hash.of(signedStateTransition.toBuffer())}")
                 logger.info("proof verification : ${verifyProof.verify(waitForResult.proof)}")
                 logger.info("success rate       : $successRate")
-                logger.info("signature proof    : ${verifyProof(waitForResult.proof, waitForResult.metadata, broadcast) }")
+                logger.info(
+                    "signature proof    : ${verifyProof(
+                        waitForResult.proof, waitForResult.metadata,
+                        broadcast
+                    ) }"
+                )
             }
             waitForResult.isError() -> {
                 logger.info("broadcastStateTransitionAndWait: failure: ${waitForResult.error}")
                 if (!retryCallback.shouldRetry(broadcast, waitForResult.error!!)) {
                     throw waitForResult.error
                 }
-                broadcastStateTransitionAndWait(signedStateTransition, retryAttemptsLeft - 1, statusCheck, retryCallback)
+                broadcastStateTransitionAndWait(
+                    signedStateTransition,
+                    retryAttemptsLeft - 1,
+                    statusCheck,
+                    retryCallback
+                )
                 return
             }
             // success is more than 50% and there is no proof
-            successRate > 0.50 -> {
+            successRate > REQUIRED_SUCCESS_RATE -> {
                 // we need to request the proof from a node
             }
             // success is less than 50% and there is no proof
-            successRate <= 0.50 -> {
+            successRate <= REQUIRED_SUCCESS_RATE -> {
                 logger.info("broadcastStateTransitionAndWait: failure($successRate): ${waitForResult.error}")
-                Thread.sleep(3000)
+                Thread.sleep(TimeUnit.SECONDS.toMillis(3))
                 // what do we do here?
                 if (!retryCallback.shouldRetry(broadcast, waitForResult.error!!)) {
                     throw waitForResult.error
@@ -381,15 +426,21 @@ class DapiClient(
     /**
      * Fetch the identity by id
      * @param id String
+     * @param prove Whether to return the proof
      * @return GetIdentityResponse?
      */
-    fun getIdentity(id: ByteArray, prove: Boolean = false, retryCallback: GrpcMethodShouldRetryCallback = defaultShouldRetryCallback): GetIdentityResponse {
+    fun getIdentity(
+        id: ByteArray,
+        prove: Boolean = false,
+        retryCallback: GrpcMethodShouldRetryCallback = defaultShouldRetryCallback
+    ): GetIdentityResponse {
         logger.info("getIdentity(${id.toBase58()}, $prove)")
+        val identityId = Identifier.from(id)
         val method = GetIdentityMethod(id, prove)
         val response = grpcRequest(method, retryCallback = retryCallback) as PlatformOuterClass.GetIdentityResponse?
         return when {
             response == null -> {
-                throw NotFoundException("Identity ${Identifier.from(id)} does not exist")
+                throw NotFoundException("Identity $identityId does not exist")
             }
             prove && response.hasProof() -> {
                 val proof = Proof(response.proof)
@@ -408,13 +459,16 @@ class DapiClient(
                         if (UnsignedBytes.lexicographicalComparator().compare(firstKey, id) > 0 &&
                             UnsignedBytes.lexicographicalComparator().compare(id, secondKey) > 0
                         ) {
-                            logger.info("Noninclusion proof ${firstKey.toHexString()} < ${key.toByteArray().toHexString()} < ${secondKey.toHexString()}")
-                            throw NotFoundException("Identity ${Identifier.from(id)} does not exist in the proof")
+                            logger.info(
+                                "Noninclusion proof " +
+                                    "${firstKey.toHex()} < ${key.toByteArray().toHex()} < ${secondKey.toHex()}"
+                            )
+                            throw NotFoundException("Identity $identityId does not exist in the proof")
                         }
-                        throw NotFoundException("Identity ${Identifier.from(id)} does not exist in the proof")
+                        throw NotFoundException("Identity $identityId does not exist in the proof")
                     }
                 } else {
-                    throw NotFoundException("Identity ${Identifier.from(id)} does not exist in the proof")
+                    throw NotFoundException("Identity $identityId does not exist in the proof")
                 }
             }
             else -> {
@@ -446,7 +500,11 @@ class DapiClient(
                     if (identity != null) {
                         logger.info("inclusion proof for identity with pubkeyhash: $pubKeyHash")
                         identityBytes.toByteArray()
-                    } else if (!verifyIdentitiesWithPublicKeyHashes(listOf(pubKeyHash), noninclusion.values.map { it })) {
+                    } else if (!verifyIdentitiesWithPublicKeyHashes(
+                            listOf(pubKeyHash),
+                            noninclusion.values.map { it }
+                        )
+                    ) {
                         logger.info("noninclusion proof for identity")
                         null
                     } else {
@@ -459,7 +517,9 @@ class DapiClient(
             }
             else -> {
                 val firstResult = response.identitiesList?.get(0)
-                if (firstResult != null && !firstResult.isEmpty && firstResult.size() > 1 && verifyIdentityWithPublicKeyHashCbor(pubKeyHash, firstResult.toByteArray()) != null) {
+                if (firstResult != null && !firstResult.isEmpty && firstResult.size() > 1 &&
+                    verifyIdentityWithPublicKeyHashCbor(pubKeyHash, firstResult.toByteArray()) != null
+                ) {
                     (Cbor.decodeList(firstResult.toByteArray()) as List<ByteArray>)[0]
                 } else {
                     null
@@ -471,45 +531,54 @@ class DapiClient(
     /**
      * Fetch the identity ids by the public key hashes
      * @param pubKeyHashes List<ByteArray>
+     * @param prove Whether to return the proof
      * @return GetIdentitiesByPublicKeyHashesResponse
      */
-    fun getIdentitiesByPublicKeyHashes(pubKeyHashes: List<ByteArray>, prove: Boolean = false): GetIdentitiesByPublicKeyHashesResponse {
-        logger.info("getIdentitiesByPublicKeyHashes(${pubKeyHashes.map { it.toHex() }}, $prove")
-        val method = GetIdentitiesByPublicKeyHashes(pubKeyHashes, prove)
-        val response = grpcRequest(method) as PlatformOuterClass.GetIdentitiesByPublicKeyHashesResponse
+    fun getIdentitiesByPublicKeyHashes(pubKeyHashes: List<ByteArray>, prove: Boolean = false):
+        GetIdentitiesByPublicKeyHashesResponse {
+            logger.info("getIdentitiesByPublicKeyHashes(${pubKeyHashes.map { it.toHex() }}, $prove")
+            val method = GetIdentitiesByPublicKeyHashes(pubKeyHashes, prove)
+            val response = grpcRequest(method) as PlatformOuterClass.GetIdentitiesByPublicKeyHashesResponse
 
-        return when {
-            prove && response.hasProof() -> {
-                val proof = Proof(response.proof)
-                logger.info("proof = $proof")
-                val (inclusion, noninclusion) = verifyProof(proof, ResponseMetadata(response.metadata), method)
+            return when {
+                prove && response.hasProof() -> {
+                    val proof = Proof(response.proof)
+                    logger.info("proof = $proof")
+                    val (inclusion, noninclusion) = verifyProof(proof, ResponseMetadata(response.metadata), method)
 
-                if (inclusion.isNotEmpty()) {
-                    // determine the pubKeyHashes not found
-                    GetIdentitiesByPublicKeyHashesResponse(inclusion.values.toList(), proof, ResponseMetadata(response.metadata))
-                } else {
-                    GetIdentitiesByPublicKeyHashesResponse(listOf(), proof, ResponseMetadata(response.metadata))
-                }
-            }
-            else -> {
-                val inclusion = arrayListOf<Identity>()
-                val notFoundPublicKeys = arrayListOf<ByteArray>()
-                val identityList = response.identitiesList.map {
-                    val item = Cbor.decodeList(it.toByteArray())
-                    if (item.isNotEmpty()) {
-                        item[0] as ByteArray
+                    if (inclusion.isNotEmpty()) {
+                        // determine the pubKeyHashes not found
+                        GetIdentitiesByPublicKeyHashesResponse(
+                            inclusion.values.toList(), proof,
+                            ResponseMetadata(response.metadata)
+                        )
                     } else {
-                        ByteArray(0)
+                        GetIdentitiesByPublicKeyHashesResponse(listOf(), proof, ResponseMetadata(response.metadata))
                     }
                 }
-                GetIdentitiesByPublicKeyHashesResponse(identityList, Proof(response.proof), ResponseMetadata(response.metadata))
+                else -> {
+                    val inclusion = arrayListOf<Identity>()
+                    val notFoundPublicKeys = arrayListOf<ByteArray>()
+                    val identityList = response.identitiesList.map {
+                        val item = Cbor.decodeList(it.toByteArray())
+                        if (item.isNotEmpty()) {
+                            item[0] as ByteArray
+                        } else {
+                            ByteArray(0)
+                        }
+                    }
+                    GetIdentitiesByPublicKeyHashesResponse(
+                        identityList, Proof(response.proof),
+                        ResponseMetadata(response.metadata)
+                    )
+                }
             }
         }
-    }
 
     /**
      * Fetch the identity id by the first public key hash
      * @param pubKeyHash ByteArray
+     * @param prove Whether to return the proof
      * @return String
      */
     fun getIdentityIdByFirstPublicKey(pubKeyHash: ByteArray, prove: Boolean = false): ByteArray? {
@@ -550,11 +619,15 @@ class DapiClient(
 
     /**
      * Fetch the identity ids by the public key hashes
-     * @param pubKeyHashes List<ByteArray>
+     * @param pubKeyHashes List<ByteArray> The list of public key hashes to find identities
+     * @param prove Whether to return the proof
      * @return GetIdentityIdsByPublicKeyHashesResponse
      */
-    fun getIdentityIdsByPublicKeyHashes(pubKeyHashes: List<ByteArray>, prove: Boolean = false): GetIdentityIdsByPublicKeyHashesResponse {
-        logger.info("getIdentityIdsByPublicKeyHashes(${pubKeyHashes.map { it.toHexString() }}, $prove")
+    fun getIdentityIdsByPublicKeyHashes(
+        pubKeyHashes: List<ByteArray>,
+        prove: Boolean = false
+    ): GetIdentityIdsByPublicKeyHashesResponse {
+        logger.info("getIdentityIdsByPublicKeyHashes(${pubKeyHashes.map { it.toHex() }}, $prove")
         val method = GetIdentityIdsByPublicKeyHashes(pubKeyHashes, prove)
         val response = grpcRequest(method) as PlatformOuterClass.GetIdentityIdsByPublicKeyHashesResponse
 
@@ -568,7 +641,7 @@ class DapiClient(
                     val excludedPubKeyHashes = arrayListOf<ByteArrayKey>()
                     pubKeyHashes.forEach {
                         val key = ByteArrayKey(it)
-                        if (pubkeyHashesMap.containsKey(key)/* && verifyIdentityWithPublicKeyHash(it, pubkeyHashes[key]!!) != null*/) {
+                        if (pubkeyHashesMap.containsKey(key)) {
                             includedPubKeyHashes.add(ByteArrayKey(it))
                         } else {
                             excludedPubKeyHashes.add(ByteArrayKey(it))
@@ -602,7 +675,10 @@ class DapiClient(
                         ByteArray(0)
                     }
                 }
-                GetIdentityIdsByPublicKeyHashesResponse(identityIds, Proof(response.proof), ResponseMetadata(response.metadata))
+                GetIdentityIdsByPublicKeyHashesResponse(
+                    identityIds, Proof(response.proof),
+                    ResponseMetadata(response.metadata)
+                )
             }
         }
     }
@@ -610,12 +686,18 @@ class DapiClient(
     /**
      * Fetch Data Contract by id
      * @param contractId String
+     * @param prove Whether to return the proof
      * @return GetDataContractResponse
      * @throws NotFoundException if the contract is not found
      */
-    fun getDataContract(contractId: ByteArray, prove: Boolean = false, retryCallback: GrpcMethodShouldRetryCallback = defaultShouldRetryCallback): GetDataContractResponse {
-        logger.info("getDataContract(${contractId.toBase58()})")
-        val method = GetContractMethod(contractId, prove)
+    fun getDataContract(
+        contractIdByteArray: ByteArray,
+        prove: Boolean = false,
+        retryCallback: GrpcMethodShouldRetryCallback = defaultShouldRetryCallback
+    ): GetDataContractResponse {
+        logger.info("getDataContract(${contractIdByteArray.toBase58()})")
+        val contractId = Identifier.from(contractIdByteArray)
+        val method = GetContractMethod(contractIdByteArray, prove)
         val response = grpcRequest(method, retryCallback = retryCallback) as PlatformOuterClass.GetDataContractResponse?
         return when {
             response == null -> {
@@ -627,9 +709,9 @@ class DapiClient(
                 logger.info("proof = $proof")
                 val result = verifyProof(proof, responseMetadata, method).first
                 if (result.isNotEmpty()) {
-                    val key = ByteArrayKey(contractId)
+                    val key = ByteArrayKey(contractId.toBuffer())
                     if (result.containsKey(key)) {
-                        val value = result[ByteArrayKey(contractId)]!!
+                        val value = result[key]!!
                         GetDataContractResponse(
                             value,
                             proof,
@@ -640,17 +722,20 @@ class DapiClient(
                         if (result.size == 2) {
                             val firstKey = result.keys.first().toByteArray()
                             val secondKey = result.keys.last().toByteArray()
-                            if (UnsignedBytes.lexicographicalComparator().compare(firstKey, contractId) < 0 &&
-                                UnsignedBytes.lexicographicalComparator().compare(contractId, secondKey) < 0
+                            if (UnsignedBytes.lexicographicalComparator().compare(firstKey, contractIdByteArray) < 0 &&
+                                UnsignedBytes.lexicographicalComparator().compare(contractIdByteArray, secondKey) < 0
                             ) {
-                                logger.info("Noninclusion proof ${firstKey.toHex()} < ${key.toByteArray().toHex()} < ${secondKey.toHex()}")
-                                throw NotFoundException("DataContract ${Identifier.from(contractId)} does not exist in the proof")
+                                logger.info(
+                                    "Noninclusion proof " +
+                                        "${firstKey.toHex()} < ${key.toByteArray().toHex()} < ${secondKey.toHex()}"
+                                )
+                                throw NotFoundException("DataContract $contractId does not exist in the proof")
                             }
                         }
-                        throw NotFoundException("DataContract ${Identifier.from(contractId)} does not exist in the proof")
+                        throw NotFoundException("DataContract $contractId does not exist in the proof")
                     }
                 } else {
-                    throw NotFoundException("DataContract ${Identifier.from(contractId)} does not exist in the proof")
+                    throw NotFoundException("DataContract $contractId does not exist in the proof")
                 }
             }
             else -> {
@@ -660,13 +745,13 @@ class DapiClient(
     }
 
     private fun extractProof(inclusion: ByteArray, noninclusion: ByteArray):
-    Pair<Map<ByteArrayKey, ByteArray>, Map<ByteArrayKey, ByteArray>> {
-        return if (inclusion === noninclusion) {
-            Pair(MerkVerifyProof.extractProof(inclusion), mapOf())
-        } else {
-            Pair(MerkVerifyProof.extractProof(inclusion), MerkVerifyProof.extractProof(noninclusion))
+        Pair<Map<ByteArrayKey, ByteArray>, Map<ByteArrayKey, ByteArray>> {
+            return if (inclusion === noninclusion) {
+                Pair(MerkVerifyProof.extractProof(inclusion), mapOf())
+            } else {
+                Pair(MerkVerifyProof.extractProof(inclusion), MerkVerifyProof.extractProof(noninclusion))
+            }
         }
-    }
 
     private fun verifyProof(
         proof: Proof,
@@ -674,17 +759,40 @@ class DapiClient(
         caller: GrpcMethod
     ): Pair<Map<ByteArrayKey, ByteArray>, Map<ByteArrayKey, ByteArray>> {
         val (inclusion, noninclusion) = when (caller) {
-            is GetIdentityMethod -> Pair(proof.storeTreeProofs.identitiesProof, proof.storeTreeProofs.identitiesProof)
-            is GetContractMethod -> Pair(proof.storeTreeProofs.dataContractsProof, proof.storeTreeProofs.dataContractsProof)
-            is GetDocumentsMethod -> Pair(proof.storeTreeProofs.documentsProof, proof.storeTreeProofs.dataContractsProof)
+            is GetIdentityMethod -> Pair(
+                proof.storeTreeProofs.identitiesProof,
+                proof.storeTreeProofs.identitiesProof
+            )
+            is GetContractMethod -> Pair(
+                proof.storeTreeProofs.dataContractsProof,
+                proof.storeTreeProofs.dataContractsProof
+            )
+            is GetDocumentsMethod -> Pair(
+                proof.storeTreeProofs.documentsProof,
+                proof.storeTreeProofs.dataContractsProof
+            )
             is GetIdentityIdsByPublicKeyHashes,
-            is GetIdentitiesByPublicKeyHashes -> Pair(proof.storeTreeProofs.identitiesProof, proof.storeTreeProofs.publicKeyHashesToIdentityIdsProof)
+            is GetIdentitiesByPublicKeyHashes -> Pair(
+                proof.storeTreeProofs.identitiesProof,
+                proof.storeTreeProofs.publicKeyHashesToIdentityIdsProof
+            )
             is BroadcastStateTransitionMethod -> {
                 when (caller.stateTransition) {
-                    is IdentityStateTransition -> Pair(proof.storeTreeProofs.identitiesProof, proof.storeTreeProofs.identitiesProof)
-                    is DataContractTransition -> Pair(proof.storeTreeProofs.dataContractsProof, proof.storeTreeProofs.dataContractsProof)
-                    is DocumentsBatchTransition -> Pair(proof.storeTreeProofs.documentsProof, proof.storeTreeProofs.dataContractsProof)
-                    else -> throw IllegalArgumentException("Invalid state transition broadcast type: ${caller.stateTransition::class.java.simpleName}")
+                    is IdentityStateTransition -> Pair(
+                        proof.storeTreeProofs.identitiesProof,
+                        proof.storeTreeProofs.identitiesProof
+                    )
+                    is DataContractTransition -> Pair(
+                        proof.storeTreeProofs.dataContractsProof,
+                        proof.storeTreeProofs.dataContractsProof
+                    )
+                    is DocumentsBatchTransition -> Pair(
+                        proof.storeTreeProofs.documentsProof,
+                        proof.storeTreeProofs.dataContractsProof
+                    )
+                    else -> throw IllegalArgumentException(
+                        "Invalid state transition broadcast type: ${caller.stateTransition::class.java.simpleName}"
+                    )
                 }
             }
             else -> throw IllegalArgumentException("Invalid method type: ${caller::class.java.simpleName}")
@@ -699,7 +807,9 @@ class DapiClient(
                 if (masternodeListManager.quorumListAtTip.getQuorum(Sha256Hash.wrap(proof.signatureLlmqHash)) == null) {
                     logger.info("verify(): ${proof.signatureLlmqHash.toHex()} is not a valid quorum\n ")
                     val list = arrayListOf<String>()
-                    masternodeListManager.quorumListAtTip.forEachQuorum(true) { list.add("${it.quorumHash}, ${it.type}") }
+                    masternodeListManager.quorumListAtTip.forEachQuorum(true) {
+                        list.add("${it.quorumHash}, ${it.type}")
+                    }
                     logger.info("verify(): quorum list $list")
                     // MerkVerifyProof.extractProof(inclusion)
                     extractProof(inclusion, noninclusion)
@@ -729,10 +839,18 @@ class DapiClient(
      * @param contractId String The contract id associated with the documents
      * @param type String The type of document
      * @param documentQuery DocumentQuery DocumentQuery that specify which documents to find, sort order
+     * @param prove Whether to return the proof
+     * @param retryCallback should this call be retried upon failure
      * and pagination
      * @return List<ByteArray>? a list of documents matching the provided parameters
      */
-    fun getDocuments(contractId: ByteArray, type: String, documentQuery: DocumentQuery, prove: Boolean = false, retryCallback: GrpcMethodShouldRetryCallback = DefaultGetDocumentsRetryCallback()): GetDocumentsResponse {
+    fun getDocuments(
+        contractId: ByteArray,
+        type: String,
+        documentQuery: DocumentQuery,
+        prove: Boolean = false,
+        retryCallback: GrpcMethodShouldRetryCallback = DefaultGetDocumentsRetryCallback()
+    ): GetDocumentsResponse {
         logger.info("getDocuments(${contractId.toBase58()}, $type, ${documentQuery.toJSON()})")
         val method = GetDocumentsMethod(contractId, type, documentQuery, prove)
         val response = grpcRequest(method, retryCallback = retryCallback) as PlatformOuterClass.GetDocumentsResponse
@@ -767,8 +885,23 @@ class DapiClient(
                 Time(it.time.now, it.time.offset, it.time.median),
                 org.dashj.platform.dapiclient.model.Status.getByCode(it.status.number),
                 it.syncProgress,
-                Chain(it.chain.name, it.chain.headersCount, it.chain.blocksCount, Sha256Hash.wrap(it.chain.bestBlockHash.toByteArray()), it.chain.difficulty, it.chain.chainWork.toByteArray(), it.chain.isSynced, it.chain.syncProgress),
-                Masternode(Masternode.Status.getByCode(it.masternode.status.number), Sha256Hash.wrap(it.masternode.proTxHash.toByteArray()), it.masternode.posePenalty, it.masternode.isSynced, it.masternode.syncProgress),
+                Chain(
+                    it.chain.name,
+                    it.chain.headersCount,
+                    it.chain.blocksCount,
+                    Sha256Hash.wrap(it.chain.bestBlockHash.toByteArray()),
+                    it.chain.difficulty,
+                    it.chain.chainWork.toByteArray(),
+                    it.chain.isSynced,
+                    it.chain.syncProgress
+                ),
+                Masternode(
+                    Masternode.Status.getByCode(it.masternode.status.number),
+                    Sha256Hash.wrap(it.masternode.proTxHash.toByteArray()),
+                    it.masternode.posePenalty,
+                    it.masternode.isSynced,
+                    it.masternode.syncProgress
+                ),
                 Network(it.network.peersCount, NetworkFee(it.network.fee.relay, it.network.fee.incremental)),
                 Date().time,
                 address,
@@ -837,7 +970,10 @@ class DapiClient(
         sendTransactionHashes: Boolean,
         subscribeToTransactionsWithProofs: SubscribeToTransactionsWithProofs
     ) {
-        subscribeToTransactionsWithProofs(bloomFilter, fromBlockHash, -1, count, sendTransactionHashes, subscribeToTransactionsWithProofs)
+        subscribeToTransactionsWithProofs(
+            bloomFilter, fromBlockHash, -1, count,
+            sendTransactionHashes, subscribeToTransactionsWithProofs
+        )
     }
 
     fun subscribeToTransactionsWithProofs(
@@ -847,7 +983,14 @@ class DapiClient(
         sendTransactionHashes: Boolean,
         subscribeToTransactionsWithProofs: SubscribeToTransactionsWithProofs
     ) {
-        subscribeToTransactionsWithProofs(bloomFilter, Sha256Hash.ZERO_HASH, fromBlockHeight, count, sendTransactionHashes, subscribeToTransactionsWithProofs)
+        subscribeToTransactionsWithProofs(
+            bloomFilter,
+            Sha256Hash.ZERO_HASH,
+            fromBlockHeight,
+            count,
+            sendTransactionHashes,
+            subscribeToTransactionsWithProofs
+        )
     }
 
     private fun subscribeToTransactionsWithProofs(
@@ -858,7 +1001,14 @@ class DapiClient(
         sendTransactionHashes: Boolean,
         subscribeToTransactionsWithProofs: SubscribeToTransactionsWithProofs
     ) {
-        val subscribe = SubscribeToTransactionsWithProofsMethod(bloomFilter, fromBlockHash, fromBlockHeight, count, sendTransactionHashes, subscribeToTransactionsWithProofs)
+        val subscribe = SubscribeToTransactionsWithProofsMethod(
+            bloomFilter,
+            fromBlockHash,
+            fromBlockHeight,
+            count,
+            sendTransactionHashes,
+            subscribeToTransactionsWithProofs
+        )
         grpcRequest(subscribe)
     }
 
@@ -890,7 +1040,10 @@ class DapiClient(
         val grpcMasternode = DAPIGrpcMasternode(address, timeOut)
         lastUsedAddress = address
 
-        logger.info("grpcRequest(${grpcMethod.javaClass.simpleName}, $retriesLeft, $dapiAddress, $statusCheck) with ${address.host} for $grpcMethod")
+        logger.info(
+            "grpcRequest(${grpcMethod.javaClass.simpleName}, $retriesLeft, $dapiAddress, $statusCheck) with" +
+                " ${address.host} for $grpcMethod"
+        )
 
         val response: Any = try {
             if (statusCheck) {
@@ -1002,11 +1155,12 @@ class DapiClient(
         }
     }
 
-    fun broadcastTransaction(txBytes: ByteArray, allowHighFees: Boolean = false, bypassLimits: Boolean = false): String {
-        val method = BroadcastTransactionMethod(txBytes, allowHighFees, bypassLimits)
-        val response = grpcRequest(method) as CoreOuterClass.BroadcastTransactionResponse?
-        return response?.transactionId!!
-    }
+    fun broadcastTransaction(txBytes: ByteArray, allowHighFees: Boolean = false, bypassLimits: Boolean = false):
+        String {
+            val method = BroadcastTransactionMethod(txBytes, allowHighFees, bypassLimits)
+            val response = grpcRequest(method) as CoreOuterClass.BroadcastTransactionResponse?
+            return response?.transactionId!!
+        }
 
     /**
      *
@@ -1058,7 +1212,7 @@ class DapiClient(
         if (response.isSuccessful) {
             return response.body()!!.result
         } else {
-            throw Exception("jRPC error code: ${response.code()})")
+            throw ResponseException(response.code(), response.errorBody().toString())
         }
     }
 
@@ -1074,7 +1228,7 @@ class DapiClient(
         if (response.isSuccessful) {
             return response.body()!!.result
         } else {
-            throw Exception("jRPC error code: ${response.code()})")
+            throw ResponseException(response.code(), response.errorBody().toString())
         }
     }
 
@@ -1093,7 +1247,7 @@ class DapiClient(
         if (response.isSuccessful) {
             return response.body()!!.result
         } else {
-            throw Exception("jRPC error code: ${response.code()})")
+            throw ResponseException(response.code(), response.errorBody().toString())
         }
     }
 
@@ -1123,7 +1277,10 @@ class DapiClient(
         return trailers.exception
     }
 
-    fun setSimplifiedMasternodeListManager(masternodeListManager: SimplifiedMasternodeListManager, defaultList: List<String>) {
+    fun setSimplifiedMasternodeListManager(
+        masternodeListManager: SimplifiedMasternodeListManager,
+        defaultList: List<String>
+    ) {
         this.masternodeListManager = masternodeListManager
         dapiAddressListProvider = SimplifiedMasternodeListDAPIAddressProvider(
             masternodeListManager,
@@ -1140,7 +1297,8 @@ class DapiClient(
             "   successful: $successfulCalls\n" +
             "   retried   : $retriedCalls\n" +
             "   failure   : $failedCalls\n" +
-            "   total     : $totalCalls (calls per minute: ${totalCalls.toDouble() / stopWatch.elapsed(TimeUnit.MINUTES).toDouble()}\n" +
+            "   total     : $totalCalls (calls per minute: ${totalCalls.toDouble() /
+                stopWatch.elapsed(TimeUnit.MINUTES).toDouble()}\n" +
             "   retried % : ${retriedCalls.toDouble() / successfulCalls.toDouble() * 100}%\n" +
             "   success % : ${successfulCalls.toDouble() / totalCalls.toDouble() * 100}%\n" +
             "---Masternode Information\n" + dapiAddressListProvider.getStatistics()
@@ -1169,19 +1327,20 @@ class DapiClient(
         }
     }
 
-    fun verifyIdentitiesWithPublicKeyHashes(pubKeyHashes: List<ByteArray>, identityBytesLists: List<ByteArray>): Boolean {
-        var matches = 0
-        identityBytesLists.forEach { identityBytes ->
-            val identityList = Cbor.decodeList(identityBytes) as List<ByteArray>
-            val identity = dpp.identity.createFromBuffer(identityList[0])
-            identity.publicKeys.forEach { publicKey ->
-                pubKeyHashes.forEach { pubKeyHash ->
-                    if (Utils.sha256hash160(publicKey.data).contentEquals(pubKeyHash)) {
-                        matches += 1
+    fun verifyIdentitiesWithPublicKeyHashes(pubKeyHashes: List<ByteArray>, identityBytesLists: List<ByteArray>):
+        Boolean {
+            var matches = 0
+            identityBytesLists.forEach { identityBytes ->
+                val identityList = Cbor.decodeList(identityBytes) as List<ByteArray>
+                val identity = dpp.identity.createFromBuffer(identityList[0])
+                identity.publicKeys.forEach { publicKey ->
+                    pubKeyHashes.forEach { pubKeyHash ->
+                        if (Utils.sha256hash160(publicKey.data).contentEquals(pubKeyHash)) {
+                            matches += 1
+                        }
                     }
                 }
             }
+            return matches != 0
         }
-        return matches != 0
-    }
 }

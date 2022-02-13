@@ -33,6 +33,7 @@ class DocumentQuery private constructor(
         const val ascending = "asc"
         const val descending = "desc"
         val operators = listOf("<", "<=", "==", ">", ">", "in", "startsWith", "elementMatch", "length", "contains")
+        const val WHERE_CLAUSE_SIZE = 3
 
         fun builder(): Builder { return Builder() }
     }
@@ -46,8 +47,14 @@ class DocumentQuery private constructor(
     ) {
 
         fun where(where: List<Any>) = apply {
-            Preconditions.checkArgument(where.size == 3, "A where clause must have three items")
-            Preconditions.checkArgument(operators.contains(where[1]), "Where clause operator must be one of : $operators")
+            Preconditions.checkArgument(
+                where.size == WHERE_CLAUSE_SIZE,
+                "A where clause must have three items"
+            )
+            Preconditions.checkArgument(
+                operators.contains(where[1]),
+                "Where clause operator must be one of : $operators"
+            )
             if (this.where == null) {
                 this.where = ArrayList()
             }
@@ -133,7 +140,7 @@ class DocumentQuery private constructor(
     }
 
     override fun toObject(): Map<String, Any?> {
-        val json = HashMap<String, Any?>(5)
+        val json = hashMapOf<String, Any?>()
         if (where != null) {
             json["where"] = where
         }
@@ -153,7 +160,7 @@ class DocumentQuery private constructor(
     }
 
     override fun toJSON(): Map<String, Any?> {
-        val json = HashMap<String, Any?>(5)
+        val json = hashMapOf<String, Any?>()
         if (where != null) {
             json["where"] = where
         }
