@@ -1,5 +1,14 @@
 # Dash DAPI Client for JVM
 
+[![License](https://img.shields.io/github/license/dashevo/dapi-client-android)](https://github.com/dashevo/dapi-client-android/blob/master/LICENSE)
+[![dashevo/android-dpp](https://tokei.rs/b1/github/dashevo/dapi-client-android?category=code)](https://github.com/dashevo/dapi-client-android)
+
+| Branch | Tests                                                                                      | Coverage                                                                                                                             | Linting                                                                    |
+|--------|--------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
+| master | [![Tests](https://github.com/dashevo/dapi-client-android/workflows/CI/badge.svg?branch=master)](https://github.com/dashevo/dapi-client-android/actions) | [![codecov](https://codecov.io/gh/dashevo/dapi-client-android/branch/master/graph/badge.svg)](https://codecov.io/gh/dashevo/dapi-client-android) | ![Lint](https://github.com/dashevo/dapi-client-android/workflows/Kotlin%20Linter/badge.svg) |
+
+
+
 # Build
 This depends on the `android-dpp` library
 ```
@@ -30,7 +39,7 @@ Run tests with `gradle build test`
 # KtLint
 Check using ktlint:
 ```shell
-./gradlew ktlintCheck
+./gradlew ktlint
 ```
 Format using ktlint:
 ```shell
