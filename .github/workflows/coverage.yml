@@ -2,11 +2,9 @@ name: Code coverage
 
 on:
   push:
-    branches:
-      - master
+    branches: [ master, feature-*, bugfix-* ]
   pull_request:
-    branches:
-      - master
+    branches: [ master, feature-*, bugfix-* ]
 
 jobs:
   build:

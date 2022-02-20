@@ -6,7 +6,12 @@ name: Kotlin Linter
 # events but only for the master branch
 on:
   push:
+    branches: [ master ]
+    paths:
+      - "**/*.kt"
+      - ".github/workflows/ktlint.yml"
   pull_request:
+    branches: [ master, feature-*, bugfix-* ]
     paths:
       - "**/*.kt"
       - ".github/workflows/ktlint.yml"

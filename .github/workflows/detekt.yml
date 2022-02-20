@@ -6,7 +6,12 @@ name: Detekt
 # events but only for the master branch
 on:
   push:
+    branches: [ master, feature-*, bugfix-* ]
+    paths:
+      - "**/*.kt"
+      - ".github/workflows/detekt.yml"
   pull_request:
+    branches: [ master, feature-*, bugfix-* ]
     paths:
       - "**/*.kt"
       - ".github/workflows/detekt.yml"
@@ -26,4 +31,4 @@ jobs:
     # Runs a set of commands using the runners shell
     - name: Kotlin Linter
       run: |
-        ./gradlew deteck
+        ./gradlew detekt
