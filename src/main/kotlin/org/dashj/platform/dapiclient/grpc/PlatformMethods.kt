@@ -33,7 +33,7 @@ class GetDocumentsMethod(
             .setDocumentType(type)
             .setWhere(ByteString.copyFrom(documentQuery.encodeWhere()))
             .setOrderBy(ByteString.copyFrom(documentQuery.encodeOrderBy()))
-            .setProve(prove)
+        //    .setProve(prove) // Disabled for Platform 0.22.0
         if (documentQuery.hasLimit()) {
             builder.limit = documentQuery.limit
         }
@@ -72,7 +72,7 @@ class GetContractMethod(val dataContractId: ByteArray, private val prove: Boolea
 
     val request: PlatformOuterClass.GetDataContractRequest = PlatformOuterClass.GetDataContractRequest.newBuilder()
         .setId(ByteString.copyFrom(dataContractId))
-        .setProve(prove)
+        // .setProve(prove) // Disabled for Platform 0.22.0
         .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
@@ -88,7 +88,7 @@ class GetIdentityMethod(private val identityId: ByteArray, private val prove: Bo
 
     val request: PlatformOuterClass.GetIdentityRequest = PlatformOuterClass.GetIdentityRequest.newBuilder()
         .setId(ByteString.copyFrom(identityId))
-        .setProve(prove)
+        // .setProve(prove) // Disabled for Platform 0.22.0
         .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
@@ -108,7 +108,7 @@ class GetIdentitiesByPublicKeyHashes(
     val request: PlatformOuterClass.GetIdentitiesByPublicKeyHashesRequest =
         PlatformOuterClass.GetIdentitiesByPublicKeyHashesRequest.newBuilder()
             .addAllPublicKeyHashes(pubKeyHashes.map { ByteString.copyFrom(it) })
-            .setProve(prove)
+            // .setProve(prove) // Disabled for Platform 0.22.0
             .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
@@ -127,7 +127,7 @@ class GetIdentityIdsByPublicKeyHashes(private val pubKeyHashes: List<ByteArray>,
     val request: PlatformOuterClass.GetIdentityIdsByPublicKeyHashesRequest =
         PlatformOuterClass.GetIdentityIdsByPublicKeyHashesRequest.newBuilder()
             .addAllPublicKeyHashes(pubKeyHashes.map { ByteString.copyFrom(it) })
-            .setProve(prove)
+            // .setProve(prove) // Disabled for Platform 0.22.0
             .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {

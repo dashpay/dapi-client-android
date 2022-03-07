@@ -378,20 +378,20 @@ class DapiClient(
             // count the proof as success
             waitForResult.isSuccess() -> {
                 logger.info("broadcastStateTransitionAndWait: success ($successRate): ${waitForResult.proof}")
-                logger.info("root_tree_proof    : ${waitForResult.proof!!.rootTreeProof.toHex()}")
-                logger.info("store_tree_proof   : ${waitForResult.proof.storeTreeProofs}")
-                logger.info("signature_llmq_hash: ${waitForResult.proof.signatureLlmqHash.toHex()}")
-                logger.info("signature          : ${waitForResult.proof.signature.toHex()}")
-                logger.info("state transition   : ${signedStateTransition.toBuffer().toHex()}")
+                // logger.info("root_tree_proof    : ${waitForResult.proof!!.rootTreeProof.toHex()}")
+                // logger.info("store_tree_proof   : ${waitForResult.proof.storeTreeProofs}")
+                // logger.info("signature_llmq_hash: ${waitForResult.proof.signatureLlmqHash.toHex()}")
+                // logger.info("signature          : ${waitForResult.proof.signature.toHex()}")
+                // logger.info("state transition   : ${signedStateTransition.toBuffer().toHex()}")
                 logger.info("ST Hash            : ${Sha256Hash.of(signedStateTransition.toBuffer())}")
-                logger.info("proof verification : ${verifyProof.verify(waitForResult.proof)}")
+                // logger.info("proof verification : ${verifyProof.verify(waitForResult.proof)}")
                 logger.info("success rate       : $successRate")
-                logger.info(
-                    "signature proof    : ${verifyProof(
-                        waitForResult.proof, waitForResult.metadata,
-                        broadcast
-                    ) }"
-                )
+                // logger.info(
+                //    "signature proof    : ${verifyProof(
+                //        waitForResult.proof, waitForResult.metadata,
+                //        broadcast
+                //    ) }"
+                // )
             }
             waitForResult.isError() -> {
                 logger.info("broadcastStateTransitionAndWait: failure: ${waitForResult.error}")
@@ -801,7 +801,7 @@ class DapiClient(
         val result = if (fullVerification) {
             if (!this::masternodeListManager.isInitialized) {
                 logger.info("verify(): masternodeListManager is not initialized")
-                // MerkVerifyProof.extractProof(inclusion)
+
                 extractProof(inclusion, noninclusion)
             } else {
                 if (masternodeListManager.quorumListAtTip.getQuorum(Sha256Hash.wrap(proof.signatureLlmqHash)) == null) {
@@ -811,7 +811,7 @@ class DapiClient(
                         list.add("${it.quorumHash}, ${it.type}")
                     }
                     logger.info("verify(): quorum list $list")
-                    // MerkVerifyProof.extractProof(inclusion)
+
                     extractProof(inclusion, noninclusion)
                 } else {
                     val resultMap = ProofVerifier.verifyAndExtractFromProof(
@@ -828,7 +828,6 @@ class DapiClient(
                 }
             }
         } else {
-            // MerkVerifyProof.extractProof(inclusion)
             extractProof(inclusion, noninclusion)
         }
         return result

@@ -21,10 +21,9 @@ message StoreTreeProofs {
 }
 
 message Proof {
-  bytes root_tree_proof = 1;
-  StoreTreeProofs store_tree_proofs = 2;
-  bytes signature_llmq_hash = 3;
-  bytes signature = 4;
+  bytes merkle_proof = 1;
+  bytes signature_llmq_hash = 2;
+  bytes signature = 3;
 }
 
 message ResponseMetadata {
@@ -57,7 +56,7 @@ message GetIdentityResponse {
   ResponseMetadata metadata = 3;
 }
 
- message GetDataContractRequest {
+message GetDataContractRequest {
   bytes id = 1;
   bool prove = 2;
 }
@@ -78,8 +77,8 @@ message GetDocumentsRequest {
   uint32 limit = 5;
 
   oneof start {
-    uint32 start_after = 6;
-    uint32 start_at = 7;
+    bytes start_after = 6;
+    bytes start_at = 7;
   }
 
   bool prove = 8;

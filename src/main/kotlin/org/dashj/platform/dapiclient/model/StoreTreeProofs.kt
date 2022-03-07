@@ -15,13 +15,15 @@ class StoreTreeProofs(
     val dataContractsProof: ByteArray,
     val documentsProof: ByteArray
 ) {
-    constructor(storeTreeProofs: org.dash.platform.dapi.v0.PlatformOuterClass.StoreTreeProofs) :
-        this(
-            storeTreeProofs.identitiesProof.toByteArray(),
-            storeTreeProofs.publicKeyHashesToIdentityIdsProof.toByteArray(),
-            storeTreeProofs.dataContractsProof.toByteArray(),
-            storeTreeProofs.documentsProof.toByteArray()
-        )
+    constructor() : this(ByteArray(0), ByteArray(0), ByteArray(0), ByteArray(0))
+    // TODO: until proofs are enabled, this is commented to avoid compile errors
+//    constructor(storeTreeProofs: org.dash.platform.dapi.v0.PlatformOuterClass.StoreTreeProofs) :
+//        this(
+//            storeTreeProofs.identitiesProof.toByteArray(),
+//            storeTreeProofs.publicKeyHashesToIdentityIdsProof.toByteArray(),
+//            storeTreeProofs.dataContractsProof.toByteArray(),
+//            storeTreeProofs.documentsProof.toByteArray()
+//        )
 
     override fun toString(): String {
         val builder = StringBuilder()

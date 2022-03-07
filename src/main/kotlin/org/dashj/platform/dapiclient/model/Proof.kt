@@ -16,20 +16,21 @@ data class Proof(
     val signatureLlmqHash: ByteArray,
     val signature: ByteArray
 ) {
-    constructor(proof: org.dash.platform.dapi.v0.PlatformOuterClass.Proof) :
+    constructor(proof: PlatformOuterClass.Proof) :
         this(
-            proof.rootTreeProof.toByteArray(),
-            StoreTreeProofs(proof.storeTreeProofs),
+            proof.merkleProof.toByteArray(),
+            StoreTreeProofs(/*proof.storeTreeProofs*/),
             proof.signatureLlmqHash.toByteArray(),
             proof.signature.toByteArray()
         )
     constructor(proofBytes: ByteArray) : this(PlatformOuterClass.Proof.parseFrom(proofBytes))
 
     val type = when {
-        storeTreeProofs.documentsProof.isNotEmpty() -> "documentProof"
-        storeTreeProofs.identitiesProof.isNotEmpty() -> "identitiesProof"
-        storeTreeProofs.dataContractsProof.isNotEmpty() -> "dataContractsProof"
-        storeTreeProofs.publicKeyHashesToIdentityIdsProof.isNotEmpty() -> "publicKeyHashesToIdentityIdsProof"
+        // TODO: remove comments when proofs are enabled
+        // storeTreeProofs.documentsProof.isNotEmpty() -> "documentProof"
+        // storeTreeProofs.identitiesProof.isNotEmpty() -> "identitiesProof"
+        // storeTreeProofs.dataContractsProof.isNotEmpty() -> "dataContractsProof"
+        // storeTreeProofs.publicKeyHashesToIdentityIdsProof.isNotEmpty() -> "publicKeyHashesToIdentityIdsProof"
         else -> "none"
     }
 
@@ -39,7 +40,7 @@ data class Proof(
 
     override fun toString(): String {
         return "Proof(rootTreeProof: ${rootTreeProof.toHex()}\n" +
-            "  storeTreeProof: $storeTreeProofs\n" +
+            // "  storeTreeProof: $storeTreeProofs\n" +
             "  signatureLlmqHash: ${signatureLlmqHash.toHex()}\n" +
             "  signature: ${signature.toHex()}"
     }
