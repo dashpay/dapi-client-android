@@ -24,8 +24,8 @@ class DocumentQuery private constructor(
     var where: List<Any>? = null,
     var orderBy: List<List<String>>? = null,
     var limit: Int = -1,
-    var startAt: Int = -1,
-    var startAfter: Int = -1
+    var startAt: Identifier? = null,
+    var startAfter: Identifier? = null
 ) : BaseObject() {
 
     companion object {
@@ -39,11 +39,11 @@ class DocumentQuery private constructor(
     }
 
     data class Builder(
-        var where: MutableList<List<Any>>? = null,
-        var orderBy: MutableList<List<String>>? = null,
-        var limit: Int = -1,
-        var startAt: Int = -1,
-        var startAfter: Int = -1
+        private var where: MutableList<List<Any>>? = null,
+        private var orderBy: MutableList<List<String>>? = null,
+        private var limit: Int = -1,
+        private var startAt: Identifier? = null,
+        private var startAfter: Identifier? = null
     ) {
 
         fun where(where: List<Any>) = apply {
@@ -62,7 +62,7 @@ class DocumentQuery private constructor(
         }
 
         fun where(where: String): Builder {
-            return where(JSONArray(where) as MutableList<String>)
+            return where(JSONArray(where).toList())
         }
 
         fun where(left: String, operator: String, right: String): Builder {
@@ -96,8 +96,8 @@ class DocumentQuery private constructor(
             this.orderBy!!.add(orderBy)
         }
 
-        fun orderBy(orderBy: String): Builder {
-            return orderBy(JSONArray(orderBy).toList() as List<String>)
+        fun orderByJson(orderByJson: String): Builder {
+            return orderBy(JSONArray(orderByJson).toList() as List<String>)
         }
 
         fun orderBy(index: String, orderByAscending: Boolean = true): Builder {
@@ -105,8 +105,8 @@ class DocumentQuery private constructor(
         }
 
         fun limit(limit: Int) = apply { this.limit = limit }
-        fun startAt(startAt: Int) = apply { this.startAt = startAt }
-        fun startAfter(startAfter: Int) = apply { this.startAfter = startAfter }
+        fun startAt(startAt: Identifier?) = apply { this.startAt = startAt }
+        fun startAfter(startAfter: Identifier?) = apply { this.startAfter = startAfter }
 
         fun build() = DocumentQuery(where, orderBy, limit, startAt, startAfter)
     }
@@ -116,11 +116,11 @@ class DocumentQuery private constructor(
     }
 
     fun hasStartAt(): Boolean {
-        return startAt != -1
+        return startAt != null
     }
 
     fun hasStartAfter(): Boolean {
-        return startAfter != -1
+        return startAfter != null
     }
 
     fun encodeWhere(): ByteArray {
@@ -150,11 +150,11 @@ class DocumentQuery private constructor(
         if (limit != -1) {
             json["limit"] = limit
         }
-        if (startAt != -1) {
-            json["startAt"] = startAt
+        if (startAt != null) {
+            json["startAt"] = startAt!!.toBuffer()
         }
-        if (startAfter != -1) {
-            json["startAfter"] = startAfter
+        if (startAfter != null) {
+            json["startAfter"] = startAfter!!.toBuffer()
         }
         return json
     }
@@ -170,11 +170,11 @@ class DocumentQuery private constructor(
         if (limit != -1) {
             json["limit"] = limit
         }
-        if (startAt != -1) {
-            json["startAt"] = startAt
+        if (startAt != null) {
+            json["startAt"] = startAt!!.toString()
         }
-        if (startAfter != -1) {
-            json["startAfter"] = startAfter
+        if (startAfter != null) {
+            json["startAfter"] = startAfter!!.toString()
         }
         return json
     }

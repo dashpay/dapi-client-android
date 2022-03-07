@@ -38,10 +38,10 @@ class GetDocumentsMethod(
             builder.limit = documentQuery.limit
         }
         if (documentQuery.hasStartAfter()) {
-            builder.startAfter = documentQuery.startAfter
+            builder.startAfter = ByteString.copyFrom(documentQuery.startAfter!!.toBuffer())
         }
         if (documentQuery.hasStartAt()) {
-            builder.startAt = documentQuery.startAt
+            builder.startAt = ByteString.copyFrom(documentQuery.startAt!!.toBuffer())
         }
 
         request = builder.build()
