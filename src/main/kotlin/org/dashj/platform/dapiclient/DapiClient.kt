@@ -922,6 +922,7 @@ class DapiClient(
             logger.warn("RPC failed with ${masternode.address.host}: CANCELLED: ${e.trailers}")
         } else {
             logger.warn("RPC failed with ${masternode.address.host}: ${e.status}: ${e.trailers}")
+            logger.warn("  method error: ${method.getErrorInfo(e)}")
         }
         logger.warn("  for $method")
     }
