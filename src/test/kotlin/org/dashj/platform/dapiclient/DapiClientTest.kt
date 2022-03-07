@@ -16,7 +16,7 @@ class DapiClientTest {
     val PARAMS = KrupnikDevNetParams.get()
     val stateRepository = StateRepositoryMock()
     val dpp = DashPlatformProtocol(stateRepository, PARAMS)
-    val client = DapiClient(TestNet3Params.MASTERNODES.toList(), dpp)
+    val client = DapiClient(PARAMS.defaultMasternodeList.toList(), dpp)
 
     @Test
     fun jRPCTests() {

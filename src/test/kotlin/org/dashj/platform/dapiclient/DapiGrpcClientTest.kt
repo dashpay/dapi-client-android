@@ -142,7 +142,6 @@ class DapiGrpcClientTest {
         val client = DapiClient(masternodeList.toList(), dpp)
         val contractId = Base58.decode("88w8Xqn25HwJhjodrHW133aXhjuTsTv9ozQaYpSHACE3")
         try {
-            // val contractBytes = client.getDataContract(contractId)
             assertThrows(NotFoundException::class.java) { client.getDataContract(contractId) }
         } finally {
         }
@@ -155,6 +154,7 @@ class DapiGrpcClientTest {
             val query = DocumentQuery.Builder()
                 .where("normalizedParentDomainName", "==", "dash")
                 .where("normalizedLabel", "startsWith", "rt-")
+                .orderBy("normalizedLabel", true)
                 .build()
             val documentsResponse = client.getDocuments(dpnsContractId.toBuffer(), "domain", query)
 
@@ -171,6 +171,42 @@ class DapiGrpcClientTest {
             }
 
             println(document.toJSON())
+        } finally {
+        }
+    }
+
+    @Test
+    fun getDocumentsStartAtTest() {
+        val client = DapiClient(masternodeList.toList(), dpp)
+        try {
+            val query = DocumentQuery.Builder()
+                .build()
+            val documentsResponse = client.getDocuments(dpnsContractId.toBuffer(), "domain", query)
+
+            val jsonDpnsFile = File("src/test/resources/dpns-contract.json").readText()
+            val jsonDpns = JSONObject(jsonDpnsFile)
+            val rawContract = jsonDpns.toMap()
+            val dpnsContract = dpp.dataContract.createFromObject(rawContract)
+            stateRepository.storeDataContract(dpnsContract)
+            val document = dpp.document.createFromBuffer(documentsResponse.documents[0])
+            println(document.toJSON())
+
+            val docs = ArrayList<Document>(documentsResponse.documents.size)
+            for (doc in documentsResponse.documents) {
+                docs.add(dpp.document.createFromBuffer(doc))
+            }
+
+            val queryWithStartAt = DocumentQuery.Builder()
+                .startAt(docs.first().id)
+                .build()
+
+            val documentsStartAtResponse = client.getDocuments(dpnsContractId.toBuffer(), "domain", queryWithStartAt)
+
+            val docsStartAt = ArrayList<Document>(documentsResponse.documents.size)
+            for (doc in documentsStartAtResponse.documents) {
+                docsStartAt.add(dpp.document.createFromBuffer(doc))
+            }
+            assertEquals(queryWithStartAt.startAt, docsStartAt.first().id)
         } finally {
         }
     }
@@ -262,6 +298,7 @@ class DapiGrpcClientTest {
             DocumentQuery.builder()
                 .where("\$ownerId", "==", Identifier.from("3HSUPuMgR5qpZt1y5NbE2BBheM11yLRXKZoqdsKgxVNt"))
                 .where("\$updatedAt", ">", 0)
+                .orderBy("\$updatedAt", true)
                 .build()
         )
 
@@ -271,6 +308,7 @@ class DapiGrpcClientTest {
             DocumentQuery.builder()
                 .where("normalizedParentDomainName", "==", "dash")
                 .where("normalizedLabel", "startsWith", "test")
+                .orderBy("normalizedLabel", true)
                 .build()
         )
 
