@@ -7,7 +7,6 @@
 package org.dashj.platform.dapiclient
 
 import org.bitcoinj.params.KrupnikDevNetParams
-import org.bitcoinj.params.TestNet3Params
 import org.dashj.platform.dpp.DashPlatformProtocol
 import org.junit.jupiter.api.Test
 

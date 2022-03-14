@@ -9,7 +9,6 @@ package org.dashj.platform.dapiclient.proofs
 import org.dashj.merk.sha256
 import org.dashj.platform.dpp.toHex
 import org.dashj.platform.dpp.util.Converters
-import org.junit.Ignore
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
