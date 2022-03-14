@@ -34,6 +34,10 @@ class MerkleProof(val proofHashes: List<ByteArray>, val hashFunction: (ByteArray
             }
             return MerkleProof(proofHashes, hashFunction)
         }
+
+        fun fromBytes(bytes: ByteArray, hashFunction: (ByteArray) -> ByteArray): MerkleProof {
+            return fromBuffer(bytes, hashFunction)
+        }
     }
 
     fun getHexProofHashes(): List<String> {
@@ -83,5 +87,38 @@ class MerkleProof(val proofHashes: List<ByteArray>, val hashFunction: (ByteArray
         }
 
         return tree[tree.size - 1][0].second
+    }
+
+    /**
+     * Verifies the proof for a given root and leaves
+     *
+     * @param root - expected root
+     * @param {number[]} leafIndices - positions of the leaves in the original tree
+     * @param {ByteArray[]} leafHashes - leaf hashes to verify
+     * @param {number} leavesCount - amount of leaves in the original tree
+     *
+     * @return boolean
+     */
+    fun verify(root: ByteArray, leafIndices: List<Int>, leafHashes: List<ByteArray>, leavesCount: Int): Boolean {
+        val extractedRoot = calculateRoot(leafIndices, leafHashes, leavesCount)
+        val rootHaveSameLength = root.size == extractedRoot.size
+        var mismatch = false
+        return if (rootHaveSameLength) {
+            extractedRoot.forEachIndexed { index, byte ->
+                if (byte != root[index]) { mismatch = true }
+            }
+            mismatch.not()
+        } else {
+            false
+        }
+    }
+
+    /**
+     * Serializes proof to ByteArray
+     *
+     * @return ByteArray
+     */
+    fun toBytes(): ByteArray {
+        return proofHashes.fold(ByteArray(0)) { acc, curr -> acc.plus(curr) }
     }
 }
