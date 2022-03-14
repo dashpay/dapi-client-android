@@ -16,7 +16,7 @@ import org.bitcoinj.params.KrupnikDevNetParams
 import org.bitcoinj.quorums.LLMQParameters
 import org.bitcoinj.quorums.Quorum
 import org.dash.platform.dapi.v0.PlatformOuterClass
-import org.dashj.bls.BLS
+// import org.dashj.bls.BLS
 import org.dashj.bls.PublicKey
 import org.dashj.merk.ByteArrayKey
 import org.dashj.merk.MerkVerifyProof
