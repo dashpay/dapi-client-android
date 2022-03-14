@@ -44,8 +44,10 @@ import org.junit.jupiter.api.fail
 class ProofTest {
 
     init {
-        MerkVerifyProof.init()
-        BLS.Init()
+        // TODO: disable these for now since GitHub Actions will need a build step for both of these
+        // libraries.  We cannot use the binaries included in src/main/jniLibs
+        // MerkVerifyProof.init()
+        // BLS.Init()
     }
 
     val PARAMS = KrupnikDevNetParams.get()
