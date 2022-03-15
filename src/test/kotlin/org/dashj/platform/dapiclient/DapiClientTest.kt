@@ -7,7 +7,6 @@
 package org.dashj.platform.dapiclient
 
 import org.bitcoinj.params.KrupnikDevNetParams
-import org.bitcoinj.params.TestNet3Params
 import org.dashj.platform.dpp.DashPlatformProtocol
 import org.junit.jupiter.api.Test
 
@@ -16,7 +15,7 @@ class DapiClientTest {
     val PARAMS = KrupnikDevNetParams.get()
     val stateRepository = StateRepositoryMock()
     val dpp = DashPlatformProtocol(stateRepository, PARAMS)
-    val client = DapiClient(TestNet3Params.MASTERNODES.toList(), dpp)
+    val client = DapiClient(PARAMS.defaultMasternodeList.toList(), dpp)
 
     @Test
     fun jRPCTests() {

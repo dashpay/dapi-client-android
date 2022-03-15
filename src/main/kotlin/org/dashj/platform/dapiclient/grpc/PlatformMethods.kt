@@ -7,10 +7,13 @@
 package org.dashj.platform.dapiclient.grpc
 
 import com.google.protobuf.ByteString
+import io.grpc.Status
+import io.grpc.StatusRuntimeException
 import org.bitcoinj.core.Sha256Hash
 import org.dash.platform.dapi.v0.PlatformOuterClass
 import org.dashj.platform.dapiclient.model.DocumentQuery
 import org.dashj.platform.dapiclient.provider.DAPIGrpcMasternode
+import org.dashj.platform.dpp.errors.DriveErrorMetadata
 import org.dashj.platform.dpp.statetransition.StateTransition
 import org.dashj.platform.dpp.toBase58
 import org.dashj.platform.dpp.toHex
@@ -30,15 +33,15 @@ class GetDocumentsMethod(
             .setDocumentType(type)
             .setWhere(ByteString.copyFrom(documentQuery.encodeWhere()))
             .setOrderBy(ByteString.copyFrom(documentQuery.encodeOrderBy()))
-            .setProve(prove)
+        //    .setProve(prove) // Disabled for Platform 0.22.0
         if (documentQuery.hasLimit()) {
             builder.limit = documentQuery.limit
         }
         if (documentQuery.hasStartAfter()) {
-            builder.startAfter = documentQuery.startAfter
+            builder.startAfter = ByteString.copyFrom(documentQuery.startAfter!!.toBuffer())
         }
         if (documentQuery.hasStartAt()) {
-            builder.startAt = documentQuery.startAt
+            builder.startAt = ByteString.copyFrom(documentQuery.startAt!!.toBuffer())
         }
 
         request = builder.build()
@@ -51,13 +54,25 @@ class GetDocumentsMethod(
     override fun toString(): String {
         return "getDocument(${contractId.toBase58()}, $type, ${documentQuery.toJSON()}, $prove)"
     }
+
+    override fun getErrorInfo(e: StatusRuntimeException): String {
+        when (e.status.code) {
+            Status.INVALID_ARGUMENT.code -> {
+                val exception = DriveErrorMetadata(e.trailers.toString())
+                return "${exception.getFirstError()}: ${exception.data}"
+            }
+            else -> {
+                return "No extra information"
+            }
+        }
+    }
 }
 
 class GetContractMethod(val dataContractId: ByteArray, private val prove: Boolean) : GrpcMethod {
 
     val request: PlatformOuterClass.GetDataContractRequest = PlatformOuterClass.GetDataContractRequest.newBuilder()
         .setId(ByteString.copyFrom(dataContractId))
-        .setProve(prove)
+        // .setProve(prove) // Disabled for Platform 0.22.0
         .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
@@ -73,7 +88,7 @@ class GetIdentityMethod(private val identityId: ByteArray, private val prove: Bo
 
     val request: PlatformOuterClass.GetIdentityRequest = PlatformOuterClass.GetIdentityRequest.newBuilder()
         .setId(ByteString.copyFrom(identityId))
-        .setProve(prove)
+        // .setProve(prove) // Disabled for Platform 0.22.0
         .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
@@ -93,7 +108,7 @@ class GetIdentitiesByPublicKeyHashes(
     val request: PlatformOuterClass.GetIdentitiesByPublicKeyHashesRequest =
         PlatformOuterClass.GetIdentitiesByPublicKeyHashesRequest.newBuilder()
             .addAllPublicKeyHashes(pubKeyHashes.map { ByteString.copyFrom(it) })
-            .setProve(prove)
+            // .setProve(prove) // Disabled for Platform 0.22.0
             .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
@@ -112,7 +127,7 @@ class GetIdentityIdsByPublicKeyHashes(private val pubKeyHashes: List<ByteArray>,
     val request: PlatformOuterClass.GetIdentityIdsByPublicKeyHashesRequest =
         PlatformOuterClass.GetIdentityIdsByPublicKeyHashesRequest.newBuilder()
             .addAllPublicKeyHashes(pubKeyHashes.map { ByteString.copyFrom(it) })
-            .setProve(prove)
+            // .setProve(prove) // Disabled for Platform 0.22.0
             .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {

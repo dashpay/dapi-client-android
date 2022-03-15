@@ -6,8 +6,16 @@
  */
 package org.dashj.platform.dapiclient.grpc
 
+import io.grpc.StatusRuntimeException
 import org.dashj.platform.dapiclient.provider.DAPIGrpcMasternode
 
 interface GrpcMethod {
     fun execute(masternode: DAPIGrpcMasternode): Any
+    fun getErrorInfo(e: StatusRuntimeException): String {
+        when (e.status.code) {
+            else -> {
+                return "No extra information"
+            }
+        }
+    }
 }
