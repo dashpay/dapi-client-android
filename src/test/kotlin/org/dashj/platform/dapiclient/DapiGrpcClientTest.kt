@@ -4,7 +4,6 @@ import com.google.common.base.Stopwatch
 import com.hashengineering.crypto.X11
 import io.grpc.Status
 import io.grpc.StatusRuntimeException
-import java.io.File
 import org.bitcoinj.core.Base58
 import org.bitcoinj.core.Block
 import org.bitcoinj.core.Context
@@ -29,6 +28,7 @@ import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import java.io.File
 
 class DapiGrpcClientTest {
 

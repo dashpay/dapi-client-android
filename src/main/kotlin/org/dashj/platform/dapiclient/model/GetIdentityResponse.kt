@@ -10,5 +10,6 @@ import org.dash.platform.dapi.v0.PlatformOuterClass
 
 class GetIdentityResponse(val identity: ByteArray, proof: Proof, metadata: ResponseMetadata) :
     AbstractResponse(proof, metadata) {
-    constructor(response: PlatformOuterClass.GetIdentityResponse) : this(response.identity.toByteArray(), Proof(response.proof), ResponseMetadata(response.metadata))
+    constructor(response: PlatformOuterClass.GetIdentityResponse) :
+        this(response.identity.toByteArray(), Proof(response.proof), ResponseMetadata(response.metadata))
 }

@@ -1,20 +1,20 @@
 # This is a basic workflow to help you get started with Actions
 
-name: Kotlin Linter
+name: Detekt
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the master branch
 on:
   push:
-    branches: [ master ]
+    branches: [ master, feature-*, bugfix-* ]
     paths:
       - "**/*.kt"
-      - ".github/workflows/ktlint.yml"
+      - ".github/workflows/detekt.yml"
   pull_request:
     branches: [ master, feature-*, bugfix-* ]
     paths:
       - "**/*.kt"
-      - ".github/workflows/ktlint.yml"
+      - ".github/workflows/detekt.yml"
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -31,6 +31,4 @@ jobs:
     # Runs a set of commands using the runners shell
     - name: Kotlin Linter
       run: |
-        chmod +x gradlew
-        chmod +x gradle/wrapper/gradle-wrapper.jar
-        ./gradlew ktlint
+        ./gradlew detekt

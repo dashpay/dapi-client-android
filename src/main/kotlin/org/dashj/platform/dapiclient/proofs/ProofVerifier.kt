@@ -7,8 +7,6 @@
 
 package org.dashj.platform.dapiclient.proofs
 
-import java.io.ByteArrayOutputStream
-import java.math.BigInteger
 import org.bitcoinj.core.Sha256Hash
 import org.bitcoinj.core.Utils
 import org.bitcoinj.crypto.BLSSignature
@@ -24,18 +22,36 @@ import org.dashj.platform.dpp.hashOnce
 import org.dashj.platform.dpp.hashTwice
 import org.dashj.platform.dpp.toHex
 import org.slf4j.LoggerFactory
+import java.io.ByteArrayOutputStream
+import java.math.BigInteger
 
 object ProofVerifier {
     private val logger = LoggerFactory.getLogger(ProofVerifier::class.java.name)
+    private const val REQUEST_ID_SIZE = 15
+    private const val SIGN_ID_SIZE = 97
+    private const val LEAVES_COUNT = 6
+    private const val STATE_DATA_SIZE = 40
+
+    private const val HASH_LEN = 20
 
     @JvmStatic
-    fun verifyAndExtractFromProof(proof: Proof, metaData: ResponseMetadata, masternodeListManager: SimplifiedMasternodeListManager, caller: String): Map<Int, Map<ByteArrayKey, ByteArray>> {
+    fun verifyAndExtractFromProof(
+        proof: Proof,
+        metaData: ResponseMetadata,
+        masternodeListManager: SimplifiedMasternodeListManager,
+        caller: String
+    ): Map<Int, Map<ByteArrayKey, ByteArray>> {
         val quorum = masternodeListManager.quorumListAtTip.getQuorum(Sha256Hash.wrap(proof.signatureLlmqHash))
         return verifyAndExtractFromProof(proof, metaData, quorum, caller)
     }
 
     @JvmStatic
-    fun verifyAndExtractFromProof(proof: Proof, metaData: ResponseMetadata, quorum: Quorum, caller: String): Map<Int, Map<ByteArrayKey, ByteArray>> {
+    fun verifyAndExtractFromProof(
+        proof: Proof,
+        metaData: ResponseMetadata,
+        quorum: Quorum,
+        caller: String
+    ): Map<Int, Map<ByteArrayKey, ByteArray>> {
         if (proof.signature.isEmpty()) {
             throw IllegalArgumentException("Platform returned an empty or wrongly sized signature")
         }
@@ -74,9 +90,13 @@ object ProofVerifier {
         val merkleProof = MerkleProof.fromBuffer(proof.rootTreeProof) {
             blake3(it)
         }
-        val stateHash = merkleProof.calculateRoot(rootElementsToProve.keys.toList(), rootElementsToProve.values.toList(), 6)
+        val stateHash = merkleProof.calculateRoot(
+            rootElementsToProve.keys.toList(),
+            rootElementsToProve.values.toList(),
+            LEAVES_COUNT
+        )
 
-        val stateData = ByteArrayOutputStream(40)
+        val stateData = ByteArrayOutputStream(STATE_DATA_SIZE)
         Utils.uint64ToByteStreamLE(BigInteger.valueOf(metaData.height - 1), stateData)
         stateData.write(stateHash)
         val stateMessageHash = stateData.toByteArray().hashOnce()
@@ -89,9 +109,15 @@ object ProofVerifier {
             quorum.llmqParameters.type
         )
         if (!signatureVerified) {
-            logger.warn("verify(height=${metaData.height}, stateHash=${stateHash.toHex().substring(0, 20)}, quorum=${quorum.quorumHash.toString().substring(0, 20)}, $caller): unable to verify platform signature")
+            logger.warn(
+                "verify(height=${metaData.height}, stateHash=${stateHash.toHex().substring(0, HASH_LEN)}, " +
+                    "quorum=${quorum.quorumHash.toString().substring(0, HASH_LEN)}, $caller): unable to verify signature"
+            )
         } else {
-            logger.info("verify(height=${metaData.height}, stateHash=${stateHash.toHex().substring(0, 20)}, quorum=${quorum.quorumHash.toString().substring(0, 20)}, $caller): platform signature verified")
+            logger.info(
+                "verify(height=${metaData.height}, stateHash=${stateHash.toHex().substring(0, HASH_LEN)}, " +
+                    "quorum=${quorum.quorumHash.toString().substring(0, HASH_LEN)}, $caller): signature verified"
+            )
         }
 
         val elementsDictionary = hashMapOf<Int, Map<ByteArrayKey, ByteArray>>()
@@ -112,15 +138,20 @@ object ProofVerifier {
     }
 
     private fun requestIdForHeight(height: Long): ByteArray {
-        val stream = ByteArrayOutputStream(15)
+        val stream = ByteArrayOutputStream(REQUEST_ID_SIZE)
         stream.write("dpsvote".toByteArray(Charsets.UTF_8))
         Utils.uint64ToByteStreamLE(BigInteger.valueOf(height), stream)
         return stream.toByteArray().hashOnce()
     }
 
-    private fun signIDForQuorumEntry(quorumEntry: Quorum, quorumType: LLMQParameters.LLMQType, stateMessageHash: ByteArray, height: Long): ByteArray {
+    private fun signIDForQuorumEntry(
+        quorumEntry: Quorum,
+        quorumType: LLMQParameters.LLMQType,
+        stateMessageHash: ByteArray,
+        height: Long
+    ): ByteArray {
         val requestId = requestIdForHeight(height)
-        val stream = ByteArrayOutputStream(97)
+        val stream = ByteArrayOutputStream(SIGN_ID_SIZE)
         stream.write(quorumType.value)
         stream.write(quorumEntry.quorumHash.reversedBytes)
         stream.write(requestId.reversedArray())
@@ -128,7 +159,13 @@ object ProofVerifier {
         return stream.toByteArray().hashTwice()
     }
 
-    fun verifyStateSignature(signature: ByteArray, stateMessageHash: ByteArray, height: Long, quorumEntry: Quorum, quorumType: LLMQParameters.LLMQType): Boolean {
+    fun verifyStateSignature(
+        signature: ByteArray,
+        stateMessageHash: ByteArray,
+        height: Long,
+        quorumEntry: Quorum,
+        quorumType: LLMQParameters.LLMQType
+    ): Boolean {
         val blsPublicKey = quorumEntry.commitment.quorumPublicKey
 
         val signId = signIDForQuorumEntry(quorumEntry, quorumType, stateMessageHash, height)

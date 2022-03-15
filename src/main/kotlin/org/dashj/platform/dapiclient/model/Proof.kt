@@ -17,12 +17,12 @@ data class Proof(
     val signature: ByteArray
 ) {
     constructor(proof: org.dash.platform.dapi.v0.PlatformOuterClass.Proof) :
-    this(
-        proof.rootTreeProof.toByteArray(),
-        StoreTreeProofs(proof.storeTreeProofs),
-        proof.signatureLlmqHash.toByteArray(),
-        proof.signature.toByteArray()
-    )
+        this(
+            proof.rootTreeProof.toByteArray(),
+            StoreTreeProofs(proof.storeTreeProofs),
+            proof.signatureLlmqHash.toByteArray(),
+            proof.signature.toByteArray()
+        )
     constructor(proofBytes: ByteArray) : this(PlatformOuterClass.Proof.parseFrom(proofBytes))
 
     val type = when {

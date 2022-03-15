@@ -14,10 +14,11 @@ import org.dashj.platform.dpp.toHex
 
 class WaitForStateTransitionResultMethod(val hash: ByteArray, val prove: Boolean) : GrpcMethod {
 
-    val request: PlatformOuterClass.WaitForStateTransitionResultRequest = PlatformOuterClass.WaitForStateTransitionResultRequest.newBuilder()
-        .setStateTransitionHash(ByteString.copyFrom(hash))
-        .setProve(prove)
-        .build()
+    val request: PlatformOuterClass.WaitForStateTransitionResultRequest =
+        PlatformOuterClass.WaitForStateTransitionResultRequest.newBuilder()
+            .setStateTransitionHash(ByteString.copyFrom(hash))
+            .setProve(prove)
+            .build()
 
     override fun execute(masternode: DAPIGrpcMasternode): Any {
         return masternode.platformWithoutDeadline.waitForStateTransitionResult(request)

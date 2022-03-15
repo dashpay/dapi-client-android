@@ -7,11 +7,11 @@
 
 package org.dashj.platform.dapiclient.proofs
 
-import kotlin.math.ceil
 import org.dashj.platform.dapiclient.proofs.Arrays.concatAndHash
 import org.dashj.platform.dapiclient.proofs.Arrays.getSiblingIndex
 import org.dashj.platform.dapiclient.proofs.Arrays.getTreeDepth
 import org.dashj.platform.dpp.toHex
+import kotlin.math.ceil
 
 /**
  * This class was translated from https://github.com/antouhou/js-merkle

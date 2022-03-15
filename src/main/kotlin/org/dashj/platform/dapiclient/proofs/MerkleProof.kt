@@ -22,14 +22,15 @@ data class LayerInfo(val index: Int, val leavesCount: Int)
 class MerkleProof(val proofHashes: List<ByteArray>, val hashFunction: (ByteArray) -> ByteArray) {
 
     companion object {
+        private const val HASH_SIZE = 32
         @JvmStatic
         fun fromBuffer(rootTreeProof: ByteArray, hashFunction: (ByteArray) -> ByteArray): MerkleProof {
-            val length = rootTreeProof.size / 32
+            val length = rootTreeProof.size / HASH_SIZE
             var offset = 0
             val proofHashes = arrayListOf<ByteArray>()
             for (i in 0 until length) {
-                proofHashes.add(rootTreeProof.copyOfRange(offset, offset + 32))
-                offset += 32
+                proofHashes.add(rootTreeProof.copyOfRange(offset, offset + HASH_SIZE))
+                offset += HASH_SIZE
             }
             return MerkleProof(proofHashes, hashFunction)
         }

@@ -17,6 +17,7 @@ import org.dashj.platform.dpp.StateRepository
 import org.dashj.platform.dpp.contract.DataContractCreateTransition
 import org.dashj.platform.dpp.document.DocumentCreateTransition
 import org.dashj.platform.dpp.document.DocumentsBatchTransition
+import org.dashj.platform.dpp.errors.concensus.ConcensusException
 import org.dashj.platform.dpp.errors.concensus.basic.datacontract.InvalidDataContractIdException
 import org.dashj.platform.dpp.errors.concensus.basic.identity.InvalidInstantAssetLockProofException
 import org.dashj.platform.dpp.errors.concensus.document.DataContractNotPresentException
@@ -59,7 +60,7 @@ class DefaultBroadcastRetryCallback : BroadcastShouldRetryCallback {
  *      retry Id lists which should be verified through other calls to getDocuments, getIdentity, getContract
  *
  * @property stateRepository StateRepository Used for DAPI calls to fetch documents, identities and contracts
- * @property updatedAt Long If a document was updated in the broadcast, this will be used to identify the updated document.
+ * @property updatedAt Long If a document was updated in the broadcast, this is used to identify the updated document.
  * @constructor
  */
 open class BroadcastRetryCallback(
@@ -74,6 +75,26 @@ open class BroadcastRetryCallback(
     companion object {
         private val logger = LoggerFactory.getLogger(BroadcastRetryCallback::class.java.name)
         const val DEFAULT_RETRY_COUNT = 5
+
+        private fun logException(
+            grpcMethod: BroadcastStateTransitionMethod,
+            e: StatusRuntimeException,
+            exception: ConcensusException
+        ) {
+            logger.info(
+                "Retry ${grpcMethod.javaClass.simpleName} ${e.status.code} since error was ${exception.name}"
+            )
+        }
+
+        private fun logException(
+            grpcMethod: BroadcastStateTransitionMethod,
+            message: String,
+            exception: ConcensusException
+        ) {
+            logger.info(
+                "Retry ${grpcMethod.javaClass.simpleName} $message since error was ${exception.name}"
+            )
+        }
     }
 
     override fun shouldRetry(grpcMethod: GrpcMethod, e: StatusRuntimeException): Boolean {
@@ -156,19 +177,19 @@ open class BroadcastRetryCallback(
                         when (exception) {
                             is InvalidDataContractIdException -> {
                                 if (retryContractIds.contains(dataContractId)) {
-                                    logger.info("Retry ${grpcMethod.javaClass.simpleName} ${e.status.code} since error was InvalidContractIdError")
+                                    logException(grpcMethod, e, exception)
                                     return true
                                 }
                             }
                             is DataContractNotPresentException -> {
                                 if (retryContractIds.contains(dataContractId)) {
-                                    logger.info("Retry ${grpcMethod.javaClass.simpleName} ${e.status.code} since error was DataContractNotPresentError")
+                                    logException(grpcMethod, e, exception)
                                     return true
                                 }
                             }
                             is DocumentAlreadyPresentException -> {
                                 if (retryContractIds.contains(dataContractId)) {
-                                    logger.info("Retry ${grpcMethod.javaClass.simpleName} ${e.status.code} since error was DuplicateDocumentError")
+                                    logException(grpcMethod, e, exception)
                                     return false
                                 }
                             }
@@ -243,7 +264,9 @@ open class BroadcastRetryCallback(
                             stateRepository.fetchDataContract(grpcMethod.stateTransition.dataContract.id)
 
                         if (identityData != null) {
-                            logger.info("contract found. No need to retry: ${grpcMethod.stateTransition.dataContract.id}")
+                            logger.info(
+                                "contract found. No need to retry: ${grpcMethod.stateTransition.dataContract.id}"
+                            )
                             return false
                         }
                     }
@@ -275,19 +298,19 @@ open class BroadcastRetryCallback(
                     when (errorInfo.exception) {
                         is InvalidDataContractIdException -> {
                             if (retryContractIds.contains(Identifier.from(dataContractId))) {
-                                logger.info("Retry ${grpcMethod.javaClass.simpleName} ${errorInfo.errorMessage} since error was InvalidContractIdError")
+                                logException(grpcMethod, errorInfo.errorMessage, errorInfo.exception)
                                 return true
                             }
                         }
                         is DataContractNotPresentException -> {
                             if (retryContractIds.contains(Identifier.from(dataContractId))) {
-                                logger.info("Retry ${grpcMethod.javaClass.simpleName} ${errorInfo.errorMessage} since error was DataContractNotPresentError")
+                                logException(grpcMethod, errorInfo.errorMessage, errorInfo.exception)
                                 return true
                             }
                         }
                         is DocumentAlreadyPresentException -> {
                             if (retryContractIds.contains(Identifier.from(dataContractId))) {
-                                logger.info("Not retrying ${grpcMethod.javaClass.simpleName} ${errorInfo.errorMessage} since error was DuplicateDocumentError")
+                                logException(grpcMethod, errorInfo.errorMessage, errorInfo.exception)
                                 return false
                             }
                         }

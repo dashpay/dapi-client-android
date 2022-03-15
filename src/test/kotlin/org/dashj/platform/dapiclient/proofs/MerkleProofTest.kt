@@ -35,19 +35,31 @@ class MerkleProofTest {
     }
 
     @Test
-    fun `getRoot should get a correct root`() {
-        val merkleTree = MerkleTree(leafHashes) { sha256(it) }
+    fun `getRoot should get a correct proof`() {
+        // The first layer should be siblings of leaves 3 and 4, which are leaves 2 and 5
+        // Since there are 6 leaves, the second layer consists of 3 nodes, 2 of which we
+        // can now figure out from the first layer:
+        // (node1 = hash(leaf2 + leaf3), node2 = hash(leaf4 + leaf 5)). So from the
+        // second layer we need node0, and nothing from the top layer - 2 hashes from
+        // there we will be able to calculate from the information we have.
+
+        val expectedProofHashes = listOf(
+            "2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6",
+            "252f10c83610ebca1a059c0bae8255eba2f95be4d1d7bcfa89d7248a82d9f111",
+            "e5a01fee14e0ed5c48714f22180f25ad8365b53f9779f79dc4a3d7e93963f94a"
+        )
 
         val leafIndicesToProve = listOf(3, 4)
-        val leafHashesToProve = leafIndicesToProve.map { leafIndex -> leafHashes[leafIndex] }
+        // val leafHashesToProve = leafIndicesToProve.map { leafIndex -> leafHashes[leafIndex] }
+
+        val merkleTree = MerkleTree(leafHashes) { sha256(it) }
 
         val merkleProof = merkleTree.getProof(leafIndicesToProve)
-        val leavesCount = merkleTree.layers[0].size
 
-        val binaryRoot = merkleProof.calculateRoot(leafIndicesToProve, leafHashesToProve, leavesCount)
+        val hexLayers = merkleProof.proofHashes.map {
+            it.toHex()
+        }
 
-        val hexRoot = binaryRoot.toHex()
-
-        assertEquals(expectedRootHex, hexRoot)
+        assertEquals(expectedProofHashes, hexLayers)
     }
 }

@@ -8,7 +8,16 @@ package org.dashj.platform.dapiclient.model
 
 import org.dash.platform.dapi.v0.PlatformOuterClass
 
-class GetIdentityIdsByPublicKeyHashesResponse(val identityIds: List<ByteArray>, proof: Proof, metadata: ResponseMetadata) :
+class GetIdentityIdsByPublicKeyHashesResponse(
+    val identityIds: List<ByteArray>,
+    proof: Proof,
+    metadata: ResponseMetadata
+) :
     AbstractResponse(proof, metadata) {
-    constructor(response: PlatformOuterClass.GetIdentityIdsByPublicKeyHashesResponse) : this(response.identityIdsList.map { it.toByteArray() }, Proof(response.proof), ResponseMetadata(response.metadata))
+    constructor(response: PlatformOuterClass.GetIdentityIdsByPublicKeyHashesResponse) :
+        this(
+            response.identityIdsList.map { it.toByteArray() },
+            Proof(response.proof),
+            ResponseMetadata(response.metadata)
+        )
 }

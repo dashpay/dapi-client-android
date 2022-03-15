@@ -9,10 +9,10 @@ package org.dashj.platform.dapiclient.provider
 import com.google.common.base.Stopwatch
 import io.grpc.ManagedChannel
 import io.grpc.ManagedChannelBuilder
-import java.util.concurrent.TimeUnit
 import org.dash.platform.dapi.v0.CoreGrpc
 import org.dash.platform.dapi.v0.PlatformGrpc
 import org.slf4j.LoggerFactory
+import java.util.concurrent.TimeUnit
 
 class DAPIGrpcMasternode(address: DAPIAddress, val timeout: Long) : DAPIMasternode(address) {
     // gRPC properties
@@ -36,6 +36,7 @@ class DAPIGrpcMasternode(address: DAPIAddress, val timeout: Long) : DAPIMasterno
     // Constants
     companion object {
         private val logger = LoggerFactory.getLogger(DAPIGrpcMasternode::class.java.name)
+        private const val DEFAULT_SHUTDOWN_TIMEOUT = 5L
     }
 
     init {
@@ -52,7 +53,7 @@ class DAPIGrpcMasternode(address: DAPIAddress, val timeout: Long) : DAPIMasterno
     fun shutdown() {
         if (!channel.isShutdown) {
             logger.debug("Shutting down: " + channel.shutdown())
-            channel.shutdown().awaitTermination(5, TimeUnit.SECONDS)
+            channel.shutdown().awaitTermination(DEFAULT_SHUTDOWN_TIMEOUT, TimeUnit.SECONDS)
         }
     }
 }

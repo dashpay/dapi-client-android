@@ -27,7 +27,9 @@ class MerkLibVerifyProof(stateTransition: StateTransitionIdentitySigned) : Defau
                 val result = MerkVerifyProof.extractProof(proof.storeTreeProofs.dataContractsProof)
 
                 return if (result.isNotEmpty()) {
-                    verifyDataContactCreateTransition(result[ByteArrayKey(stateTransition.dataContract.id.toBuffer())]!!, stateTransition)
+                    verifyDataContactCreateTransition(
+                        result[ByteArrayKey(stateTransition.dataContract.id.toBuffer())]!!, stateTransition
+                    )
                 } else {
                     false
                 }
@@ -35,7 +37,10 @@ class MerkLibVerifyProof(stateTransition: StateTransitionIdentitySigned) : Defau
             is IdentityCreateTransition -> {
                 val result = MerkVerifyProof.extractProof(proof.storeTreeProofs.identitiesProof)
                 return if (result.isNotEmpty()) {
-                    verifyIdentityCreateTransition(stateTransition, result[ByteArrayKey(stateTransition.identityId.toBuffer())]!!)
+                    verifyIdentityCreateTransition(
+                        stateTransition,
+                        result[ByteArrayKey(stateTransition.identityId.toBuffer())]!!
+                    )
                 } else {
                     false
                 }

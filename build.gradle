@@ -1,6 +1,4 @@
 
-import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
-
 buildscript {
     ext.kotlin_version = '1.4.32'
     ext.dashj_version = '0.18.0-SNAPSHOT'
@@ -22,30 +20,16 @@ plugins {
     id 'maven'
     id 'signing'
     id 'java'
+    id('io.gitlab.arturbosch.detekt').version("1.1.1")
+    id 'jacoco'
 }
 apply plugin: 'kotlin'
 apply plugin: 'com.google.protobuf'
 apply plugin: 'idea'
-apply plugin: "org.jlleitschuh.gradle.ktlint"
 
 allprojects {
     repositories {
         maven { url 'https://jitpack.io' }
-    }
-}
-
-ktlint {
-    version = "0.34.2"
-    debug = true
-    verbose = true
-    android = false
-    outputToConsole = true
-    reporters = [ReporterType.PLAIN, ReporterType.CHECKSTYLE]
-    ignoreFailures = false
-    enableExperimentalRules = true
-    filter {
-        exclude("**/generated/**")
-        include("**/kotlin/**")
     }
 }
 
@@ -131,7 +115,6 @@ artifacts {
 
 tasks.withType(Test) {
     systemProperty "java.library.path", "src/main/jniLibs"
-    println (systemProperties.get("java.library.path"))
 }
 
 publishing {
@@ -154,6 +137,15 @@ assemble.dependsOn(publishToMavenLocal)
 
 test {
     useJUnitPlatform()
+    finalizedBy jacocoTestReport // report is always generated after tests run
+}
+
+jacocoTestReport {
+    dependsOn test // tests are required to run before generating the report
+    reports {
+        xml.enabled true
+        xml.destination file("${rootProject.projectDir}/build/reports/jacoco/jacoco.xml")
+    }
 }
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
@@ -172,7 +164,7 @@ signing {
     sign configurations.archives
 }
 
-uploadArchives {
+/*uploadArchives {
     repositories {
         mavenDeployer {
             beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
@@ -218,3 +210,5 @@ uploadArchives {
         }
     }
 }
+*/
+apply from: 'ktlint.gradle'
