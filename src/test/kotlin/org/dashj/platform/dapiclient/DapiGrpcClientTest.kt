@@ -32,7 +32,7 @@ import java.io.File
 
 class DapiGrpcClientTest {
 
-    val PARAMS = KrupnikDevNetParams.get()
+    val PARAMS = TestNet3Params.get()
     val CONTEXT = Context.getOrCreate(PARAMS)
     val masternodeList = PARAMS.defaultMasternodeList.toList()
     val dpnsContractId = SystemIds.dpnsDataContractId // DPNS contract
@@ -153,7 +153,7 @@ class DapiGrpcClientTest {
         try {
             val query = DocumentQuery.Builder()
                 .where("normalizedParentDomainName", "==", "dash")
-                .where("normalizedLabel", "startsWith", "rt-")
+                .where("normalizedLabel", "startsWith", "x-")
                 .orderBy("normalizedLabel", true)
                 .build()
             val documentsResponse = client.getDocuments(dpnsContractId.toBuffer(), "domain", query)

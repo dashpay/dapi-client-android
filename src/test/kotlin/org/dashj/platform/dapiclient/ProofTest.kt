@@ -12,7 +12,7 @@ import org.bitcoinj.core.Context
 import org.bitcoinj.core.Sha256Hash
 import org.bitcoinj.core.Utils
 import org.bitcoinj.crypto.BLSPublicKey
-import org.bitcoinj.params.KrupnikDevNetParams
+import org.bitcoinj.params.TestNet3Params
 import org.bitcoinj.quorums.LLMQParameters
 import org.bitcoinj.quorums.Quorum
 import org.dash.platform.dapi.v0.PlatformOuterClass
@@ -50,7 +50,7 @@ class ProofTest {
         // BLS.Init()
     }
 
-    val PARAMS = KrupnikDevNetParams.get()
+    val PARAMS = TestNet3Params.get()
     val CONTEXT = Context.getOrCreate(PARAMS)
     val masternodeList = PARAMS.defaultMasternodeList.toList()
     val dpnsContractId = SystemIds.dpnsDataContractId // DPNS contract
@@ -60,11 +60,12 @@ class ProofTest {
     val badDashPayContractId = Identifier.from("8FmdUoXZJijvARgA3Vcg73ThYp5P4AaLis1WpXp9VGg1")
     val badIdentityId = Identifier.from("GrdbRMnZ5pPiFWuzPR62goRVj6sxpqvLKMT87ZmuZPyr")
 
-    val hash160 = Utils.sha256hash160(Converters.fromHex("03e32b81d4b8c34c170f8db115ef4609a41e08ea0e9d153f2059d993ab240af5d0")).toHex()
-    val hash160a = Utils.sha256hash160(Converters.fromHex("0330fa594258df21f28bb5f698b88b1be008561180d458c176213f5be6be823c4d")).toHex()
+    // these values are taken from https://github.com/dashevo/dash-network-configs/blob/master/testnet.yml
+    val publicKeyHashDpns = Utils.sha256hash160(Converters.fromHex("022a5ffc9f92e005a02401c375f575b3aed5606fb24ddef5b3a05d55c66ba2a2f6"))
+    val publicKeyHashDashpay = Utils.sha256hash160(Converters.fromHex("02c6bf10f8cc078866ed5466a0b5ea3a4e8db2a764ea5aa9cb75f22658664eb149"))
 
-    val publicKeyHash = Converters.fromHex("1e35a0e326f75f04b082fc058ca413d41c667261")
-    val publicKeyHashes = listOf(publicKeyHash, Converters.fromHex("c3c85d2210e866b5ebf0318140a7005e9c8d1211"))
+    val publicKeyHash = publicKeyHashDpns
+    val publicKeyHashes = listOf(publicKeyHashDpns, publicKeyHashDashpay)
 
     val badPublicKeyHash = Converters.fromHex("ea396d727565f94d26f85e7f8a4fe5418f97d7cb")
     val badPublicKeyHashes = listOf(badPublicKeyHash, Converters.fromHex("bad3374c8aa0059809d677bcb44c86d4e7746bb9"))
