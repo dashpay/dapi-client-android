@@ -373,11 +373,16 @@ class DapiClient(
         when {
             waitForResult == null -> {
                 logger.info("broadcastStateTransitionAndWait: failure: Timeout or no proof returned")
-                throw StateTransitionBroadcastException(2, "Timeout", ByteArray(0))
+                // TODO: uncomment the next line when proofs are enabled
+                // throw StateTransitionBroadcastException(2, "Timeout", ByteArray(0))
+
+                // TODO: remove this line when proofs are enabled
+                logger.info("broadcastStateTransitionAndWait: success ($successRate)")
             }
             // count the proof as success
             waitForResult.isSuccess() -> {
                 logger.info("broadcastStateTransitionAndWait: success ($successRate): ${waitForResult.proof}")
+                // TODO: these are commented out because proofs are disabled
                 // logger.info("root_tree_proof    : ${waitForResult.proof!!.rootTreeProof.toHex()}")
                 // logger.info("store_tree_proof   : ${waitForResult.proof.storeTreeProofs}")
                 // logger.info("signature_llmq_hash: ${waitForResult.proof.signatureLlmqHash.toHex()}")
@@ -409,6 +414,7 @@ class DapiClient(
             // success is more than 50% and there is no proof
             successRate > REQUIRED_SUCCESS_RATE -> {
                 // we need to request the proof from a node
+                logger.info("broadcastStateTransitionAndWait: success ($successRate)")
             }
             // success is less than 50% and there is no proof
             successRate <= REQUIRED_SUCCESS_RATE -> {
