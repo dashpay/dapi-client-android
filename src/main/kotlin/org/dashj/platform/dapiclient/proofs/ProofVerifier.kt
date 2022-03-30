@@ -111,7 +111,7 @@ object ProofVerifier {
         if (!signatureVerified) {
             logger.warn(
                 "verify(height=${metaData.height}, stateHash=${stateHash.toHex().substring(0, HASH_LEN)}, " +
-                    "quorum=${quorum.quorumHash.toString().substring(0, HASH_LEN)}, $caller): unable to verify signature"
+                    "quorum=${quorum.quorumHash.toString().substring(0, HASH_LEN)}, $caller):unable to verify signature"
             )
         } else {
             logger.info(
