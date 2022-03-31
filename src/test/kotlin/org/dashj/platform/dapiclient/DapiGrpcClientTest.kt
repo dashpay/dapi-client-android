@@ -11,7 +11,6 @@ import org.bitcoinj.core.ECKey
 import org.bitcoinj.core.Sha256Hash
 import org.bitcoinj.core.Utils
 import org.bitcoinj.params.DevNetParams
-import org.bitcoinj.params.KrupnikDevNetParams
 import org.bitcoinj.params.TestNet3Params
 import org.dashj.platform.dapiclient.errors.NotFoundException
 import org.dashj.platform.dapiclient.model.DocumentQuery
@@ -32,7 +31,7 @@ import java.io.File
 
 class DapiGrpcClientTest {
 
-    val PARAMS = KrupnikDevNetParams.get()
+    val PARAMS = TestNet3Params.get()
     val CONTEXT = Context.getOrCreate(PARAMS)
     val masternodeList = PARAMS.defaultMasternodeList.toList()
     val dpnsContractId = SystemIds.dpnsDataContractId // DPNS contract
@@ -153,7 +152,7 @@ class DapiGrpcClientTest {
         try {
             val query = DocumentQuery.Builder()
                 .where("normalizedParentDomainName", "==", "dash")
-                .where("normalizedLabel", "startsWith", "rt-")
+                .where("normalizedLabel", "startsWith", "x-")
                 .orderBy("normalizedLabel", true)
                 .build()
             val documentsResponse = client.getDocuments(dpnsContractId.toBuffer(), "domain", query)
