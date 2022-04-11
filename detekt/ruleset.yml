@@ -3,6 +3,7 @@ build:
 style:
   MagicNumber:
     ignoreEnums: true
+    ignoreNumbers: ['-1', '0', '1', '2', '100']
 complexity:
   TooManyFunctions:
     thresholdInClasses: 20
