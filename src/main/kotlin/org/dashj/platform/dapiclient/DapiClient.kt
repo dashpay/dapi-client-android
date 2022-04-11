@@ -330,7 +330,7 @@ class DapiClient(
                 }
             }
             lastWaitTime = System.currentTimeMillis()
-            Thread.sleep(TimeUnit.SECONDS.toMillis(1))
+            Thread.sleep(TimeUnit.MILLISECONDS.toMillis(250))
         }
         var timedout = false
         if ((startWaitTime + waitForTimeout) < System.currentTimeMillis()) {
