@@ -283,6 +283,7 @@ class DapiClient(
             retriesLeft // if called recursively
         }
 
+        val watch = Stopwatch.createStarted()
         val futuresList = arrayListOf<Future<WaitForStateTransitionResult>>()
 
         val futureWithProof = threadPoolService.submit(WaitForStateSubmissionCallable(signedStateTransition, true))
@@ -294,6 +295,7 @@ class DapiClient(
         var broadcast: BroadcastStateTransitionMethod?
         try {
             broadcast = broadcastStateTransitionInternal(signedStateTransition, statusCheck, retryCallback)
+            logger.info("broadcastStateTransitionAndWait: watch broadcast complete: $watch")
         } catch (e: StatusRuntimeException) {
             // should we retry
             logger.info("broadcastStateTransitionInternal: failure: $e")
@@ -327,10 +329,11 @@ class DapiClient(
                         "broadcastStateTransitionAndWait: ${finished.size} of $waitForNodes complete " +
                             "(hasProof = $hasProof); proof = ${future.get().proof}"
                     )
+                    logger.info("broadcastStateTransitionAndWait: watch wait for node: $watch")
                 }
             }
             lastWaitTime = System.currentTimeMillis()
-            Thread.sleep(TimeUnit.SECONDS.toMillis(1))
+            Thread.sleep(TimeUnit.MILLISECONDS.toMillis(250))
         }
         var timedout = false
         if ((startWaitTime + waitForTimeout) < System.currentTimeMillis()) {
@@ -369,6 +372,7 @@ class DapiClient(
                 }
             }.toDouble() / futuresList.size
         }
+        logger.info("broadcastStateTransitionAndWait: watch wait complete: $watch")
 
         when {
             waitForResult == null -> {
