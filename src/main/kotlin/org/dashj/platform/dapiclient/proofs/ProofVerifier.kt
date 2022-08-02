@@ -41,7 +41,7 @@ object ProofVerifier {
         masternodeListManager: SimplifiedMasternodeListManager,
         caller: String
     ): Map<Int, Map<ByteArrayKey, ByteArray>> {
-        val quorum = masternodeListManager.quorumListAtTip.getQuorum(Sha256Hash.wrap(proof.signatureLlmqHash))
+        val quorum = masternodeListManager.getQuorumListAtTip(LLMQParameters.LLMQType.LLMQ_100_67).getQuorum(Sha256Hash.wrap(proof.signatureLlmqHash))
         return verifyAndExtractFromProof(proof, metaData, quorum, caller)
     }
 

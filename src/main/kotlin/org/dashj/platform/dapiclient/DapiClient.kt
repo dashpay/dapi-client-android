@@ -19,6 +19,7 @@ import org.bitcoinj.core.BloomFilter
 import org.bitcoinj.core.Sha256Hash
 import org.bitcoinj.core.Utils
 import org.bitcoinj.evolution.SimplifiedMasternodeListManager
+import org.bitcoinj.quorums.LLMQParameters
 import org.dash.platform.dapi.v0.CoreOuterClass
 import org.dash.platform.dapi.v0.PlatformOuterClass
 import org.dashj.merk.ByteArrayKey
@@ -814,10 +815,10 @@ class DapiClient(
 
                 extractProof(inclusion, noninclusion)
             } else {
-                if (masternodeListManager.quorumListAtTip.getQuorum(Sha256Hash.wrap(proof.signatureLlmqHash)) == null) {
+                if (masternodeListManager.getQuorumListAtTip(LLMQParameters.LLMQType.LLMQ_100_67).getQuorum(Sha256Hash.wrap(proof.signatureLlmqHash)) == null) {
                     logger.info("verify(): ${proof.signatureLlmqHash.toHex()} is not a valid quorum\n ")
                     val list = arrayListOf<String>()
-                    masternodeListManager.quorumListAtTip.forEachQuorum(true) {
+                    masternodeListManager.getQuorumListAtTip(LLMQParameters.LLMQType.LLMQ_100_67).forEachQuorum(true) {
                         list.add("${it.quorumHash}, ${it.type}")
                     }
                     logger.info("verify(): quorum list $list")
