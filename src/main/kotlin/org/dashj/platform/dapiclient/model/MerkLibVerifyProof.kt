@@ -28,7 +28,8 @@ class MerkLibVerifyProof(stateTransition: StateTransitionIdentitySigned) : Defau
 
                 return if (result.isNotEmpty()) {
                     verifyDataContactCreateTransition(
-                        result[ByteArrayKey(stateTransition.dataContract.id.toBuffer())]!!, stateTransition
+                        result[ByteArrayKey(stateTransition.dataContract.id.toBuffer())]!!,
+                        stateTransition
                     )
                 } else {
                     false

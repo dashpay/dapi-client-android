@@ -212,18 +212,19 @@ class DapiClient(
         retryCallback: BroadcastShouldRetryCallback = DefaultBroadcastRetryCallback()
     ):
         BroadcastStateTransitionMethod {
-            logger.info("broadcastStateTransitionInternal(${stateTransition.toJSON()})")
-            val method = BroadcastStateTransitionMethod(stateTransition)
-            grpcRequest(
-                method, statusCheck = statusCheck,
-                retryCallback = object : DefaultShouldRetryCallback() {
-                    override fun shouldRetry(grpcMethod: GrpcMethod, e: StatusRuntimeException): Boolean {
-                        return retryCallback.shouldRetry(grpcMethod, e)
-                    }
+        logger.info("broadcastStateTransitionInternal(${stateTransition.toJSON()})")
+        val method = BroadcastStateTransitionMethod(stateTransition)
+        grpcRequest(
+            method,
+            statusCheck = statusCheck,
+            retryCallback = object : DefaultShouldRetryCallback() {
+                override fun shouldRetry(grpcMethod: GrpcMethod, e: StatusRuntimeException): Boolean {
+                    return retryCallback.shouldRetry(grpcMethod, e)
                 }
-            )
-            return method
-        }
+            }
+        )
+        return method
+    }
 
     /**
      * Wait for state transition result
@@ -237,7 +238,8 @@ class DapiClient(
 
         return if (result.hasError()) {
             WaitForStateTransitionResult(
-                StateTransitionBroadcastException(result.error), ResponseMetadata(result.metadata)
+                StateTransitionBroadcastException(result.error),
+                ResponseMetadata(result.metadata)
             )
         } else {
             WaitForStateTransitionResult(Proof(result.proof), ResponseMetadata(result.metadata))
@@ -544,37 +546,39 @@ class DapiClient(
      */
     fun getIdentitiesByPublicKeyHashes(pubKeyHashes: List<ByteArray>, prove: Boolean = false):
         GetIdentitiesByPublicKeyHashesResponse {
-            logger.info("getIdentitiesByPublicKeyHashes(${pubKeyHashes.map { it.toHex() }}, $prove")
-            val method = GetIdentitiesByPublicKeyHashes(pubKeyHashes, prove)
-            val response = grpcRequest(method) as PlatformOuterClass.GetIdentitiesByPublicKeyHashesResponse
+        logger.info("getIdentitiesByPublicKeyHashes(${pubKeyHashes.map { it.toHex() }}, $prove")
+        val method = GetIdentitiesByPublicKeyHashes(pubKeyHashes, prove)
+        val response = grpcRequest(method) as PlatformOuterClass.GetIdentitiesByPublicKeyHashesResponse
 
-            return when {
-                prove && response.hasProof() -> {
-                    val proof = Proof(response.proof)
-                    logger.info("proof = $proof")
-                    val (inclusion, noninclusion) = verifyProof(proof, ResponseMetadata(response.metadata), method)
+        return when {
+            prove && response.hasProof() -> {
+                val proof = Proof(response.proof)
+                logger.info("proof = $proof")
+                val (inclusion, noninclusion) = verifyProof(proof, ResponseMetadata(response.metadata), method)
 
-                    if (inclusion.isNotEmpty()) {
-                        // determine the pubKeyHashes not found
-                        GetIdentitiesByPublicKeyHashesResponse(
-                            inclusion.values.toList(), proof,
-                            ResponseMetadata(response.metadata)
-                        )
-                    } else {
-                        GetIdentitiesByPublicKeyHashesResponse(listOf(), proof, ResponseMetadata(response.metadata))
-                    }
-                }
-                else -> {
-                    val identityList = response.identitiesList.map {
-                        it.toByteArray()
-                    }
+                if (inclusion.isNotEmpty()) {
+                    // determine the pubKeyHashes not found
                     GetIdentitiesByPublicKeyHashesResponse(
-                        identityList, Proof(response.proof),
+                        inclusion.values.toList(),
+                        proof,
                         ResponseMetadata(response.metadata)
                     )
+                } else {
+                    GetIdentitiesByPublicKeyHashesResponse(listOf(), proof, ResponseMetadata(response.metadata))
                 }
             }
+            else -> {
+                val identityList = response.identitiesList.map {
+                    it.toByteArray()
+                }
+                GetIdentitiesByPublicKeyHashesResponse(
+                    identityList,
+                    Proof(response.proof),
+                    ResponseMetadata(response.metadata)
+                )
+            }
         }
+    }
 
     /**
      * Fetch Data Contract by id
@@ -639,12 +643,12 @@ class DapiClient(
 
     private fun extractProof(inclusion: ByteArray, noninclusion: ByteArray):
         Pair<Map<ByteArrayKey, ByteArray>, Map<ByteArrayKey, ByteArray>> {
-            return if (inclusion === noninclusion) {
-                Pair(MerkVerifyProof.extractProof(inclusion), mapOf())
-            } else {
-                Pair(MerkVerifyProof.extractProof(inclusion), MerkVerifyProof.extractProof(noninclusion))
-            }
+        return if (inclusion === noninclusion) {
+            Pair(MerkVerifyProof.extractProof(inclusion), mapOf())
+        } else {
+            Pair(MerkVerifyProof.extractProof(inclusion), MerkVerifyProof.extractProof(noninclusion))
         }
+    }
 
     private fun verifyProof(
         proof: Proof,
@@ -863,8 +867,12 @@ class DapiClient(
         subscribeToTransactionsWithProofs: SubscribeToTransactionsWithProofs
     ) {
         subscribeToTransactionsWithProofs(
-            bloomFilter, fromBlockHash, -1, count,
-            sendTransactionHashes, subscribeToTransactionsWithProofs
+            bloomFilter,
+            fromBlockHash,
+            -1,
+            count,
+            sendTransactionHashes,
+            subscribeToTransactionsWithProofs
         )
     }
 
@@ -1049,10 +1057,10 @@ class DapiClient(
 
     fun broadcastTransaction(txBytes: ByteArray, allowHighFees: Boolean = false, bypassLimits: Boolean = false):
         String {
-            val method = BroadcastTransactionMethod(txBytes, allowHighFees, bypassLimits)
-            val response = grpcRequest(method) as CoreOuterClass.BroadcastTransactionResponse?
-            return response?.transactionId!!
-        }
+        val method = BroadcastTransactionMethod(txBytes, allowHighFees, bypassLimits)
+        val response = grpcRequest(method) as CoreOuterClass.BroadcastTransactionResponse?
+        return response?.transactionId!!
+    }
 
     /**
      *
@@ -1221,18 +1229,18 @@ class DapiClient(
 
     fun verifyIdentitiesWithPublicKeyHashes(pubKeyHashes: List<ByteArray>, identityBytesLists: List<ByteArray>):
         Boolean {
-            var matches = 0
-            identityBytesLists.forEach { identityBytes ->
-                val identityList = Cbor.decodeList(identityBytes) as List<ByteArray>
-                val identity = dpp.identity.createFromBuffer(identityList[0])
-                identity.publicKeys.forEach { publicKey ->
-                    pubKeyHashes.forEach { pubKeyHash ->
-                        if (Utils.sha256hash160(publicKey.data).contentEquals(pubKeyHash)) {
-                            matches += 1
-                        }
+        var matches = 0
+        identityBytesLists.forEach { identityBytes ->
+            val identityList = Cbor.decodeList(identityBytes) as List<ByteArray>
+            val identity = dpp.identity.createFromBuffer(identityList[0])
+            identity.publicKeys.forEach { publicKey ->
+                pubKeyHashes.forEach { pubKeyHash ->
+                    if (Utils.sha256hash160(publicKey.data).contentEquals(pubKeyHash)) {
+                        matches += 1
                     }
                 }
             }
-            return matches != 0
         }
+        return matches != 0
+    }
 }

@@ -70,7 +70,7 @@ class MerkleTreeTest {
         val expectedProofHashes = listOf(
             "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
             "2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6",
-            "04fa33f8b4bd3db545fa04cdd51b462509f611797c7bfe5c944ee2bb3b2ed908",
+            "04fa33f8b4bd3db545fa04cdd51b462509f611797c7bfe5c944ee2bb3b2ed908"
         )
 
         val leafIndicesToProve = listOf(1, 3)
@@ -110,14 +110,14 @@ class MerkleTreeTest {
                 listOf(
                     "e5a01fee14e0ed5c48714f22180f25ad8365b53f9779f79dc4a3d7e93963f94a",
                     "bffe0b34dba16bc6fac17c08bac55d676cded5a4ade41fe2c9924a5dde8f3e5b",
-                    "04fa33f8b4bd3db545fa04cdd51b462509f611797c7bfe5c944ee2bb3b2ed908",
+                    "04fa33f8b4bd3db545fa04cdd51b462509f611797c7bfe5c944ee2bb3b2ed908"
                 ),
                 listOf(
                     "14ede5e8e97ad9372327728f5099b95604a39593cac3bd38a343ad76205213e7",
-                    "04fa33f8b4bd3db545fa04cdd51b462509f611797c7bfe5c944ee2bb3b2ed908",
+                    "04fa33f8b4bd3db545fa04cdd51b462509f611797c7bfe5c944ee2bb3b2ed908"
                 ),
                 listOf(
-                    "1f7379539707bcaea00564168d1d4d626b09b73f8a2a365234c62d763f854da2",
+                    "1f7379539707bcaea00564168d1d4d626b09b73f8a2a365234c62d763f854da2"
                 )
             )
         )

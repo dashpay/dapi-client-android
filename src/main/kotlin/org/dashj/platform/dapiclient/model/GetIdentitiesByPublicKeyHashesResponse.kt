@@ -16,6 +16,8 @@ class GetIdentitiesByPublicKeyHashesResponse(
     AbstractResponse(proof, metadata) {
     constructor(response: PlatformOuterClass.GetIdentitiesByPublicKeyHashesResponse) :
         this(
-            response.identitiesList.map { it.toByteArray() }, Proof(response.proof), ResponseMetadata(response.metadata)
+            response.identitiesList.map { it.toByteArray() },
+            Proof(response.proof),
+            ResponseMetadata(response.metadata)
         )
 }

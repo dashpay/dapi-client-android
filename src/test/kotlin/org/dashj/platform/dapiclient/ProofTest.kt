@@ -16,7 +16,6 @@ import org.bitcoinj.params.JackDanielsDevNetParams
 import org.bitcoinj.quorums.LLMQParameters
 import org.bitcoinj.quorums.Quorum
 import org.dash.platform.dapi.v0.PlatformOuterClass
-// import org.dashj.bls.BLS
 import org.dashj.bls.PublicKey
 import org.dashj.merk.ByteArrayKey
 import org.dashj.merk.MerkVerifyProof
@@ -565,7 +564,8 @@ class ProofTest {
         val dapiClient = DapiClient(masternodeList.toList(), dpp)
         val stateRepository = StateRepositoryMock()
         val identity = IdentityFactory(
-            DashPlatformProtocol(stateRepository), stateRepository
+            DashPlatformProtocol(stateRepository),
+            stateRepository
         ).createFromBuffer(dapiClient.getIdentity(identityId.toBuffer()).identity)
 
         val identityResponse = dapiClient.getIdentity(identityId.toBuffer(), prove = true)
@@ -573,11 +573,14 @@ class ProofTest {
         val contractsResponse = dapiClient.getDataContract(dpnsContractId.toBuffer(), true)
 
         val documentsResponse = dapiClient.getDocuments(
-            dpnsContractId.toBuffer(), "preorder",
-            DocumentQuery.builder().where("\$id", "==", identityId.toString()).build(), true
+            dpnsContractId.toBuffer(),
+            "preorder",
+            DocumentQuery.builder().where("\$id", "==", identityId.toString()).build(),
+            true
         )
         val identitiesByPublicKeyHashesResponse = dapiClient.getIdentitiesByPublicKeyHashes(
-            listOf(identity.getPublicKeyById(0)!!.data), true
+            listOf(identity.getPublicKeyById(0)!!.data),
+            true
         )
 
         val identityProof = MerkleProof.fromBuffer(

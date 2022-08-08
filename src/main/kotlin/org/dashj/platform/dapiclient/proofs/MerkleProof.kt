@@ -23,6 +23,7 @@ class MerkleProof(val proofHashes: List<ByteArray>, val hashFunction: (ByteArray
 
     companion object {
         private const val HASH_SIZE = 32
+
         @JvmStatic
         fun fromBuffer(rootTreeProof: ByteArray, hashFunction: (ByteArray) -> ByteArray): MerkleProof {
             val length = rootTreeProof.size / HASH_SIZE

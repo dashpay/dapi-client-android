@@ -363,6 +363,7 @@ open class BroadcastRetryCallback(
             else -> false
         }
     }
+
     // TODO: This is not all that useful and is currently unused
     private fun shouldRetryDocumentNotFound(stateTransition: StateTransition): Boolean {
         if (stateTransition is DocumentsBatchTransition) {

@@ -24,14 +24,17 @@ object Arrays {
 
         return a.mapIndexed { index, value -> Pair(value, b[index]) }
     }
+
     @JvmStatic
     fun <T> difference(a: List<T>, b: List<T>): List<T> {
         return a.filter { siblingIndex -> !b.contains(siblingIndex) }
     }
+
     @JvmStatic
     fun isLeftIndex(index: Int): Boolean {
         return index % 2 == 0
     }
+
     @JvmStatic
     fun getSiblingIndex(index: Int): Int {
         if (isLeftIndex(index)) {
@@ -41,6 +44,7 @@ object Arrays {
         // Left sibling index
         return index - 1
     }
+
     @JvmStatic
     fun getParentIndex(index: Int): Int {
         if (isLeftIndex(index)) {
@@ -48,19 +52,23 @@ object Arrays {
         }
         return getSiblingIndex(index) / 2
     }
+
     @JvmStatic
     fun getParentIndices(indices: List<Int>): List<Int> {
         // new Set removed all duplicates if two nodes were siblings
         return indices.map { getParentIndex(it) }.toSet().toList()
     }
+
     @JvmStatic
     fun getTreeDepth(leavesCount: Int): Int {
         return ceil(ln(leavesCount.toDouble()) / ln(2.0)).toInt()
     }
+
     @JvmStatic
     fun maxLeavesCountAtDepth(depth: Int): Int {
         return 2.0.pow(depth.toDouble()).toInt()
     }
+
     @JvmStatic
     fun getUnevenLayers(treeLeavesCount: Int): List<LayerInfo> {
         var leavesCount = treeLeavesCount
@@ -79,6 +87,7 @@ object Arrays {
 
         return unevenLayers
     }
+
     @JvmStatic
     fun getProofIndices(sortedLeafIndices: List<Int>, leavesCount: Int): List<List<Int>> {
         val depth = getTreeDepth(leavesCount)
@@ -105,6 +114,7 @@ object Arrays {
 
         return proofIndices
     }
+
     @JvmStatic
     fun concatAndHash(
         leftNode: ByteArray?,
