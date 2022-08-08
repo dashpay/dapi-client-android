@@ -11,6 +11,7 @@ import org.bitcoinj.core.ECKey
 import org.bitcoinj.core.Sha256Hash
 import org.bitcoinj.core.Utils
 import org.bitcoinj.params.DevNetParams
+import org.bitcoinj.params.JackDanielsDevNetParams
 import org.bitcoinj.params.TestNet3Params
 import org.dashj.platform.dapiclient.errors.NotFoundException
 import org.dashj.platform.dapiclient.model.DocumentQuery
@@ -19,10 +20,10 @@ import org.dashj.platform.dapiclient.provider.ListDAPIAddressProvider
 import org.dashj.platform.dpp.DashPlatformProtocol
 import org.dashj.platform.dpp.document.Document
 import org.dashj.platform.dpp.identifier.Identifier
-import org.dashj.platform.dpp.toHexString
+import org.dashj.platform.dpp.toHex
 import org.json.JSONObject
-import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
@@ -31,7 +32,7 @@ import java.io.File
 
 class DapiGrpcClientTest {
 
-    val PARAMS = TestNet3Params.get()
+    val PARAMS = JackDanielsDevNetParams.get()
     val CONTEXT = Context.getOrCreate(PARAMS)
     val masternodeList = PARAMS.defaultMasternodeList.toList()
     val dpnsContractId = SystemIds.dpnsDataContractId // DPNS contract
@@ -152,7 +153,6 @@ class DapiGrpcClientTest {
         try {
             val query = DocumentQuery.Builder()
                 .where("normalizedParentDomainName", "==", "dash")
-                .where("normalizedLabel", "startsWith", "x-")
                 .orderBy("normalizedLabel", true)
                 .build()
             val documentsResponse = client.getDocuments(dpnsContractId.toBuffer(), "domain", query)
@@ -211,35 +211,6 @@ class DapiGrpcClientTest {
     }
 
     @Test
-    fun getIdentityTest() {
-        val id = Base58.decode(identityIdString)
-        val badId = Base58.decode(identityIdString.replace(identityIdString[0], '3'))
-        val identityBytes = client.getIdentity(id)
-        assertThrows(NotFoundException::class.java) {
-            client.getIdentity(badId)
-        }
-        val identity = dpp.identity.createFromBuffer(identityBytes.identity)
-        println(JSONObject(identity.toJSON()).toString(2))
-
-        val pubKeyHash = ECKey.fromPublicOnly(identity.getPublicKeyById(0)!!.data).pubKeyHash
-        val identityByPublicKeyCbor = client.getIdentityByFirstPublicKey(pubKeyHash)!!
-
-        val identitiesByPublicKeyHashesCbor = client.getIdentitiesByPublicKeyHashes(listOf(pubKeyHash))
-
-        val identityByPublicKey = dpp.identity.createFromBuffer(identityByPublicKeyCbor)
-
-        val identityByPublicKeyHashes = dpp.identity.createFromBuffer(identitiesByPublicKeyHashesCbor.identities[0])
-
-        val identityIdByPublicKey = client.getIdentityIdByFirstPublicKey(pubKeyHash)
-        val identityIdsByPublicKey = client.getIdentityIdsByPublicKeyHashes(listOf(pubKeyHash))
-
-        assertEquals(identityIdString, identityByPublicKey.id.toString())
-        assertEquals(identityIdString, identityByPublicKeyHashes.id.toString())
-        assertArrayEquals(id, identityIdByPublicKey!!)
-        assertArrayEquals(id, identityIdsByPublicKey.identityIds[0])
-    }
-
-    @Test
     fun getIdentityFromBadPubKeyBytes() {
         val key = ECKey()
 
@@ -247,15 +218,8 @@ class DapiGrpcClientTest {
         assertEquals(null, identity)
 
         val identitiesResponse = client.getIdentitiesByPublicKeyHashes(listOf(key.pubKeyHash))
-        assertEquals(1, identitiesResponse.identities.size)
-        assertEquals(0, identitiesResponse.identities[0].size)
-
-        val identityId = client.getIdentityIdByFirstPublicKey(key.pubKeyHash)
-        assertEquals(null, identityId)
-
-        val identityIdListResponse = client.getIdentityIdsByPublicKeyHashes(listOf(key.pubKeyHash))
-        assertEquals(1, identityIdListResponse.identityIds.size)
-        assertEquals(1, identityIdListResponse.identityIds.size)
+        assertEquals(0, identitiesResponse.identities.size)
+        assertNull(identitiesResponse.identities.firstOrNull())
     }
 
     @Test
@@ -290,7 +254,7 @@ class DapiGrpcClientTest {
     }
 
     @Test
-    fun getDocumentsTests() {
+    fun getDocumentsByQueryTests() {
         client.getDocuments(
             dashPayContractId.toBuffer(),
             "profile",
@@ -324,19 +288,32 @@ class DapiGrpcClientTest {
 
         // as of 0.22-dev-7 this query should fail
         // where clauses must be in a particular order
-        assertThrows<StatusRuntimeException> {
-            client.getDocuments(
-                dpnsContractId.toBuffer(),
-                "domain",
-                DocumentQuery.builder()
-                    .where("normalizedLabel", "startsWith", "test")
-                    .where("normalizedParentDomainName", "==", "dash")
-                    .build()
-            )
-        }
+        // as of 0.23 this query will be successful
+        client.getDocuments(
+            dpnsContractId.toBuffer(),
+            "domain",
+            DocumentQuery.builder()
+                .where("normalizedLabel", "startsWith", "test")
+                .where("normalizedParentDomainName", "==", "dash")
+                .orderBy("normalizedLabel", true)
+                .build()
+        )
+
+        // use the reverse order as the previous query
+        client.getDocuments(
+            dpnsContractId.toBuffer(),
+            "domain",
+            DocumentQuery.builder()
+                .where("normalizedParentDomainName", "==", "dash")
+                .where("normalizedLabel", "startsWith", "test")
+                .orderBy("normalizedLabel", true)
+                .build()
+        )
 
         // as of 0.22-dev-7 this query should fail
         // multiple ranges are not supported
+        // in 0.23, this still fails
+        // INVALID_ARGUMENT: Invalid query: where clause on non indexed property error: query must be for valid indexes
         assertThrows<StatusRuntimeException> {
             client.getDocuments(
                 dashPayContractId.toBuffer(),
@@ -344,6 +321,8 @@ class DapiGrpcClientTest {
                 DocumentQuery.builder()
                     .where("\$ownerId", "in", Identifier.from("3HSUPuMgR5qpZt1y5NbE2BBheM11yLRXKZoqdsKgxVNt"))
                     .where("\$updatedAt", ">", 0)
+                    .orderBy("\$updatedAt")
+                    .orderBy("\$ownerId")
                     .build()
             )
         }

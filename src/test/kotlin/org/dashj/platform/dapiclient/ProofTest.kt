@@ -12,7 +12,7 @@ import org.bitcoinj.core.Context
 import org.bitcoinj.core.Sha256Hash
 import org.bitcoinj.core.Utils
 import org.bitcoinj.crypto.BLSPublicKey
-import org.bitcoinj.params.TestNet3Params
+import org.bitcoinj.params.JackDanielsDevNetParams
 import org.bitcoinj.quorums.LLMQParameters
 import org.bitcoinj.quorums.Quorum
 import org.dash.platform.dapi.v0.PlatformOuterClass
@@ -32,7 +32,6 @@ import org.dashj.platform.dapiclient.proofs.ProofVerifier
 import org.dashj.platform.dpp.DashPlatformProtocol
 import org.dashj.platform.dpp.identifier.Identifier
 import org.dashj.platform.dpp.identity.IdentityFactory
-import org.dashj.platform.dpp.toBase58
 import org.dashj.platform.dpp.toByteArray
 import org.dashj.platform.dpp.toHex
 import org.dashj.platform.dpp.util.Converters
@@ -50,7 +49,7 @@ class ProofTest {
         // BLS.Init()
     }
 
-    val PARAMS = TestNet3Params.get()
+    val PARAMS = JackDanielsDevNetParams.get()
     val CONTEXT = Context.getOrCreate(PARAMS)
     val masternodeList = PARAMS.defaultMasternodeList.toList()
     val dpnsContractId = SystemIds.dpnsDataContractId // DPNS contract
@@ -61,8 +60,8 @@ class ProofTest {
     val badIdentityId = Identifier.from("GrdbRMnZ5pPiFWuzPR62goRVj6sxpqvLKMT87ZmuZPyr")
 
     // these values are taken from https://github.com/dashevo/dash-network-configs/blob/master/testnet.yml
-    val publicKeyHashDpns = Utils.sha256hash160(Converters.fromHex("022a5ffc9f92e005a02401c375f575b3aed5606fb24ddef5b3a05d55c66ba2a2f6"))
-    val publicKeyHashDashpay = Utils.sha256hash160(Converters.fromHex("02c6bf10f8cc078866ed5466a0b5ea3a4e8db2a764ea5aa9cb75f22658664eb149"))
+    val publicKeyHashDpns = Utils.sha256hash160(Converters.fromHex("03922abfd8765ba334e8c16c63ea0d6f2f09ba19bb07684c12f75f46a1255a136f"))
+    val publicKeyHashDashpay = Utils.sha256hash160(Converters.fromHex("03a5d8392f3793699a53ed00e87600536679bd1c44f2bfda28c51e30c8daa10f9a"))
 
     val publicKeyHash = publicKeyHashDpns
     val publicKeyHashes = listOf(publicKeyHashDpns, publicKeyHashDashpay)

@@ -16,7 +16,6 @@ import org.dashj.platform.dapiclient.provider.DAPIGrpcMasternode
 import org.dashj.platform.dpp.errors.DriveErrorMetadata
 import org.dashj.platform.dpp.statetransition.StateTransition
 import org.dashj.platform.dpp.toBase58
-import org.dashj.platform.dpp.toHex
 
 class GetDocumentsMethod(
     private val contractId: ByteArray,
@@ -56,13 +55,13 @@ class GetDocumentsMethod(
     }
 
     override fun getErrorInfo(e: StatusRuntimeException): String {
-        when (e.status.code) {
+        return when (e.status.code) {
             Status.INVALID_ARGUMENT.code -> {
                 val exception = DriveErrorMetadata(e.trailers.toString())
-                return "${exception.getFirstError()}: ${exception.data}"
+                "${exception.getFirstError()}: ${exception.data}"
             }
             else -> {
-                return "No extra information"
+                "No extra information"
             }
         }
     }
