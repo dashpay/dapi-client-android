@@ -185,52 +185,6 @@ class ProofTest {
     }
 
     @Test
-    fun getIdentityIdWithProof() {
-        try {
-            val identityIds = client.getIdentityIdByFirstPublicKey(publicKeyHash, false)!!
-            println("identity id: ${identityIds.toBase58()}")
-
-            val identityIdsWithProof = client.getIdentityIdByFirstPublicKey(publicKeyHash, true)!!
-            println("identity id: ${identityIdsWithProof.toBase58()}")
-
-            val badIdentityIds = client.getIdentityIdByFirstPublicKey(badPublicKeyHash, false)
-            println("identity id: ${badIdentityIds?.toHex()}")
-
-            val badIdentityIdsWithProof = client.getIdentityIdByFirstPublicKey(badPublicKeyHash, true)
-            println("identity id: ${badIdentityIdsWithProof?.toHex()}")
-        } catch (e: Exception) {
-            fail("exception", e)
-        }
-    }
-
-    @Test
-    fun getIdentityIdsWithProof() {
-        try {
-            val response = client.getIdentityIdsByPublicKeyHashes(publicKeyHashes, false)
-            assertEquals(SystemIds.dpnsOwnerId, response.identityIds[0].toBase58())
-            println("identity ids: ${response.identityIds.map { it.toBase58()}}")
-
-            val responseWithProof = client.getIdentityIdsByPublicKeyHashes(publicKeyHashes, true)
-            assertEquals(listOf(SystemIds.dpnsOwnerId, SystemIds.dashpayOwnerId), responseWithProof.identityIds.map { Identifier.from(it) })
-            println("identity ids: ${responseWithProof.identityIds.map { it.toBase58()}}")
-
-            val badResponse = client.getIdentityIdsByPublicKeyHashes(badPublicKeyHashes, false)
-            println("identity ids: ${badResponse.identityIds.size}")
-
-            val badResponseWithProof = client.getIdentityIdsByPublicKeyHashes(badPublicKeyHashes, true)
-            println("identity ids: ${badResponseWithProof.identityIds.size}")
-
-            val goodBadResponse = client.getIdentityIdsByPublicKeyHashes(goodBadPublicKeyHashes, false)
-            println("identity ids: ${goodBadResponse.identityIds.size}")
-
-            val goodBadResponseWithProof = client.getIdentityIdsByPublicKeyHashes(goodBadPublicKeyHashes, true)
-            println("identity ids: ${goodBadResponseWithProof.identityIds.size}")
-        } catch (e: Exception) {
-            fail("exception", e)
-        }
-    }
-
-    @Test
     fun getIdentitiesWithProof() {
         try {
             val response = client.getIdentitiesByPublicKeyHashes(publicKeyHashes, false)
@@ -616,7 +570,7 @@ class ProofTest {
         ).createFromBuffer(dapiClient.getIdentity(identityId.toBuffer()).identity)
 
         val identityResponse = dapiClient.getIdentity(identityId.toBuffer(), prove = true)
-        val keysResponse = dapiClient.getIdentityIdsByPublicKeyHashes(listOf(Utils.sha256hash160(identity.getPublicKeyById(0)!!.data)), true)
+        val keysResponse = dapiClient.getIdentitiesByPublicKeyHashes(listOf(Utils.sha256hash160(identity.getPublicKeyById(0)!!.data)), true)
         val contractsResponse = dapiClient.getDataContract(dpnsContractId.toBuffer(), true)
 
         val documentsResponse = dapiClient.getDocuments(

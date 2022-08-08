@@ -121,24 +121,6 @@ class GetIdentitiesByPublicKeyHashes(
     }
 }
 
-class GetIdentityIdsByPublicKeyHashes(private val pubKeyHashes: List<ByteArray>, private val prove: Boolean) :
-    GrpcMethod {
-
-    val request: PlatformOuterClass.GetIdentityIdsByPublicKeyHashesRequest =
-        PlatformOuterClass.GetIdentityIdsByPublicKeyHashesRequest.newBuilder()
-            .addAllPublicKeyHashes(pubKeyHashes.map { ByteString.copyFrom(it) })
-            // .setProve(prove) // Disabled for Platform 0.22.0
-            .build()
-
-    override fun execute(masternode: DAPIGrpcMasternode): Any {
-        return masternode.platform.getIdentityIdsByPublicKeyHashes(request)
-    }
-
-    override fun toString(): String {
-        return "getIdentityIdsByPublicKeyHashes(${pubKeyHashes.map { it.toHex() }}, $prove)"
-    }
-}
-
 class BroadcastStateTransitionMethod(val stateTransition: StateTransition) : GrpcMethod {
 
     val request: PlatformOuterClass.BroadcastStateTransitionRequest =

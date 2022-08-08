@@ -37,7 +37,6 @@ import org.dashj.platform.dapiclient.grpc.GetContractMethod
 import org.dashj.platform.dapiclient.grpc.GetDocumentsMethod
 import org.dashj.platform.dapiclient.grpc.GetEstimatedTransactionFeeMethod
 import org.dashj.platform.dapiclient.grpc.GetIdentitiesByPublicKeyHashes
-import org.dashj.platform.dapiclient.grpc.GetIdentityIdsByPublicKeyHashes
 import org.dashj.platform.dapiclient.grpc.GetIdentityMethod
 import org.dashj.platform.dapiclient.grpc.GetStatusMethod
 import org.dashj.platform.dapiclient.grpc.GetTransactionMethod
@@ -52,7 +51,6 @@ import org.dashj.platform.dapiclient.model.DocumentQuery
 import org.dashj.platform.dapiclient.model.GetDataContractResponse
 import org.dashj.platform.dapiclient.model.GetDocumentsResponse
 import org.dashj.platform.dapiclient.model.GetIdentitiesByPublicKeyHashesResponse
-import org.dashj.platform.dapiclient.model.GetIdentityIdsByPublicKeyHashesResponse
 import org.dashj.platform.dapiclient.model.GetIdentityResponse
 import org.dashj.platform.dapiclient.model.GetStatusResponse
 import org.dashj.platform.dapiclient.model.GetTransactionResponse
@@ -77,7 +75,6 @@ import org.dashj.platform.dapiclient.provider.SimplifiedMasternodeListDAPIAddres
 import org.dashj.platform.dapiclient.rest.DapiService
 import org.dashj.platform.dpp.DashPlatformProtocol
 import org.dashj.platform.dpp.contract.DataContractTransition
-import org.dashj.platform.dpp.deepCompare
 import org.dashj.platform.dpp.document.DocumentsBatchTransition
 import org.dashj.platform.dpp.errors.concensus.ConcensusException
 import org.dashj.platform.dpp.identifier.Identifier
@@ -587,114 +584,6 @@ class DapiClient(
         }
 
     /**
-     * Fetch the identity id by the first public key hash
-     * @param pubKeyHash ByteArray
-     * @param prove Whether to return the proof
-     * @return String
-     */
-    fun getIdentityIdByFirstPublicKey(pubKeyHash: ByteArray, prove: Boolean = false): ByteArray? {
-        logger.info("getIdentityIdByFirstPublicKey(${pubKeyHash.toHex()}, $prove)")
-        val method = GetIdentityIdsByPublicKeyHashes(listOf(pubKeyHash), prove)
-        val response = grpcRequest(method) as PlatformOuterClass.GetIdentityIdsByPublicKeyHashesResponse?
-        return when {
-            response == null -> {
-                null
-            }
-            prove && response.hasProof() -> {
-                val proof = Proof(response.proof)
-                val result = verifyProof(proof, ResponseMetadata(response.metadata), method).second
-
-                val key = ByteArrayKey(pubKeyHash)
-                when {
-                    result.keys.size == 1 && key == result.keys.first() -> {
-                        result.values.first()
-                    }
-                    result.keys.size == 2 && key != result.keys.first() && key != result.keys.last() -> {
-                        null
-                    }
-                    else -> {
-                        throw IllegalStateException()
-                    }
-                }
-            }
-            else -> {
-                val firstResult = response.identityIdsList[0]
-                return if (firstResult != null && !firstResult.isEmpty && firstResult.size() > 1) {
-                    (Cbor.decodeList(firstResult.toByteArray()) as List<ByteArray>)[0]
-                } else {
-                    null
-                }
-            }
-        }
-    }
-
-    /**
-     * Fetch the identity ids by the public key hashes
-     * @param pubKeyHashes List<ByteArray> The list of public key hashes to find identities
-     * @param prove Whether to return the proof
-     * @return GetIdentityIdsByPublicKeyHashesResponse
-     */
-    fun getIdentityIdsByPublicKeyHashes(
-        pubKeyHashes: List<ByteArray>,
-        prove: Boolean = false
-    ): GetIdentityIdsByPublicKeyHashesResponse {
-        logger.info("getIdentityIdsByPublicKeyHashes(${pubKeyHashes.map { it.toHex() }}, $prove")
-        val method = GetIdentityIdsByPublicKeyHashes(pubKeyHashes, prove)
-        val response = grpcRequest(method) as PlatformOuterClass.GetIdentityIdsByPublicKeyHashesResponse
-
-        return when {
-            prove && response.hasProof() -> {
-                val proof = Proof(response.proof)
-                val (identityMap, pubkeyHashesMap) = verifyProof(proof, ResponseMetadata(response.metadata), method)
-
-                if (pubkeyHashesMap.isNotEmpty()) {
-                    val includedPubKeyHashes = arrayListOf<ByteArrayKey>()
-                    val excludedPubKeyHashes = arrayListOf<ByteArrayKey>()
-                    pubKeyHashes.forEach {
-                        val key = ByteArrayKey(it)
-                        if (pubkeyHashesMap.containsKey(key)) {
-                            includedPubKeyHashes.add(ByteArrayKey(it))
-                        } else {
-                            excludedPubKeyHashes.add(ByteArrayKey(it))
-                        }
-                    }
-                    if (includedPubKeyHashes.deepCompare(pubkeyHashesMap.keys.map { it })) {
-                        // all public key hashes were found
-                        GetIdentityIdsByPublicKeyHashesResponse(
-                            pubkeyHashesMap.values.map { Cbor.decodeList(it)[0] as ByteArray },
-                            proof,
-                            ResponseMetadata(response.metadata)
-                        )
-                    } else {
-                        // not all were found, but return the same information
-                        GetIdentityIdsByPublicKeyHashesResponse(
-                            pubkeyHashesMap.values.map { Cbor.decodeList(it)[0] as ByteArray },
-                            proof,
-                            ResponseMetadata(response.metadata)
-                        )
-                    }
-                } else {
-                    GetIdentityIdsByPublicKeyHashesResponse(listOf(), proof, ResponseMetadata(response.metadata))
-                }
-            }
-            else -> {
-                val identityIds = response.identityIdsList.map {
-                    val list = Cbor.decodeList(it.toByteArray()) as List<ByteArray>
-                    if (list.isNotEmpty()) {
-                        list[0]
-                    } else {
-                        ByteArray(0)
-                    }
-                }
-                GetIdentityIdsByPublicKeyHashesResponse(
-                    identityIds, Proof(response.proof),
-                    ResponseMetadata(response.metadata)
-                )
-            }
-        }
-    }
-
-    /**
      * Fetch Data Contract by id
      * @param contractId String
      * @param prove Whether to return the proof
@@ -782,7 +671,6 @@ class DapiClient(
                 proof.storeTreeProofs.documentsProof,
                 proof.storeTreeProofs.dataContractsProof
             )
-            is GetIdentityIdsByPublicKeyHashes,
             is GetIdentitiesByPublicKeyHashes -> Pair(
                 proof.storeTreeProofs.identitiesProof,
                 proof.storeTreeProofs.publicKeyHashesToIdentityIdsProof
