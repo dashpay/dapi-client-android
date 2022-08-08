@@ -336,7 +336,7 @@ class ProofTest {
         // Quorum()
         val quorumEntry = Quorum(
             PARAMS,
-            LLMQParameters.llmq_devnet,
+            LLMQParameters.fromType(LLMQParameters.LLMQType.LLMQ_DEVNET),
             Sha256Hash.wrap(Converters.fromHex("0000005369ba47b478ff971bba47f8c969291de751aa40cca165e6f5f98aaacc")),
             BLSPublicKey(PublicKey.FromBytes(Converters.fromHex("139ead0c787b4feea1b99217544dd6548c38285d57a6e5e8c7f650e93567ffc783a39bc469e0e4da0cc36a427bab9ae4")))
         )
@@ -396,7 +396,7 @@ class ProofTest {
         // Quorum()
         val quorumEntry = Quorum(
             PARAMS,
-            LLMQParameters.llmq_devnet,
+            LLMQParameters.fromType(LLMQParameters.LLMQType.LLMQ_DEVNET),
             Sha256Hash.wrapReversed(Converters.fromHex("7f315ea78de78c3ac9b2c089f40138114088963314a3c0101fb7eaaad5000000")),
             BLSPublicKey(PublicKey.FromBytes(Converters.fromHex("0a396fd00ac8f678a242c4b14004fe3402bdb9ada641e48e11ca6be3c87c5858b4cbc6014622d98df95b1a68b1bbd46c")))
         )
@@ -456,7 +456,7 @@ class ProofTest {
         // Quorum()
         val quorumEntry = Quorum(
             PARAMS,
-            LLMQParameters.llmq_devnet,
+            LLMQParameters.fromType(LLMQParameters.LLMQType.LLMQ_DEVNET),
             Sha256Hash.wrapReversed(Converters.fromHex("7f315ea78de78c3ac9b2c089f40138114088963314a3c0101fb7eaaad5000000")),
             BLSPublicKey(PublicKey.FromBytes(Converters.fromHex("0a396fd00ac8f678a242c4b14004fe3402bdb9ada641e48e11ca6be3c87c5858b4cbc6014622d98df95b1a68b1bbd46c")))
         )
@@ -513,7 +513,7 @@ class ProofTest {
         // Quorum()
         val quorumEntry = Quorum(
             PARAMS,
-            LLMQParameters.llmq_devnet,
+            LLMQParameters.fromType(LLMQParameters.LLMQType.LLMQ_DEVNET),
             Sha256Hash.wrapReversed(Converters.fromHex("7f315ea78de78c3ac9b2c089f40138114088963314a3c0101fb7eaaad5000000")),
             BLSPublicKey(PublicKey.FromBytes(Converters.fromHex("0a396fd00ac8f678a242c4b14004fe3402bdb9ada641e48e11ca6be3c87c5858b4cbc6014622d98df95b1a68b1bbd46c")))
         )
