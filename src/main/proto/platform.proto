@@ -8,16 +8,8 @@ service Platform {
   rpc getDataContract (GetDataContractRequest) returns (GetDataContractResponse);
   rpc getDocuments (GetDocumentsRequest) returns (GetDocumentsResponse);
   rpc getIdentitiesByPublicKeyHashes (GetIdentitiesByPublicKeyHashesRequest) returns (GetIdentitiesByPublicKeyHashesResponse);
-  rpc getIdentityIdsByPublicKeyHashes (GetIdentityIdsByPublicKeyHashesRequest) returns (GetIdentityIdsByPublicKeyHashesResponse);
   rpc waitForStateTransitionResult (WaitForStateTransitionResultRequest) returns (WaitForStateTransitionResultResponse);
   rpc getConsensusParams (GetConsensusParamsRequest) returns (GetConsensusParamsResponse);
-}
-
-message StoreTreeProofs {
-  bytes identities_proof = 1;
-  bytes public_key_hashes_to_identity_ids_proof = 2;
-  bytes data_contracts_proof = 3;
-  bytes documents_proof = 4;
 }
 
 message Proof {
@@ -56,7 +48,7 @@ message GetIdentityResponse {
   ResponseMetadata metadata = 3;
 }
 
-message GetDataContractRequest {
+ message GetDataContractRequest {
   bytes id = 1;
   bool prove = 2;
 }
@@ -76,10 +68,10 @@ message GetDocumentsRequest {
 
   uint32 limit = 5;
 
-  oneof start {
-    bytes start_after = 6;
-    bytes start_at = 7;
-  }
+    oneof start {
+      bytes start_after = 6;
+      bytes start_at = 7;
+    }
 
   bool prove = 8;
 }
@@ -97,17 +89,6 @@ message GetIdentitiesByPublicKeyHashesRequest {
 
 message GetIdentitiesByPublicKeyHashesResponse {
   repeated bytes identities = 1;
-  Proof proof = 2;
-  ResponseMetadata metadata = 3;
-}
-
-message GetIdentityIdsByPublicKeyHashesRequest {
-  repeated bytes public_key_hashes = 1;
-  bool prove = 2;
-}
-
-message GetIdentityIdsByPublicKeyHashesResponse {
-  repeated bytes identity_ids = 1;
   Proof proof = 2;
   ResponseMetadata metadata = 3;
 }
