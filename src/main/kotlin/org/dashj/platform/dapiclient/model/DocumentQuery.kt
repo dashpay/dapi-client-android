@@ -32,7 +32,7 @@ class DocumentQuery private constructor(
         val emptyByteArray = ByteArray(0)
         const val ascending = "asc"
         const val descending = "desc"
-        val operators = listOf("<", "<=", "==", ">", ">", "in", "startsWith", "elementMatch", "length", "contains")
+        val operators = listOf("<", "<=", "==", ">=", ">", "in", "startsWith", "elementMatch", "length", "contains")
         const val WHERE_CLAUSE_SIZE = 3
 
         fun builder(): Builder { return Builder() }
