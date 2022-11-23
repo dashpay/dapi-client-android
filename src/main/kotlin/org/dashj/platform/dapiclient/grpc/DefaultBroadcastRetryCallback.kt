@@ -99,8 +99,9 @@ open class BroadcastRetryCallback(
 
     override fun shouldRetry(grpcMethod: GrpcMethod, e: StatusRuntimeException): Boolean {
         logger.info("Determining if we should retry ${grpcMethod.javaClass.simpleName} ${e.status.code}")
-        if (e.status.code == Status.UNAUTHENTICATED.code) {
-            return false
+        when (e.status.code) {
+            Status.UNAUTHENTICATED.code -> return false
+            Status.FAILED_PRECONDITION.code -> return false
         }
         if (grpcMethod is BroadcastStateTransitionMethod) {
             if (e.status.code == Status.INVALID_ARGUMENT.code) {
