@@ -39,10 +39,20 @@ repositories {
 }
 
 protobuf {
-    protoc { artifact = 'com.google.protobuf:protoc:3.11.4' }
+    protoc {
+        if (osdetector.os == "osx") {
+            artifact = 'com.google.protobuf:protoc:3.14.0:osx-x86_64'
+        } else {
+            artifact = 'com.google.protobuf:protoc:3.14.0'
+        }
+    }
     plugins {
         grpc {
-            artifact = 'io.grpc:protoc-gen-grpc-java:1.28.0' // CURRENT_GRPC_VERSION
+            if (osdetector.os == "osx") {
+                artifact = 'io.grpc:protoc-gen-grpc-java:1.28.0:osx-x86_64'
+            } else {
+                artifact = 'io.grpc:protoc-gen-grpc-java:1.28.0'
+            }
         }
     }
     generateProtoTasks {
