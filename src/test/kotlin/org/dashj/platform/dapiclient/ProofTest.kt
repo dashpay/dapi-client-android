@@ -13,7 +13,6 @@ import org.bitcoinj.core.Sha256Hash
 import org.bitcoinj.core.Utils
 import org.bitcoinj.crypto.BLSPublicKey
 import org.bitcoinj.params.BinTangDevNetParams
-import org.bitcoinj.params.JackDanielsDevNetParams
 import org.bitcoinj.quorums.LLMQParameters
 import org.bitcoinj.quorums.Quorum
 import org.dash.platform.dapi.v0.PlatformOuterClass
