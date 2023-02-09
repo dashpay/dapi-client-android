@@ -10,8 +10,8 @@ import org.bitcoinj.core.Context
 import org.bitcoinj.core.ECKey
 import org.bitcoinj.core.Sha256Hash
 import org.bitcoinj.core.Utils
+import org.bitcoinj.params.BinTangDevNetParams
 import org.bitcoinj.params.DevNetParams
-import org.bitcoinj.params.JackDanielsDevNetParams
 import org.bitcoinj.params.TestNet3Params
 import org.dashj.platform.dapiclient.errors.NotFoundException
 import org.dashj.platform.dapiclient.model.DocumentQuery
@@ -32,7 +32,7 @@ import java.io.File
 
 class DapiGrpcClientTest {
 
-    val PARAMS = JackDanielsDevNetParams.get()
+    val PARAMS = BinTangDevNetParams.get()
     val CONTEXT = Context.getOrCreate(PARAMS)
     val masternodeList = PARAMS.defaultMasternodeList.toList()
     val dpnsContractId = SystemIds.dpnsDataContractId // DPNS contract
@@ -326,5 +326,13 @@ class DapiGrpcClientTest {
                     .build()
             )
         }
+
+        client.getDocuments(
+            dpnsContractId.toBuffer(),
+            "preorder",
+            DocumentQuery.builder()
+                .where("saltedDomainHash", "==", Sha256Hash.ZERO_HASH.bytes)
+                .build()
+        )
     }
 }
