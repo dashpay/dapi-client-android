@@ -12,11 +12,10 @@ import org.bitcoinj.core.Context
 import org.bitcoinj.core.Sha256Hash
 import org.bitcoinj.core.Utils
 import org.bitcoinj.crypto.BLSPublicKey
-import org.bitcoinj.params.BinTangDevNetParams
+import org.bitcoinj.params.TestNet3Params
 import org.bitcoinj.quorums.LLMQParameters
 import org.bitcoinj.quorums.Quorum
 import org.dash.platform.dapi.v0.PlatformOuterClass
-import org.dashj.bls.PublicKey
 import org.dashj.merk.ByteArrayKey
 import org.dashj.merk.MerkVerifyProof
 import org.dashj.merk.blake3
@@ -48,7 +47,7 @@ class ProofTest {
         // BLS.Init()
     }
 
-    val PARAMS = BinTangDevNetParams.get()
+    val PARAMS = TestNet3Params.get()
     val CONTEXT = Context.getOrCreate(PARAMS)
     val masternodeList = PARAMS.defaultMasternodeList.toList()
     val dpnsContractId = SystemIds.dpnsDataContractId // DPNS contract
@@ -230,7 +229,7 @@ class ProofTest {
             PARAMS,
             LLMQParameters.fromType(LLMQParameters.LLMQType.LLMQ_DEVNET),
             Sha256Hash.wrapReversed(Converters.fromHex("7f315ea78de78c3ac9b2c089f40138114088963314a3c0101fb7eaaad5000000")),
-            BLSPublicKey(PublicKey.FromBytes(Converters.fromHex("0a396fd00ac8f678a242c4b14004fe3402bdb9ada641e48e11ca6be3c87c5858b4cbc6014622d98df95b1a68b1bbd46c")))
+            BLSPublicKey(Converters.fromHex("0a396fd00ac8f678a242c4b14004fe3402bdb9ada641e48e11ca6be3c87c5858b4cbc6014622d98df95b1a68b1bbd46c"))
         )
 
         val expectedStateHash = "c0607cbb713a37b4bb352493ea29e30ff301aaaa1951b31644467d695ff4994f".toByteArray()
@@ -285,7 +284,7 @@ class ProofTest {
             PARAMS,
             LLMQParameters.fromType(LLMQParameters.LLMQType.LLMQ_DEVNET),
             Sha256Hash.wrapReversed(Converters.fromHex("7f315ea78de78c3ac9b2c089f40138114088963314a3c0101fb7eaaad5000000")),
-            BLSPublicKey(PublicKey.FromBytes(Converters.fromHex("0a396fd00ac8f678a242c4b14004fe3402bdb9ada641e48e11ca6be3c87c5858b4cbc6014622d98df95b1a68b1bbd46c")))
+            BLSPublicKey(Converters.fromHex("0a396fd00ac8f678a242c4b14004fe3402bdb9ada641e48e11ca6be3c87c5858b4cbc6014622d98df95b1a68b1bbd46c"))
         )
 
         val expectedStateHash = "c0607cbb713a37b4bb352493ea29e30ff301aaaa1951b31644467d695ff4994f".toByteArray()
@@ -336,7 +335,7 @@ class ProofTest {
             PARAMS,
             LLMQParameters.fromType(LLMQParameters.LLMQType.LLMQ_DEVNET),
             Sha256Hash.wrap(Converters.fromHex("0000005369ba47b478ff971bba47f8c969291de751aa40cca165e6f5f98aaacc")),
-            BLSPublicKey(PublicKey.FromBytes(Converters.fromHex("139ead0c787b4feea1b99217544dd6548c38285d57a6e5e8c7f650e93567ffc783a39bc469e0e4da0cc36a427bab9ae4")))
+            BLSPublicKey(Converters.fromHex("139ead0c787b4feea1b99217544dd6548c38285d57a6e5e8c7f650e93567ffc783a39bc469e0e4da0cc36a427bab9ae4"))
         )
 
         val expectedStateHash = "20913237681b434bd2cc6a423975a064e34b74b024edd02fcf034fa77a0c387f".toByteArray()
@@ -396,7 +395,7 @@ class ProofTest {
             PARAMS,
             LLMQParameters.fromType(LLMQParameters.LLMQType.LLMQ_DEVNET),
             Sha256Hash.wrapReversed(Converters.fromHex("7f315ea78de78c3ac9b2c089f40138114088963314a3c0101fb7eaaad5000000")),
-            BLSPublicKey(PublicKey.FromBytes(Converters.fromHex("0a396fd00ac8f678a242c4b14004fe3402bdb9ada641e48e11ca6be3c87c5858b4cbc6014622d98df95b1a68b1bbd46c")))
+            BLSPublicKey(Converters.fromHex("0a396fd00ac8f678a242c4b14004fe3402bdb9ada641e48e11ca6be3c87c5858b4cbc6014622d98df95b1a68b1bbd46c"))
         )
 
         val expectedStateHash = "c0607cbb713a37b4bb352493ea29e30ff301aaaa1951b31644467d695ff4994f".toByteArray()
@@ -456,7 +455,7 @@ class ProofTest {
             PARAMS,
             LLMQParameters.fromType(LLMQParameters.LLMQType.LLMQ_DEVNET),
             Sha256Hash.wrapReversed(Converters.fromHex("7f315ea78de78c3ac9b2c089f40138114088963314a3c0101fb7eaaad5000000")),
-            BLSPublicKey(PublicKey.FromBytes(Converters.fromHex("0a396fd00ac8f678a242c4b14004fe3402bdb9ada641e48e11ca6be3c87c5858b4cbc6014622d98df95b1a68b1bbd46c")))
+            BLSPublicKey(Converters.fromHex("0a396fd00ac8f678a242c4b14004fe3402bdb9ada641e48e11ca6be3c87c5858b4cbc6014622d98df95b1a68b1bbd46c"))
         )
 
         val expectedStateHash = "c0607cbb713a37b4bb352493ea29e30ff301aaaa1951b31644467d695ff4994f".toByteArray()
@@ -513,7 +512,7 @@ class ProofTest {
             PARAMS,
             LLMQParameters.fromType(LLMQParameters.LLMQType.LLMQ_DEVNET),
             Sha256Hash.wrapReversed(Converters.fromHex("7f315ea78de78c3ac9b2c089f40138114088963314a3c0101fb7eaaad5000000")),
-            BLSPublicKey(PublicKey.FromBytes(Converters.fromHex("0a396fd00ac8f678a242c4b14004fe3402bdb9ada641e48e11ca6be3c87c5858b4cbc6014622d98df95b1a68b1bbd46c")))
+            BLSPublicKey(Converters.fromHex("0a396fd00ac8f678a242c4b14004fe3402bdb9ada641e48e11ca6be3c87c5858b4cbc6014622d98df95b1a68b1bbd46c"))
         )
 
         val expectedStateHash = "c0607cbb713a37b4bb352493ea29e30ff301aaaa1951b31644467d695ff4994f".toByteArray()

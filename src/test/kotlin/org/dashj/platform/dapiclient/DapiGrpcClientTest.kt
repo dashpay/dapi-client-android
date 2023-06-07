@@ -10,7 +10,6 @@ import org.bitcoinj.core.Context
 import org.bitcoinj.core.ECKey
 import org.bitcoinj.core.Sha256Hash
 import org.bitcoinj.core.Utils
-import org.bitcoinj.params.BinTangDevNetParams
 import org.bitcoinj.params.DevNetParams
 import org.bitcoinj.params.TestNet3Params
 import org.dashj.platform.dapiclient.errors.NotFoundException
@@ -32,9 +31,9 @@ import java.io.File
 
 class DapiGrpcClientTest {
 
-    val PARAMS = BinTangDevNetParams.get()
+    val PARAMS = TestNet3Params.get()
     val CONTEXT = Context.getOrCreate(PARAMS)
-    val masternodeList = PARAMS.defaultMasternodeList.toList()
+    val masternodeList = PARAMS.defaultHPMasternodeList.toList()
     val dpnsContractId = SystemIds.dpnsDataContractId // DPNS contract
     val dashPayContractId = SystemIds.dashpayDataContractId
     val identityId = SystemIds.dpnsOwnerId
