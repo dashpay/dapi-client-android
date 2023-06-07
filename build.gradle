@@ -1,7 +1,7 @@
 
 buildscript {
     ext.kotlin_version = '1.4.32'
-    ext.dashj_version = '0.18.3-CJ-SNAPSHOT'
+    ext.dashj_version = '19.1-CJ-SNAPSHOT'
     ext.dpp_version = '0.24-SNAPSHOT'
     ext.dapi_client_version = '0.24-SNAPSHOT'
     repositories {
@@ -75,8 +75,8 @@ dependencies {
     implementation "org.dashj:dashj-core:$dashj_version"
     implementation "org.dashj:dashj-bls:0.18.1"
     implementation "org.dashj:dashj-merk:0.22-SNAPSHOT"
-    implementation 'com.squareup.retrofit2:retrofit:2.4.0'
-    implementation 'com.squareup.retrofit2:converter-gson:2.4.0'
+    implementation 'com.squareup.retrofit2:retrofit:2.6.4'
+    implementation 'com.squareup.retrofit2:converter-gson:2.6.4'
     implementation 'com.squareup.okhttp3:logging-interceptor:3.8.0'
     implementation 'com.squareup.moshi:moshi:1.11.0'
     implementation 'com.squareup.moshi:moshi-kotlin:1.11.0'
