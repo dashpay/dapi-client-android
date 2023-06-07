@@ -19,8 +19,8 @@ class DAPIAddress(
 ) {
 
     companion object {
-        const val DEFAULT_HTTP_PORT = 3000
-        const val DEFAULT_GRPC_PORT = 3010
+        const val DEFAULT_JRPC_PORT = 1443
+        const val DEFAULT_GRPC_PORT = 1443
     }
 
     var banCount: Int = 0
@@ -28,11 +28,11 @@ class DAPIAddress(
     var lastStatus: GetStatusResponse? = null
     val exception = hashMapOf<Status.Code, Int>()
 
-    constructor(host: String, proRegTxHash: Sha256Hash) : this(host, DEFAULT_HTTP_PORT, DEFAULT_GRPC_PORT, proRegTxHash)
+    constructor(host: String, proRegTxHash: Sha256Hash) : this(host, DEFAULT_JRPC_PORT, DEFAULT_GRPC_PORT, proRegTxHash)
 
     constructor(address: DAPIAddress) : this(address.host, address.httpPort, address.grpcPort, address.proRegTxHash)
 
-    constructor(address: String) : this(address, DEFAULT_HTTP_PORT, DEFAULT_GRPC_PORT, Sha256Hash.ZERO_HASH)
+    constructor(address: String) : this(address, DEFAULT_JRPC_PORT, DEFAULT_GRPC_PORT, Sha256Hash.ZERO_HASH)
 
     fun markAsBanned() {
         banCount++
