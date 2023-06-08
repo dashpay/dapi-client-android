@@ -38,7 +38,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
 
-class ProofTest {
+class ProofTest : BaseTest(){
 
     init {
         // TODO: disable these for now since GitHub Actions will need a build step for both of these

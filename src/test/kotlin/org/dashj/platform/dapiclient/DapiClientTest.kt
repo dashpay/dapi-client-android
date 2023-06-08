@@ -10,7 +10,7 @@ import org.bitcoinj.params.TestNet3Params
 import org.dashj.platform.dpp.DashPlatformProtocol
 import org.junit.jupiter.api.Test
 
-class DapiClientTest {
+class DapiClientTest : BaseTest() {
 
     val PARAMS = TestNet3Params.get()
     val stateRepository = StateRepositoryMock()

@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.io.File
 
-class DapiGrpcClientTest {
+class DapiGrpcClientTest : BaseTest() {
 
     val PARAMS = TestNet3Params.get()
     val CONTEXT = Context.getOrCreate(PARAMS)
