@@ -177,7 +177,7 @@
           "maxLength": 140
         },
         "avatarUrl": {
-          "format": "url",
+          "format": "uri",
           "type": "string",
           "maxLength": 2048
         },
