@@ -1162,7 +1162,7 @@ class DapiClient(
 
         retrofit = Retrofit.Builder()
             .addConverterFactory(GsonConverterFactory.create())
-            .baseUrl("http://$mnIP:${DAPIAddress.DEFAULT_JRPC_PORT}/")
+            .baseUrl("https://$mnIP:${DAPIAddress.DEFAULT_JRPC_PORT}/")
             .client(if (debugJrpc) debugOkHttpClient else OkHttpClient())
             .build()
         dapiService = retrofit.create(DapiService::class.java)
