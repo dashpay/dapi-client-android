@@ -129,8 +129,6 @@ class DapiClient(
     // Constants
     companion object {
         private val logger = LoggerFactory.getLogger(DapiClient::class.java.name)
-        const val DEFAULT_GRPC_PORT = 3010
-        const val DEFAULT_JRPC_PORT = 3000
 
         const val BLOCK_HASH_LENGTH = 64 // length of a hex string of a hash
 
@@ -1160,11 +1158,11 @@ class DapiClient(
 
         val mnIP = dapiAddressListProvider.getLiveAddress().host
 
-        logger.info("Connecting to GRPC host: $mnIP:$DEFAULT_JRPC_PORT")
+        logger.info("Connecting to GRPC host: $mnIP:${DAPIAddress.DEFAULT_JRPC_PORT}")
 
         retrofit = Retrofit.Builder()
             .addConverterFactory(GsonConverterFactory.create())
-            .baseUrl("http://$mnIP:$DEFAULT_JRPC_PORT/")
+            .baseUrl("https://$mnIP:${DAPIAddress.DEFAULT_JRPC_PORT}/")
             .client(if (debugJrpc) debugOkHttpClient else OkHttpClient())
             .build()
         dapiService = retrofit.create(DapiService::class.java)

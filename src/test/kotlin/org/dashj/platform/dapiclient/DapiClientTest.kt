@@ -6,16 +6,16 @@
  */
 package org.dashj.platform.dapiclient
 
-import org.bitcoinj.params.BinTangDevNetParams
+import org.bitcoinj.params.TestNet3Params
 import org.dashj.platform.dpp.DashPlatformProtocol
 import org.junit.jupiter.api.Test
 
-class DapiClientTest {
+class DapiClientTest : BaseTest() {
 
-    val PARAMS = BinTangDevNetParams.get()
+    val PARAMS = TestNet3Params.get()
     val stateRepository = StateRepositoryMock()
     val dpp = DashPlatformProtocol(stateRepository, PARAMS)
-    val client = DapiClient(PARAMS.defaultMasternodeList.toList(), dpp)
+    val client = DapiClient(PARAMS.defaultHPMasternodeList.toList(), dpp)
 
     @Test
     fun jRPCTests() {

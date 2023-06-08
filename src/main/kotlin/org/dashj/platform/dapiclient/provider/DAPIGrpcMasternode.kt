@@ -42,9 +42,7 @@ class DAPIGrpcMasternode(address: DAPIAddress, val timeout: Long) : DAPIMasterno
     init {
         val watch = Stopwatch.createStarted()
         channel = ManagedChannelBuilder.forAddress(address.host, address.grpcPort)
-            // Channels are secure by default (via SSL/TLS). For the example we disable TLS to avoid
-            // needing certificates.
-            .usePlaintext()
+            .useTransportSecurity()
             .build()
 
         logger.debug("Connecting to GRPC host: ${address.host}:${address.grpcPort} (time: $watch)")
