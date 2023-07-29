@@ -19,6 +19,7 @@ import org.bitcoinj.core.BloomFilter
 import org.bitcoinj.core.Sha256Hash
 import org.bitcoinj.core.Utils
 import org.bitcoinj.evolution.SimplifiedMasternodeListManager
+import org.bitcoinj.params.DevNetParams
 import org.bitcoinj.quorums.LLMQParameters
 import org.dash.platform.dapi.v0.CoreOuterClass
 import org.dash.platform.dapi.v0.PlatformOuterClass
@@ -375,8 +376,7 @@ class DapiClient(
         when {
             waitForResult == null -> {
                 logger.info("broadcastStateTransitionAndWait: failure: Timeout or no proof returned")
-                // TODO: uncomment the next line when proofs are enabled
-                // throw StateTransitionBroadcastException(2, "Timeout", ByteArray(0))
+                throw StateTransitionBroadcastException(2, "Timeout", ByteArray(0))
 
                 // TODO: remove this line when proofs are enabled
                 logger.info("broadcastStateTransitionAndWait: success ($successRate)")
@@ -478,6 +478,9 @@ class DapiClient(
                 } else {
                     throw NotFoundException("Identity $identityId does not exist in the proof")
                 }
+            }
+            response.identity.isEmpty -> {
+                return throw NotFoundException("Identity $identityId does not exist")
             }
             else -> {
                 return GetIdentityResponse(response)
@@ -595,7 +598,7 @@ class DapiClient(
         val method = GetContractMethod(contractIdByteArray, prove)
         val response = grpcRequest(method, retryCallback = retryCallback) as PlatformOuterClass.GetDataContractResponse?
         return when {
-            response == null -> {
+            response == null || response.dataContract.isEmpty -> {
                 throw NotFoundException("DataContract ${Identifier.from(contractId)} does not exist")
             }
             prove && response.hasProof() -> {
@@ -935,7 +938,8 @@ class DapiClient(
             retriesLeft // if called recursively
         }
         val address = dapiAddress ?: dapiAddressListProvider.getLiveAddress()
-        val grpcMasternode = DAPIGrpcMasternode(address, timeOut)
+        val allowSelfSignedCertificate = dpp.params is DevNetParams
+        val grpcMasternode = DAPIGrpcMasternode(address, timeOut, allowSelfSignedCertificate)
         lastUsedAddress = address
 
         logger.info(
@@ -1046,6 +1050,7 @@ class DapiClient(
                 e.status.code != Status.INTERNAL.code &&
                 e.status.code != Status.CANCELLED.code &&
                 e.status.code != Status.UNKNOWN.code &&
+                e.status.code != Status.ALREADY_EXISTS.code && // ST was already submitted
                 e.status.code != Status.UNIMPLEMENTED.code // perhaps we contacted an old node
             ) {
                 throw e

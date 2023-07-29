@@ -39,7 +39,7 @@ class DocumentQuery private constructor(
     }
 
     data class Builder(
-        private var where: MutableList<List<Any>>? = null,
+        private var where: MutableList<List<Any>>? = mutableListOf(),
         private var orderBy: MutableList<List<String>>? = null,
         private var limit: Int = -1,
         private var startAt: Identifier? = null,

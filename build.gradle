@@ -2,8 +2,8 @@
 buildscript {
     ext.kotlin_version = '1.4.32'
     ext.dashj_version = '19.1-CJ-SNAPSHOT'
-    ext.dpp_version = '0.24-SNAPSHOT'
-    ext.dapi_client_version = '0.24-SNAPSHOT'
+    ext.dpp_version = '0.25-SNAPSHOT'
+    ext.dapi_client_version = '0.25-SNAPSHOT'
     repositories {
         mavenLocal()
         mavenCentral()
@@ -75,6 +75,7 @@ dependencies {
     implementation "org.dashj:dashj-core:$dashj_version"
     implementation "org.dashj:dashj-bls:1.0.0"
     implementation "org.dashj:dashj-merk:0.22-SNAPSHOT"
+    implementation 'org.dashj:manual:0.25-SNAPSHOT'
     implementation 'com.squareup.retrofit2:retrofit:2.6.4'
     implementation 'com.squareup.retrofit2:converter-gson:2.6.4'
     implementation 'com.squareup.okhttp3:logging-interceptor:3.8.0'
@@ -95,6 +96,9 @@ dependencies {
         exclude module: "protobuf-lite"
     }
     implementation 'io.grpc:grpc-stub:1.54.0' // CURRENT_GRPC_VERSION
+    implementation 'io.grpc:grpc-netty-shaded:1.54.0'  // replace with the latest version
+    implementation 'io.netty:netty-tcnative-boringssl-static:2.0.46.Final'  // replace with the latest version
+
     compileOnly 'javax.annotation:javax.annotation-api:1.3.2'
     implementation 'org.slf4j:slf4j-api:1.7.30'
     implementation 'org.json:json:20190722'

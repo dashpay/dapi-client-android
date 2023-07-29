@@ -9,12 +9,15 @@ package org.dashj.platform.dapiclient.provider
 import com.google.common.base.Stopwatch
 import io.grpc.ManagedChannel
 import io.grpc.ManagedChannelBuilder
+import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder
+import io.grpc.netty.shaded.io.netty.handler.ssl.util.InsecureTrustManagerFactory
 import org.dash.platform.dapi.v0.CoreGrpc
 import org.dash.platform.dapi.v0.PlatformGrpc
 import org.slf4j.LoggerFactory
 import java.util.concurrent.TimeUnit
 
-class DAPIGrpcMasternode(address: DAPIAddress, val timeout: Long) : DAPIMasternode(address) {
+class DAPIGrpcMasternode(address: DAPIAddress, val timeout: Long, val allowSelfSignedCertificate: Boolean) : DAPIMasternode(address) {
     // gRPC properties
     private lateinit var channel: ManagedChannel
     val platform: PlatformGrpc.PlatformBlockingStub by lazy {
@@ -41,9 +44,19 @@ class DAPIGrpcMasternode(address: DAPIAddress, val timeout: Long) : DAPIMasterno
 
     init {
         val watch = Stopwatch.createStarted()
-        channel = ManagedChannelBuilder.forAddress(address.host, address.grpcPort)
-            .useTransportSecurity()
-            .build()
+        if (!allowSelfSignedCertificate) {
+            channel = ManagedChannelBuilder.forAddress(address.host, address.grpcPort)
+                .useTransportSecurity()
+                .build()
+        } else {
+            channel = NettyChannelBuilder.forAddress(address.host, address.grpcPort)
+                .sslContext(
+                    GrpcSslContexts.forClient()
+                        .trustManager(InsecureTrustManagerFactory.INSTANCE) // a trust manager that trusts all certificates
+                        .build()
+                )
+                .build()
+        }
 
         logger.debug("Connecting to GRPC host: ${address.host}:${address.grpcPort} (time: $watch)")
     }
