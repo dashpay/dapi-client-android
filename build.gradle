@@ -96,6 +96,9 @@ dependencies {
         exclude module: "protobuf-lite"
     }
     implementation 'io.grpc:grpc-stub:1.54.0' // CURRENT_GRPC_VERSION
+    implementation 'io.grpc:grpc-netty-shaded:1.54.0'  // replace with the latest version
+    implementation 'io.netty:netty-tcnative-boringssl-static:2.0.46.Final'  // replace with the latest version
+
     compileOnly 'javax.annotation:javax.annotation-api:1.3.2'
     implementation 'org.slf4j:slf4j-api:1.7.30'
     implementation 'org.json:json:20190722'
