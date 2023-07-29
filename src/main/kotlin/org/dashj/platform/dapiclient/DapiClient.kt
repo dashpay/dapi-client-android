@@ -479,6 +479,9 @@ class DapiClient(
                     throw NotFoundException("Identity $identityId does not exist in the proof")
                 }
             }
+            response.identity.isEmpty -> {
+                return throw NotFoundException("Identity $identityId does not exist")
+            }
             else -> {
                 return GetIdentityResponse(response)
             }
@@ -595,7 +598,7 @@ class DapiClient(
         val method = GetContractMethod(contractIdByteArray, prove)
         val response = grpcRequest(method, retryCallback = retryCallback) as PlatformOuterClass.GetDataContractResponse?
         return when {
-            response == null -> {
+            response == null || response.dataContract.isEmpty -> {
                 throw NotFoundException("DataContract ${Identifier.from(contractId)} does not exist")
             }
             prove && response.hasProof() -> {
@@ -935,7 +938,8 @@ class DapiClient(
             retriesLeft // if called recursively
         }
         val address = dapiAddress ?: dapiAddressListProvider.getLiveAddress()
-        val grpcMasternode = DAPIGrpcMasternode(address, timeOut)
+        val allowSelfSignedCertificate = dpp.params is DevNetParams
+        val grpcMasternode = DAPIGrpcMasternode(address, timeOut, allowSelfSignedCertificate)
         lastUsedAddress = address
 
         logger.info(
@@ -1046,6 +1050,7 @@ class DapiClient(
                 e.status.code != Status.INTERNAL.code &&
                 e.status.code != Status.CANCELLED.code &&
                 e.status.code != Status.UNKNOWN.code &&
+                e.status.code != Status.ALREADY_EXISTS.code && // ST was already submitted
                 e.status.code != Status.UNIMPLEMENTED.code // perhaps we contacted an old node
             ) {
                 throw e
