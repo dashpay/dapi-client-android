@@ -6,13 +6,14 @@
  */
 package org.dashj.platform.dapiclient
 
+import org.bitcoinj.params.AbsintheDevNetParams
 import org.bitcoinj.params.TestNet3Params
 import org.dashj.platform.dpp.DashPlatformProtocol
 import org.junit.jupiter.api.Test
 
 class DapiClientTest : BaseTest() {
 
-    val PARAMS = TestNet3Params.get()
+    val PARAMS = AbsintheDevNetParams.get()
     val stateRepository = StateRepositoryMock()
     val dpp = DashPlatformProtocol(stateRepository, PARAMS)
     val client = DapiClient(PARAMS.defaultHPMasternodeList.toList(), dpp)

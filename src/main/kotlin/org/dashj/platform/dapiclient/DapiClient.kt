@@ -19,6 +19,7 @@ import org.bitcoinj.core.BloomFilter
 import org.bitcoinj.core.Sha256Hash
 import org.bitcoinj.core.Utils
 import org.bitcoinj.evolution.SimplifiedMasternodeListManager
+import org.bitcoinj.params.DevNetParams
 import org.bitcoinj.quorums.LLMQParameters
 import org.dash.platform.dapi.v0.CoreOuterClass
 import org.dash.platform.dapi.v0.PlatformOuterClass
@@ -375,8 +376,7 @@ class DapiClient(
         when {
             waitForResult == null -> {
                 logger.info("broadcastStateTransitionAndWait: failure: Timeout or no proof returned")
-                // TODO: uncomment the next line when proofs are enabled
-                // throw StateTransitionBroadcastException(2, "Timeout", ByteArray(0))
+                throw StateTransitionBroadcastException(2, "Timeout", ByteArray(0))
 
                 // TODO: remove this line when proofs are enabled
                 logger.info("broadcastStateTransitionAndWait: success ($successRate)")

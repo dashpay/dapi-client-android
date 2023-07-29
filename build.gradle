@@ -75,6 +75,7 @@ dependencies {
     implementation "org.dashj:dashj-core:$dashj_version"
     implementation "org.dashj:dashj-bls:1.0.0"
     implementation "org.dashj:dashj-merk:0.22-SNAPSHOT"
+    implementation 'org.dashj:manual:0.25-SNAPSHOT'
     implementation 'com.squareup.retrofit2:retrofit:2.6.4'
     implementation 'com.squareup.retrofit2:converter-gson:2.6.4'
     implementation 'com.squareup.okhttp3:logging-interceptor:3.8.0'

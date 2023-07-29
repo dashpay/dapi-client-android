@@ -1,5 +1,6 @@
 package org.dashj.platform.dapiclient
 
+import com.google.common.base.Converter
 import com.google.common.base.Stopwatch
 import com.hashengineering.crypto.X11
 import io.grpc.Status
@@ -10,8 +11,10 @@ import org.bitcoinj.core.Context
 import org.bitcoinj.core.ECKey
 import org.bitcoinj.core.Sha256Hash
 import org.bitcoinj.core.Utils
+import org.bitcoinj.params.AbsintheDevNetParams
 import org.bitcoinj.params.DevNetParams
 import org.bitcoinj.params.TestNet3Params
+import org.dashj.dpp.DPP
 import org.dashj.platform.dapiclient.errors.NotFoundException
 import org.dashj.platform.dapiclient.model.DocumentQuery
 import org.dashj.platform.dapiclient.provider.DAPIAddress
@@ -19,19 +22,20 @@ import org.dashj.platform.dapiclient.provider.ListDAPIAddressProvider
 import org.dashj.platform.dpp.DashPlatformProtocol
 import org.dashj.platform.dpp.document.Document
 import org.dashj.platform.dpp.identifier.Identifier
+import org.dashj.platform.dpp.identity.IdentityCreateTransition
+import org.dashj.platform.dpp.identity.IdentityFactory
 import org.dashj.platform.dpp.toHex
+import org.dashj.platform.dpp.util.Cbor
+import org.dashj.platform.dpp.util.Converters
 import org.json.JSONObject
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.fail
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.io.File
 
 class DapiGrpcClientTest : BaseTest() {
 
-    val PARAMS = TestNet3Params.get()
+    val PARAMS = AbsintheDevNetParams.get()
     val CONTEXT = Context.getOrCreate(PARAMS)
     val masternodeList = PARAMS.defaultHPMasternodeList.toList()
     val dpnsContractId = SystemIds.dpnsDataContractId // DPNS contract
@@ -155,7 +159,7 @@ class DapiGrpcClientTest : BaseTest() {
                 .orderBy("normalizedLabel", true)
                 .build()
             val documentsResponse = client.getDocuments(dpnsContractId.toBuffer(), "domain", query)
-
+            assertTrue(documentsResponse.documents.isNotEmpty())
             val jsonDpnsFile = File("src/test/resources/dpns-contract.json").readText()
             val jsonDpns = JSONObject(jsonDpnsFile)
             val rawContract = jsonDpns.toMap()
@@ -210,6 +214,15 @@ class DapiGrpcClientTest : BaseTest() {
     }
 
     @Test
+    fun getIdentityTest() {
+        val dppA = DPP
+        val id = "7633TgdebkBWnBQ7peF56mxLaGSTBxuzCavHYbN6ZW8V";
+        val result = client.getIdentity(Identifier.from(id).toBuffer())
+        assertEquals(125, result.identity.size)
+        print(IdentityFactory(dpp, stateRepository).createFromBuffer(result.identity).toJSON())
+    }
+
+    @Test
     fun getIdentityFromBadPubKeyBytes() {
         val key = ECKey()
 
@@ -259,8 +272,8 @@ class DapiGrpcClientTest : BaseTest() {
             "profile",
             DocumentQuery.builder()
                 .where("\$ownerId", "==", Identifier.from("3HSUPuMgR5qpZt1y5NbE2BBheM11yLRXKZoqdsKgxVNt"))
-                .where("\$updatedAt", ">", 0)
-                .orderBy("\$updatedAt", true)
+                //.where("\$updatedAt", ">", 0)
+                //.orderBy("\$updatedAt", true)
                 .build()
         )
 
@@ -319,8 +332,8 @@ class DapiGrpcClientTest : BaseTest() {
                 "profile",
                 DocumentQuery.builder()
                     .where("\$ownerId", "in", Identifier.from("3HSUPuMgR5qpZt1y5NbE2BBheM11yLRXKZoqdsKgxVNt"))
-                    .where("\$updatedAt", ">", 0)
-                    .orderBy("\$updatedAt")
+                    //.where("\$updatedAt", ">", 0)
+                    //.orderBy("\$updatedAt")
                     .orderBy("\$ownerId")
                     .build()
             )
@@ -333,5 +346,15 @@ class DapiGrpcClientTest : BaseTest() {
                 .where("saltedDomainHash", "==", Sha256Hash.ZERO_HASH.bytes)
                 .build()
         )
+    }
+
+    @Test
+    fun broadcastStateTransitionTest() {
+        val st = "a5647479706502697369676e617475726558411ff1764ead95ff03f90b177fa138bd0b510309da5ac75b6b0498d18f4a1f55036c77d6626b9dc660b54ca9f7085fef1a9070d2694e064175c6b68cb9d947b2017e6a7075626c69634b65797382a76269640064646174615821038035e6856dd646654eb1a76dd9bd93af0e21889feb68a652fb8360974be3b6a964747970650067707572706f73650068726561644f6e6c79f4697369676e617475726558412085d4139c1f81b223beee448f92b117fd489a995424102c40b2ca4ec6cd31ce7e7b9410e2aa8a88f47f6fcf757bdd801b7f8f091c3bf803f850c64ee24e7c62e96d73656375726974794c6576656c00a762696401646461746158210396605ff4ca17f88a6294d8ce5b65d7ae797ab7ef61f7ff38acdf036cf9c61c0d64747970650067707572706f73650068726561644f6e6c79f4697369676e6174757265584120ca609cbb2f4a2fe563ffb4d093e59e3f2bb3f3bdb56cf7fe2ddf7b4e16f43d685d1a56caac7e8476adb7e2cc131db1b9a3a3fa78fa10f36724d20fb69de69d5a6d73656375726974794c6576656c026e61737365744c6f636b50726f6f66a3647479706501686f7574506f696e7458249683e679611f3c2f0bfaf7f8ee55f9312fbf059a421e36ab5d3c4a854946ca220000000075636f7265436861696e4c6f636b65644865696768741a0001edce6f70726f746f636f6c56657273696f6e01"
+        val map = Cbor.decode(Converters.fromHex(st))
+        map["signature"] = ByteArray(65)
+        val icst = IdentityCreateTransition(AbsintheDevNetParams.get(), map)
+        assertTrue(DPP.validateIdentityCreateTransition(icst.toObject()))
+        client.broadcastStateTransitionInternal(icst, false)
     }
 }
