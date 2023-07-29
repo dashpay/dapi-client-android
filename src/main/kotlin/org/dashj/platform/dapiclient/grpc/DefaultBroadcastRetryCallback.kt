@@ -102,6 +102,7 @@ open class BroadcastRetryCallback(
         when (e.status.code) {
             Status.UNAUTHENTICATED.code -> return false
             Status.FAILED_PRECONDITION.code -> return false
+            Status.ALREADY_EXISTS.code -> return false
         }
         if (grpcMethod is BroadcastStateTransitionMethod) {
             if (e.status.code == Status.INVALID_ARGUMENT.code) {
